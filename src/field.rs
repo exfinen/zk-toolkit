@@ -39,6 +39,17 @@ impl <'a> FieldNum<'a> {
       FieldNum { f: self.f, v: c.clone() }
     }
   }
+
+  pub fn sub(&self, other: &FieldNum) -> FieldNum {
+    if self.v < other.v {
+      let diff = other.v.clone() - self.v.clone();
+      let v = self.f.order.clone() - diff;
+      FieldNum { f: self.f, v }
+    } else {
+      let v = self.v.clone() - other.v.clone();
+      FieldNum { f: self.f, v }
+    }
+  }
 }
 
 #[cfg(test)]
@@ -51,7 +62,6 @@ mod tests {
     let a = f.gen_element(BigUint::from(9u32));
     let b = f.gen_element(BigUint::from(2u32));
     let c = a.add(&b);
-
     assert_eq!(c.v, BigUint::from(0u32));
   }
 
@@ -61,7 +71,6 @@ mod tests {
     let a = f.gen_element(BigUint::from(9u32));
     let b = f.gen_element(BigUint::from(1u32));
     let c = a.add(&b);
-
     assert_eq!(c.v, BigUint::from(10u32));
   }
 
@@ -71,7 +80,33 @@ mod tests {
     let a = f.gen_element(BigUint::from(9u32));
     let b = f.gen_element(BigUint::from(3u32));
     let c = a.add(&b);
-
     assert_eq!(c.v, BigUint::from(1u32));
+  }
+
+  #[test]
+  fn test_sub_smaller_val() {
+    let f = Field::new(BigUint::from(11u32));
+    let a = f.gen_element(BigUint::from(9u32));
+    let b = f.gen_element(BigUint::from(2u32));
+    let c = a.sub(&b);
+    assert_eq!(c.v, BigUint::from(7u32));
+  }
+
+  #[test]
+  fn test_sub_eq_val() {
+    let f = Field::new(BigUint::from(11u32));
+    let a = f.gen_element(BigUint::from(9u32));
+    let b = f.gen_element(BigUint::from(9u32));
+    let c = a.sub(&b);
+    assert_eq!(c.v, f.zero);
+  }
+
+  #[test]
+  fn test_sub_larger_val() {
+    let f = Field::new(BigUint::from(11u32));
+    let a = f.gen_element(BigUint::from(9u32));
+    let b = f.gen_element(BigUint::from(10u32));
+    let c = a.sub(&b);
+    assert_eq!(c.v, BigUint::from(10u32));
   }
 }
