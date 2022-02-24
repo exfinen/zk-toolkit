@@ -16,17 +16,18 @@ impl Field {
   }
 
   pub fn gen_element(&self, v: BigUint) -> FieldNum {
-    if v >= self.order {
-      FieldNum::new(self, v % self.order.clone())
-    } else {
-      FieldNum::new(self, v) 
-    }
+    FieldNum::new(self, v)
   }
 }
 
 impl <'a> FieldNum<'a> {
   pub fn new(f: &'a Field, v: BigUint) -> Self {
-    FieldNum { f, v }
+    if v >= f.order {
+      let v = v % f.order.clone();
+      FieldNum { f, v }
+    } else {
+      FieldNum { f, v }
+    }
   }
 
   pub fn add(&self, other: &FieldNum) -> FieldNum {
