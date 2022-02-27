@@ -108,7 +108,6 @@ impl <'a> FieldNum<'a> {
       y1 = y2;
     }
 
-    //println!("x0={}, x1={}", x0, x1);
     // if the result is not field element, convert it to field element
     let mut new_v = x0;
     if new_v < zero.clone() {
@@ -387,7 +386,6 @@ mod tests {
       let f = Field::new(BigUint::from(x.order));
       let a = f.gen_element(BigUint::from(x.v));
       let inv = a.inv()?;
-      //println!("inv of {} (mod {}): exp={}, act={}", x.v, x.order, x.exp, inv.v);
       assert_eq!(inv.v, BigUint::from(x.exp));
     }
     Ok(())
