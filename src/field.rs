@@ -1,4 +1,4 @@
-use num_bigint::BigUint;
+use num_bigint::{BigUint, BigInt, ToBigInt, ToBigUint};
 
 pub struct Field {
   order: BigUint,
@@ -13,8 +13,8 @@ pub struct FieldNum<'a> {
 
 impl Field {
   pub fn new(order: BigUint) -> Self {
-    Field { 
-      order, 
+    Field {
+      order,
       zero: BigUint::from(0u32),
       one: BigUint::from(1u32),
     }
@@ -66,28 +66,61 @@ impl <'a> FieldNum<'a> {
     }
   }
 
-  pub fn inverse(&self) -> Result<FieldNum, String> {
-    if (self.v == self.f.zero) {
-      return Err("division by zero".to_string());
+  pub fn inv(&self) -> Result<FieldNum, String> {
+    if self.v == self.f.zero {
+      return Err("cannot find inverse of zero".to_string());
     }
-    let mut t = self.f.zero.clone();
-    let mut r = self.f.order.clone();
-    let mut nt = self.f.one.clone();
-    let mut nr = self.v.clone() % self.f.order.clone();
+    let zero = self.f.zero.to_bigint().unwrap();
+    let one = self.f.one.to_bigint().unwrap();
 
-    while nr != self.f.zero {
-      let q = r / nr.clone();
-      t = nt.clone();
-      nt = t.clone() - q.clone() * nt;
-      r = nr.clone();
-      nr = r.clone() - q * nr;
+    println!("self.v={}", self.v);
+
+    // x0*a + y0*b = a
+    // x1*a + y1*b = b
+    // let mut r0 = self.v.to_bigint().unwrap();  // b
+    // let mut r1 = self.f.order.to_bigint().unwrap();  // a
+    let mut r0 = self.f.order.to_bigint().unwrap();  // a
+    let mut r1 = self.v.to_bigint().unwrap();  // b
+    let mut x0 = one.clone();
+    let mut y0 = zero.clone();
+    let mut x1 = zero.clone();
+    let mut y1 = one.clone();
+
+    while r1 != zero {
+      println!("x0={}, y0={}, r0={}", x0, y0, r0);
+      println!("x1={}, y1={}, r1={}", x1, y1, r1);
+      // a mod b
+      // = a - q*b
+      // = (x0*a + y0*b) - q*(x1*a + y1*b)
+      // = x0*a - q*x1*a + y0*b - q*y1*b
+      // = (x0 - x1*q)*a + (y0 - y1*q)*b
+      // = r
+      let q = r0.clone() / r1.clone();
+      let r2 = r0.clone() % r1.clone();
+      let x2 = x0 - x1.clone() * q.clone();
+      let y2 = y0 - y1.clone() * q.clone();
+      let r2a = x2.clone() * self.f.order.to_bigint().unwrap() + y2.clone() * self.v.to_bigint().unwrap();
+      println!("q={}, x2={}, y2={}", q, x2, y2);
+
+      println!("new r={}, calc-r={}", r2, r2a);
+
+      // do next calculattion based on new and previous equations
+      r0 = r1;
+      r1 = r2;
+      x0 = x1;
+      y0 = y1;
+      x1 = x2;
+      y1 = y2;
     }
 
-    if t < self.f.zero {
-      let v = t + self.f.order.clone();
-      Ok(FieldNum { f: self.f, v })
+    println!("result x = {}", x0); // last eq's x when r became 0
+
+
+    if r1 < zero {
+      let v = r1 + self.f.order.to_bigint().unwrap();
+      Ok(FieldNum { f: self.f, v: v.to_biguint().unwrap() }) // TODO use loop
     } else {
-      Ok(FieldNum { f: self.f, v: t })
+      Ok(FieldNum { f: self.f, v: r1.to_biguint().unwrap() })
     }
   }
 }
@@ -95,7 +128,7 @@ impl <'a> FieldNum<'a> {
 #[cfg(test)]
 mod tests {
   use super::*;
-  
+
   #[test]
   fn test_add_eq_order_result() {
     let f = Field::new(BigUint::from(11u32));
@@ -178,10 +211,10 @@ mod tests {
   }
 
   #[test]
-  fn test_inverse() -> Result<(), String> {
-    let f = Field::new(BigUint::from(11u32));
-    let a = f.gen_element(BigUint::from(3u32));
-    assert_eq!(a.inverse()?.v, BigUint::from(0u32));
+  fn test_inv() -> Result<(), String> {
+    let f = Field::new(BigUint::from(53u32));
+    let a = f.gen_element(BigUint::from(97u32));
+    assert_eq!(a.inv()?.v, BigUint::from(0u32));
     Ok(())
   }
 }
