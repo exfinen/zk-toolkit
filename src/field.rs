@@ -1,4 +1,4 @@
-use num_bigint::{BigUint, BigInt, ToBigInt, ToBigUint};
+use num_bigint::{BigUint, ToBigInt};
 
 pub struct Field {
   order: BigUint,
@@ -393,14 +393,12 @@ mod tests {
     Ok(())
   }
 
-  use std::str::FromStr;
-  use num_bigint::ParseBigIntError;
-
   #[test]
   fn test_inv_secp256k1() -> Result<(), String> {
     let p = BigUint::parse_bytes(b"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F", 16).unwrap();
     let f = Field::new(p);
     let a = f.gen_element(BigUint::from(1112121212121u64));
+
     let exp = BigUint::parse_bytes(b"52624297956533532283067125375510330718705195823487497799082320305224600546911", 10).unwrap();
     let inv = a.inv()?;
     assert_eq!(exp, inv.v);
