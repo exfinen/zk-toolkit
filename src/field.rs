@@ -6,9 +6,10 @@ pub struct Field {
   one: BigUint,
 }
 
+#[derive(Clone)]
 pub struct FieldNum<'a> {
   f: &'a Field,
-  v: BigUint,
+  pub v: BigUint,
 }
 
 impl Field {
@@ -35,7 +36,7 @@ impl <'a> FieldNum<'a> {
     }
   }
 
-  pub fn add(&self, other: &FieldNum) -> FieldNum {
+  pub fn add(self, other: FieldNum<'a>) -> FieldNum {
     let c = self.v.clone() + other.v.clone();
     if c >= self.f.order {
       let v = c - self.f.order.clone();
@@ -45,7 +46,7 @@ impl <'a> FieldNum<'a> {
     }
   }
 
-  pub fn sub(&self, other: &FieldNum) -> FieldNum {
+  pub fn sub(self, other: FieldNum<'a>) -> FieldNum {
     if self.v < other.v {
       let diff = other.v.clone() - self.v.clone();
       let v = self.f.order.clone() - diff;
@@ -56,7 +57,7 @@ impl <'a> FieldNum<'a> {
     }
   }
 
-  pub fn mul(&self, other: &FieldNum) -> FieldNum {
+  pub fn mul(self, other: FieldNum<'a>) -> FieldNum {
     let v = (self.v.clone() * other.v.clone()) % self.f.order.clone();
     if v >= self.f.zero {
       FieldNum { f: self.f, v }
@@ -67,7 +68,7 @@ impl <'a> FieldNum<'a> {
   }
 
   // based on extended Euclidean algorithm
-  pub fn inv(&self) -> Result<FieldNum, String> {
+  pub fn inv(self) -> Result<FieldNum<'a>, String> {
     if self.v == self.f.zero {
       return Err("cannot find inverse of zero".to_string());
     }
@@ -121,6 +122,12 @@ impl <'a> FieldNum<'a> {
     }
     Ok(FieldNum { f: self.f, v: new_v.to_biguint().unwrap() })
   }
+
+  pub fn div(self, other: FieldNum<'a>) -> Result<FieldNum, String> {
+    let inv = other.inv()?;
+    let res = self.clone().mul(inv);
+    Ok(FieldNum { f: self.f, v: res.v })
+  }
 }
 
 #[cfg(test)]
@@ -132,7 +139,7 @@ mod tests {
     let f = Field::new(BigUint::from(11u32));
     let a = f.gen_element(BigUint::from(9u32));
     let b = f.gen_element(BigUint::from(2u32));
-    let c = a.add(&b);
+    let c = a.add(b);
     assert_eq!(c.v, BigUint::from(0u32));
   }
 
@@ -141,7 +148,7 @@ mod tests {
     let f = Field::new(BigUint::from(11u32));
     let a = f.gen_element(BigUint::from(9u32));
     let b = f.gen_element(BigUint::from(1u32));
-    let c = a.add(&b);
+    let c = a.add(b);
     assert_eq!(c.v, BigUint::from(10u32));
   }
 
@@ -150,7 +157,7 @@ mod tests {
     let f = Field::new(BigUint::from(11u32));
     let a = f.gen_element(BigUint::from(9u32));
     let b = f.gen_element(BigUint::from(3u32));
-    let c = a.add(&b);
+    let c = a.add(b);
     assert_eq!(c.v, BigUint::from(1u32));
   }
 
@@ -159,7 +166,7 @@ mod tests {
     let f = Field::new(BigUint::from(11u32));
     let a = f.gen_element(BigUint::from(9u32));
     let b = f.gen_element(BigUint::from(2u32));
-    let c = a.sub(&b);
+    let c = a.sub(b);
     assert_eq!(c.v, BigUint::from(7u32));
   }
 
@@ -168,7 +175,7 @@ mod tests {
     let f = Field::new(BigUint::from(11u32));
     let a = f.gen_element(BigUint::from(9u32));
     let b = f.gen_element(BigUint::from(9u32));
-    let c = a.sub(&b);
+    let c = a.sub(b);
     assert_eq!(c.v, f.zero);
   }
 
@@ -177,7 +184,7 @@ mod tests {
     let f = Field::new(BigUint::from(11u32));
     let a = f.gen_element(BigUint::from(9u32));
     let b = f.gen_element(BigUint::from(10u32));
-    let c = a.sub(&b);
+    let c = a.sub(b);
     assert_eq!(c.v, BigUint::from(10u32));
   }
 
@@ -186,7 +193,7 @@ mod tests {
     let f = Field::new(BigUint::from(11u32));
     let a = f.gen_element(BigUint::from(2u32));
     let b = f.gen_element(BigUint::from(5u32));
-    let c = a.mul(&b);
+    let c = a.mul(b);
     assert_eq!(c.v, BigUint::from(10u32));
   }
 
@@ -195,7 +202,7 @@ mod tests {
     let f = Field::new(BigUint::from(11u32));
     let a = f.gen_element(BigUint::from(1u32));
     let b = f.gen_element(BigUint::from(11u32));
-    let c = a.mul(&b);
+    let c = a.mul(b);
     assert_eq!(c.v, BigUint::from(0u32));
   }
 
@@ -204,7 +211,7 @@ mod tests {
     let f = Field::new(BigUint::from(11u32));
     let a = f.gen_element(BigUint::from(1u32));
     let b = f.gen_element(BigUint::from(11u32));
-    let c = a.mul(&b);
+    let c = a.mul(b);
     assert_eq!(c.v, BigUint::from(0u32));
   }
 
@@ -389,6 +396,15 @@ mod tests {
       assert_eq!(inv.v, BigUint::from(x.exp));
     }
     Ok(())
+  }
+
+  #[test]
+  fn test_div() {
+    let f = Field::new(BigUint::from(11u32));
+    let a = f.gen_element(BigUint::from(4u32));
+    let b = f.gen_element(BigUint::from(2u32));
+    let c = a.div(b).unwrap();
+    assert_eq!(c.v, BigUint::from(2u32));
   }
 
   #[test]
