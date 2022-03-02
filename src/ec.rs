@@ -20,28 +20,33 @@ impl <'a> Ec <'a> {
 
   pub fn add(&self, p1: &'a EcPoint, p2: &'a EcPoint) -> EcPoint<'a> {
     // for now, assumes that p1 != p2
-    let m = (p2.x.sub(&p1.y)).div(&p2.x.sub(&p1.x)).unwrap();
 
-    // equation of the line that intersects w/ the curve at p1 and p2:
+    // equation of the line that intersects the curve at p1 and p2:
     // y = m(x − x_1) + y_1
-    // (m(x − x_1) + y_1)^2 = x3 + Ax + B
-    // 0 = x^3 - m^2 x^2 + ...
-
+    // (m(x − x_1) + y_1)^2 = x^3 + Ax + B  // substitute the y of Wirestrass eq w/ above
+    // 0 = x^3 - m^2 x^2 + ...   // move LHS to RHS
+    //
+    // using below equation, x-coordinate of the 3rd point can be calculated
+    // r and s are the x-coordinates of p1 and p2, and t is the x-coordinate 
+    // of the 3rd point
     // x^3 + ax^2 + bx + c = (x-r)(x-s)(x-t) = x^3 - (r+s+t)x^2 ...
     // r + s + t = -a
+    let m = (p2.x.sub(&p1.y)).div(&p2.x.sub(&p1.x)).unwrap();
 
     let mm = m.mul(&m);
 
-    // the 3rd point the line intersects w/ the curve
+    let x = mm.sub(&p1.x).sub(&p2.x);
+
+    // the 3rd point that the line intersects the curve
     let y = m.mul(&(mm.sub(&p1.x).sub(&p2.x)).sub(&p1.x).add(&p1.y));
 
-    // reflect the 3rd point accross the x-axis 
+    // reflect the 3rd point across the x-axis 
     let p3y = mm.mul(&p1.x.sub(&(mm.sub(&p1.x)).sub(&p2.x))).sub(&p1.y);
 
     EcPoint {
       f: self.f,
-      x: xx,
-      y,
+      x,
+      y: p3y,
     } 
   }
 }
