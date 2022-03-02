@@ -18,11 +18,11 @@ impl <'a> Ec <'a> {
     }
   }
 
-  pub fn add(self, p1: &'a EcPoint, p2: &'a EcPoint) -> EcPoint<'a> {
+  pub fn add(&self, p1: &'a EcPoint, p2: &'a EcPoint) -> EcPoint<'a> {
     // for now, assumes that p1 != p2
-    let aa = p2.y.clone().sub(p1.y.clone());
-    let a1 = p2.x.clone().sub(p1.x.clone());
-    let m = aa.div(a1).unwrap();
+    let a0 = p2.x.sub(&p1.y);
+    let a1 = p2.x.sub(&p1.x);
+    let m = a0.div(&a1).unwrap();
 
     // equation of the line that intersects w/ the curve at p1 and p2:
     // y = m(x − x_1) + y_1
@@ -32,24 +32,27 @@ impl <'a> Ec <'a> {
     // x^3 + ax^2 + bx + c = (x-r)(x-s)(x-t) = x^3 - (r+s+t)x^2 ...
     // r + s + t = -a
 
-    let mm = m.clone().mul(m.clone());
+    let mm = m.mul(&m);
+    let mm1 = mm.clone();
+    let mm2 = mm.clone();
 
-    // // the 3rd point the line intersects w/ the curve
-    let mm_sub_p1x = mm.clone().sub(p1.x.clone());
-    let x = mm_sub_p1x.sub(p2.x.clone());
-    let y = m.clone().mul(x.sub(p1.x.clone())).add(p1.y.clone());
+    // the 3rd point the line intersects w/ the curve
+    let mm3 = mm1.sub(&p1.x);
+    let x = mm3.sub(&p2.x);
+    let xx = x.sub(&p1.x).add(&p1.y);
+    let y = m.mul(&xx);
 
-    // // reflect the 3rd point accross the x-axis 
-    let cc = mm.clone().sub(p1.x.clone());
-    let p3x = cc.sub(p2.x.clone());
-    let bb = p1.x.clone().sub(p3x);
-    let p3y = m.clone().mul(bb).sub(p1.y.clone());
+    // reflect the 3rd point accross the x-axis 
+    let cc = mm.sub(&p1.x);
+    let p3x = cc.sub(&p2.x);
+    let bb = p1.x.sub(&p3x);
+    let p3y = mm2.mul(&bb).sub(&p1.y);
 
     EcPoint {
       f: self.f,
-      x: m.clone(),
-      y: m.clone(),
-    }
+      x: xx,
+      y,
+    } 
   }
 }
 
