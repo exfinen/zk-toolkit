@@ -1,2 +1,2 @@
 mod ec;
-mod field;
+pub mod field;

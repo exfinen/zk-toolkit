@@ -1,10 +1,12 @@
 use super::field::{Field, FieldNum};
 use num_bigint::BigUint;
 
+#[allow(dead_code)]
 pub struct Ec<'a> {
   f: &'a Field,
 }
 
+#[allow(dead_code)]
 pub struct EcPoint<'a> {
   f: &'a Field,
   x: FieldNum<'a>,
@@ -12,12 +14,14 @@ pub struct EcPoint<'a> {
 }
 
 impl <'a> Ec <'a> {
-  pub fn new(f: &'a Field, p: BigUint) -> Self {
+  #[allow(dead_code)]
+  pub fn new(f: &'a Field, _p: BigUint) -> Self {
     Ec {
       f,
     }
   }
 
+  #[allow(dead_code)]
   pub fn add(&self, p1: &'a EcPoint, p2: &'a EcPoint) -> EcPoint<'a> {
     // for now, assumes that p1 != p2
 
@@ -38,7 +42,7 @@ impl <'a> Ec <'a> {
     let x = mm.sub(&p1.x).sub(&p2.x);
 
     // the 3rd point that the line intersects the curve
-    let y = m.mul(&(mm.sub(&p1.x).sub(&p2.x)).sub(&p1.x).add(&p1.y));
+    let _y = m.mul(&(mm.sub(&p1.x).sub(&p2.x)).sub(&p1.x).add(&p1.y));
 
     // reflect the 3rd point across the x-axis 
     let p3y = mm.mul(&p1.x.sub(&(mm.sub(&p1.x)).sub(&p2.x))).sub(&p1.y);
