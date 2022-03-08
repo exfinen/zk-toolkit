@@ -9,19 +9,19 @@ pub struct WeierstrassEquation<'a> {
 }
 
 #[allow(dead_code)]
+#[derive(Debug)]
 pub struct EcPoint<'a> {
   f: &'a Field,
   x: FieldNum<'a>,
   y: FieldNum<'a>,
 }
 
+#[allow(dead_code)]
 impl <'a> WeierstrassEquation <'a> {
-  #[allow(dead_code)]
   pub fn new(f: &'a Field, a: FieldNum<'a>, b: FieldNum<'a>) -> Self {
     WeierstrassEquation { f, a, b }
   }
 
-  #[allow(dead_code)]
   pub fn add(&self, p1: &'a EcPoint, p2: &'a EcPoint) -> EcPoint<'a> {
     // for now, this code assumes that p1 != p2
 
@@ -52,7 +52,7 @@ impl <'a> WeierstrassEquation <'a> {
     // using (2), the coefficient of x^2 term of the intersecting line is:
     // m^2 = r + s + t
     // 
-    // replace r and s with the known 2 roots - p1.x and p2.x:
+    // substitute r and s with the known 2 roots - p1.x and p2.x:
     // m^2 = p1.x + p2. + t
     // t = m^2 - p1.x - p2.x
     //
@@ -65,7 +65,7 @@ impl <'a> WeierstrassEquation <'a> {
     // p3.y = m(p3.x − p1.x) + p1.y
     let p3y = m.mul(&p3x.sub(&p1.x)).add(&p1.y);
     
-    // then (p3.x, -p3.y) the result of adding p1 and p2
+    // then (p3.x, -p3.y) is the result of adding p1 and p2
     let p3y_neg = p3y.neg();
     
     EcPoint {
@@ -78,25 +78,37 @@ impl <'a> WeierstrassEquation <'a> {
 
 #[cfg(test)]
 mod tests {
-  //use super::*;
+  use super::*;
   use num_bigint::BigUint;
 
   #[test]
   fn test_secp256k1() {
-    // a = 0, b = 7
+    // in secp256k1, a = 0, b = 7 i.e.
     // E: y^2 = x^3 + 0x + 7
-    
+
     // field order
     let p = BigUint::parse_bytes(b"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F", 16).unwrap();
+    let f = Field::new(p);
+    let a = f.gen_element(BigUint::from(0u32));
+    let b = f.gen_element(BigUint::from(7u32));
 
-    // base point G
-    let _g_x = BigUint::parse_bytes(b"79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798", 16).unwrap();
-    let _g_y = BigUint::parse_bytes(b"483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8", 16).unwrap(); 
+    // curve
+    let e = WeierstrassEquation::new(&f, a, b); 
 
-    // order of G
-    let n = BigUint::parse_bytes(b"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", 16).unwrap();
+    // base point
+    let gx = BigUint::parse_bytes(b"79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798", 16).unwrap();
+    let gy = BigUint::parse_bytes(b"483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8", 16).unwrap();
+    let g = EcPoint {
+      f: &f,
+      x: f.gen_element(gx),
+      y: f.gen_element(gy),
+    };
+    println!("{:?}", &g);
 
-    println!("p={} n={}", p, n);
+    let gg = e.add(&g, &g);
+    // order of base point
+    //let n = BigUint::parse_bytes(b"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", 16).unwrap();
 
+    println!("x={}, y={}", gg.x.v, gg.y.v)
   }
 }

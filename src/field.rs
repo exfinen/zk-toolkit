@@ -1,12 +1,13 @@
 use num_bigint::{BigUint, ToBigInt};
 
+#[derive(Debug)]
 pub struct Field {
   order: BigUint,
   zero: BigUint,
   one: BigUint,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct FieldNum<'a> {
   f: &'a Field,
   pub v: BigUint,
