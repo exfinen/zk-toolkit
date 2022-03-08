@@ -7,12 +7,6 @@ pub struct Field {
   one: BigUint,
 }
 
-#[derive(Clone, Debug)]
-pub struct FieldNum<'a> {
-  f: &'a Field,
-  pub v: BigUint,
-}
-
 impl Field {
   pub fn new(order: BigUint) -> Self {
     Field {
@@ -22,54 +16,76 @@ impl Field {
     }
   }
 
-  pub fn element(&self, v: BigUint) -> FieldNum {
-    FieldNum::new(self, v)
+  pub fn element(&self, v: BigUint) -> FieldElem {
+    FieldElem::new(self, v)
   }
 }
 
-impl <'a> FieldNum<'a> {
+impl PartialEq for Field {
+  fn eq(&self, other: &Self) -> bool {
+    self.order == other.order
+  }
+}
+
+impl Eq for Field {}
+
+#[derive(Clone, Debug)]
+pub struct FieldElem<'a> {
+  f: &'a Field,
+  pub v: BigUint,
+}
+
+impl <'a> PartialEq for FieldElem<'a> {
+  fn eq(&self, other: &Self) -> bool {
+    self.f == other.f && self.v == other.v
+  }
+}
+
+impl <'a> Eq for FieldElem<'a> {}
+
+impl <'a> FieldElem<'a> {
   pub fn new(f: &'a Field, v: BigUint) -> Self {
     if v >= f.order {
       let v = v % &f.order;
-      FieldNum { f, v }
+      FieldElem { f, v }
     } else {
-      FieldNum { f, v }
+      FieldElem { f, v }
     }
   }
 
-  pub fn add(&self, other: &FieldNum<'a>) -> FieldNum<'a> {
+  pub fn add(&self, other: &FieldElem<'a>) -> FieldElem<'a> {
     let mut v = self.v.clone();
     v += &other.v;
     if v >= self.f.order {
       v -= &self.f.order;
     }
-    FieldNum { f: self.f, v }
+    FieldElem { f: self.f, v }
   }
 
-  pub fn sub(&self, other: &FieldNum<'a>) -> FieldNum<'a> {
+  pub fn sub(&self, other: &FieldElem<'a>) -> FieldElem<'a> {
     if self.v < other.v {
       let diff = other.v.clone() - &self.v;
       let v = self.f.order.clone() - diff;
-      FieldNum { f: self.f, v }
+      FieldElem { f: self.f, v }
     } else {
       let mut v = self.v.clone();
       v -= &other.v;
-      FieldNum { f: self.f, v }
+      FieldElem { f: self.f, v }
     }
   }
 
-  pub fn mul(&self, other: &FieldNum<'a>) -> FieldNum<'a> {
+  pub fn mul(&self, other: &FieldElem<'a>) -> FieldElem<'a> {
     let mut v = self.v.clone();
     v *= &other.v;
     v %= &self.f.order;
     if v < self.f.zero {
       v += &self.f.order;
     }
-    FieldNum { f: self.f, v }
+    FieldElem { f: self.f, v }
   }
 
   // based on extended Euclidean algorithm
-  pub fn inv(&self) -> Result<FieldNum<'a>, String> {
+  pub fn inv(&self) -> Result<FieldElem<'a>, String> {
     if self.v == self.f.zero {
       return Err("cannot find inverse of zero".to_string());
     }
@@ -121,21 +137,21 @@ impl <'a> FieldNum<'a> {
         new_v %= order;
       }
     }
-    Ok(FieldNum { f: self.f, v: new_v.to_biguint().unwrap() })
+    Ok(FieldElem { f: self.f, v: new_v.to_biguint().unwrap() })
   }
 
-  pub fn div(&self, other: &FieldNum<'a>) -> Result<FieldNum<'a>, String> {
+  pub fn div(&self, other: &FieldElem<'a>) -> Result<FieldElem<'a>, String> {
     let inv = other.inv()?;
     Ok(self.mul(&inv))
   }
 
-  pub fn neg(&self) -> FieldNum<'a> {
+  pub fn neg(&self) -> FieldElem<'a> {
     if self.v == self.f.zero {
-      FieldNum { f: self.f, v: self.v.clone() }
+      FieldElem { f: self.f, v: self.v.clone() }
     } else {
       let mut v = self.f.order.clone();
       v -= &self.v;
-      FieldNum { f: self.f, v }
+      FieldElem { f: self.f, v }
     }
   }
 }

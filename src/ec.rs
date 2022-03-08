@@ -1,24 +1,32 @@
-use super::field::{Field, FieldNum};
+use super::field::{Field, FieldElem};
 
 // represents: y^2 = x^3 + Ax + B
 #[allow(dead_code)]
 pub struct WeierstrassEquation<'a> {
   f: &'a Field,
-  a: FieldNum<'a>,
-  b: FieldNum<'a>,
+  a: FieldElem<'a>,
+  b: FieldElem<'a>,
 }
 
 #[allow(dead_code)]
 #[derive(Debug)]
 pub struct EcPoint<'a> {
   f: &'a Field,
-  x: FieldNum<'a>,
-  y: FieldNum<'a>,
+  x: FieldElem<'a>,
+  y: FieldElem<'a>,
 }
+
+impl <'a> PartialEq for EcPoint<'a> {
+  fn eq(&self, other: &Self) -> bool {
+    self.x == other.x && self.y == other.y
+  }
+}
+
+impl <'a> Eq for EcPoint<'a> {}
 
 #[allow(dead_code)]
 impl <'a> WeierstrassEquation <'a> {
-  pub fn new(f: &'a Field, a: FieldNum<'a>, b: FieldNum<'a>) -> Self {
+  pub fn new(f: &'a Field, a: FieldElem<'a>, b: FieldElem<'a>) -> Self {
     WeierstrassEquation { f, a, b }
   }
 
