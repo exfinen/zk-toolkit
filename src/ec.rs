@@ -83,14 +83,13 @@ mod tests {
 
   #[test]
   fn test_secp256k1() {
-    // in secp256k1, a = 0, b = 7 i.e.
-    // E: y^2 = x^3 + 0x + 7
+    // in secp256k1, a = 0, b = 7 i.e. E: y^2 = x^3 + 0x + 7
 
     // field order
     let p = BigUint::parse_bytes(b"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F", 16).unwrap();
     let f = Field::new(p);
-    let a = f.gen_element(BigUint::from(0u32));
-    let b = f.gen_element(BigUint::from(7u32));
+    let a = f.element(BigUint::from(0u32));
+    let b = f.element(BigUint::from(7u32));
 
     // curve
     let e = WeierstrassEquation::new(&f, a, b); 
@@ -100,8 +99,8 @@ mod tests {
     let gy = BigUint::parse_bytes(b"483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8", 16).unwrap();
     let g = EcPoint {
       f: &f,
-      x: f.gen_element(gx),
-      y: f.gen_element(gy),
+      x: f.element(gx),
+      y: f.element(gy),
     };
     println!("{:?}", &g);
 
