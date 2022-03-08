@@ -46,12 +46,15 @@ impl <'a> FieldNum<'a> {
   }
 
   pub fn sub(&self, other: &FieldNum<'a>) -> FieldNum<'a> {
-    let mut v = self.v.clone();
-    v -= &other.v;
-    if v < self.f.zero {
-      v += &self.f.order;
+    if self.v < other.v {
+      let diff = other.v.clone() - &self.v;
+      let v = self.f.order.clone() - diff;
+      FieldNum { f: self.f, v }
+    } else {
+      let mut v = self.v.clone();
+      v -= &other.v;
+      FieldNum { f: self.f, v }
     }
-    FieldNum { f: self.f, v }
   }
 
   pub fn mul(&self, other: &FieldNum<'a>) -> FieldNum<'a> {
@@ -123,6 +126,16 @@ impl <'a> FieldNum<'a> {
   pub fn div(&self, other: &FieldNum<'a>) -> Result<FieldNum<'a>, String> {
     let inv = other.inv()?;
     Ok(self.mul(&inv))
+  }
+
+  pub fn neg(&self) -> FieldNum<'a> {
+    if self.v == self.f.zero {
+      FieldNum { f: self.f, v: self.v.clone() }
+    } else {
+      let mut v = self.f.order.clone();
+      v -= &self.v;
+      FieldNum { f: self.f, v }
+    }
   }
 }
 
@@ -413,5 +426,15 @@ mod tests {
     let inv = a.inv()?;
     assert_eq!(exp, inv.v);
     Ok(())
+  }
+
+  #[test]
+  fn test_neg() {
+    let f = Field::new(BigUint::from(11u32));
+    let a = f.gen_element(BigUint::from(5u32));
+    assert_eq!(a.neg().v, BigUint::from(6u32));
+
+    let neg_a = a.add(&a.neg());
+    assert_eq!(neg_a.v, BigUint::from(0u32));
   }
 }
