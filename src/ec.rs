@@ -1,17 +1,14 @@
-use super::field::{Field, FieldElem};
+use super::field_elem::FieldElem;
 
 // represents: y^2 = x^3 + Ax + B
 #[allow(dead_code)]
 pub struct WeierstrassEquation<'a> {
-  f: &'a Field,
   a: FieldElem<'a>,
   b: FieldElem<'a>,
 }
 
-#[allow(dead_code)]
 #[derive(Debug)]
 pub struct EcPoint<'a> {
-  f: &'a Field,
   x: FieldElem<'a>,
   y: FieldElem<'a>,
 }
@@ -26,8 +23,11 @@ impl <'a> Eq for EcPoint<'a> {}
 
 #[allow(dead_code)]
 impl <'a> WeierstrassEquation <'a> {
-  pub fn new(f: &'a Field, a: FieldElem<'a>, b: FieldElem<'a>) -> Self {
-    WeierstrassEquation { f, a, b }
+  pub fn new(a: FieldElem<'a>, b: FieldElem<'a>) -> Result<Self, String> {
+    if a.f != b.f {
+      return Err("Orders of field elements differ".to_string());
+    }
+    Ok(WeierstrassEquation { a, b })
   }
 
   pub fn add(&self, p1: &'a EcPoint, p2: &'a EcPoint) -> EcPoint<'a> {
@@ -77,7 +77,6 @@ impl <'a> WeierstrassEquation <'a> {
     let p3y_neg = p3y.neg();
     
     EcPoint {
-      f: self.f,
       x: p3x,
       y: p3y_neg,
     } 
@@ -88,6 +87,7 @@ impl <'a> WeierstrassEquation <'a> {
 mod tests {
   use super::*;
   use num_bigint::BigUint;
+  use crate::field::Field;
 
   #[test]
   fn test_secp256k1() {
@@ -100,13 +100,12 @@ mod tests {
     let b = f.element(BigUint::from(7u32));
 
     // curve
-    let e = WeierstrassEquation::new(&f, a, b); 
+    let e = WeierstrassEquation::new(a, b).unwrap(); 
 
     // base point
     let gx = BigUint::parse_bytes(b"79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798", 16).unwrap();
     let gy = BigUint::parse_bytes(b"483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8", 16).unwrap();
     let g = EcPoint {
-      f: &f,
       x: f.element(gx),
       y: f.element(gy),
     };
