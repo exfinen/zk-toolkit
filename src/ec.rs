@@ -26,21 +26,46 @@ impl <'a> WeierstrassEquation <'a> {
   pub fn add(&self, p1: &'a EcPoint, p2: &'a EcPoint) -> EcPoint<'a> {
     // for now, this code assumes that p1 != p2
 
-    // equation of the line that intersects the curve at p1 and p2:
-    // p2.y = m(p2.x − p1.x) + p1.y
+    // slope m of the line that intersects the curve at p1 and p2:
     // p2.y - p1.y = m(p2.x - p1.x)
-    // m
-    // (m(x − x_1) + y_1)^2 = x^3 + Ax + B  // substitute the y of Wirestrass eq w/ above
-    // 0 = x^3 - m^2 x^2 + ...   // move LHS to RHS
+    // m(p2.x - p1.x) = p2.y - p1.y
+    // m = (p2.y - p1.y) / (p2.x - p1.x)
     //
-    // using below equation, x-coordinate of the 3rd point can be calculated.
-    // r and s are the x-coordinates of p1 and p2, and t is the x-coordinate 
-    // of the 3rd point. since curve's x^3's coefficient is 1, this can be used.
+    // then the equation of the line is:
+    // y = m(x − p1.x) + p1.y  (1)
     //
-    // x^3 + Ax^2 + Bx + c = (x - p1.x)(x - p2.x)(x - p3.x) = x^3 - (p1.x + p2.x + p3.x)x^2 ...
-    // p1.x + p2.x + p3.x = -A
-    // p1.x + p2.x + A = -p3.x
-    // -1 * (p1.x + p2.x + A) = p3.x
+    // given a curve equation of Wirestrass form:
+    // y^2 = x^3 + Ax + B
+    //
+    // substitute y with (1):
+    // (m(x − p1.x) + p1.y)^2 = x^3 + Ax + B
+    //
+    // moving LHS to RHS, we get:
+    // 0 = x^3 - m^2 x^2 + ...  (2)
+    //
+    // with below equation:
+    // (x - r)(x - s)(x - t) = x^3 + (r + s + t)x^2 + (ab + ac + bc)x − abc 
+    // 
+    // we know that the coefficient of x^2 term is:
+    // r + s + t 
+    //
+    // using (2), the coefficient of x^2 term of the intersecting line is:
+    // m^2 = r + s + t
+    // 
+    // replace r and s with the known 2 roots - p1.x and p2.x:
+    // m^2 = p1.x + p2. + t
+    // t = m^2 - p1.x - p2.x
+    //
+    // here t is the x coordinate of the p3 we're trying to find:
+    // p3.x = m^2 - p1.x - p2.x
+    // 
+    // find the y-coordinate of the 3rd intersecting point by substituting x of (1):
+    // y = m(x − p1.x) + p1.y
+    // p3.y = m(p3.x − p1.x) + p1.y
+    // p3.y = m((m^2 - p1.x - p2.x) − p1.x) + p1.y
+    //
+    // then (p3.x, -p3.y) the result of adding p1 and p2
+
     let t = -1.mul(&(p1.x.add(&p2.x).add(self.A)));
     
     // then substitute x of the line's eq w/ thex-coordinate of the 3rd point 
