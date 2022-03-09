@@ -35,7 +35,18 @@ impl <'a> WeierstrassEquation <'a> {
       },
       // when p1 and p2 are the same point
       (EcPoint::Affine(p1), EcPoint::Affine(p2)) if p1.x == p2.x && p1.y == p2.y => {
-        // TO BE IMPLEMENTED
+        // special case: if y == 0, the tangent line is vertical
+        if p1.y.v == p1.y.f.zero {
+          return EcPoint::Infinity();
+        }
+        // differentiate y^2 = x^3 + Ax + B w/ implicit differentiation
+        // d/dx(y^2) = d/dx(x^3 + Ax + B)
+        // 2y dy/dx = 2x^2 + A
+        // dy/dx = (2x^2 + A) / 2y
+        //
+        // dy/dx is the slope m of the tangent line at the point 
+        // m = (2x^2 + A) / 2y
+
         EcPoint::Infinity()
       },
       // when line through p1 and p2 is non-vertical line
