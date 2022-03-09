@@ -46,8 +46,44 @@ impl <'a> WeierstrassEquation <'a> {
         //
         // dy/dx is the slope m of the tangent line at the point 
         // m = (2x^2 + A) / 2y
+        let m = (p1.x.pow_u32(2u32).mul_u32(2u32)).div(&p1.y.mul_u32(2u32)).unwrap();
 
-        EcPoint::Infinity()
+        // equation of intersecting line is
+        // y = m(x − p1.x) + p1.y (1)
+        //
+        // substitute y with (1):
+        // (m(x − p1.x) + p1.y)^2 = x^3 + Ax + B
+        //
+        // moving LHS to RHS, we get:
+        // 0 = x^3 - m^2 x^2 + ...  (2)
+        //
+        // with below equation:
+        // (x - r)(x - s)(x - t) = x^3 + (r + s + t)x^2 + (ab + ac + bc)x − abc 
+        // 
+        // we know that the coefficient of x^2 term is:
+        // r + s + t 
+        //
+        // using (2), the coefficient of x^2 term of the intersecting line is:
+        // m^2 = r + s + t
+        // 
+        // since p1 and p2 are the same point, replace r and s w/ p1.x
+        // to get the x-coordinate of the point where (1) intersects the curve
+        // x3 = m^2 − 2*p1.x
+        let p3x = m.pow_u32(2u32).sub(&p1.x.mul_u32(2u32));
+
+        // then get the y-coordinate by substituting x in (1) w/ x3 to get y3
+        // y3 = m(x3 − p1.x) + p1.y 
+        // 
+        // reflecting y3 across the x-axis results in the addition result y-coordinate 
+        // y3 = m(x3 − p1.x) + p1.y
+        // result.y = -1 * y3 = m(p1.x - x3) - p1.y
+        let p3y = m.mul(&p3x.sub(&p1.x)).sub(&p1.y);
+        let p3y_neg = p3y.neg();
+
+        EcPoint::Affine(AffineCoord {
+          x: p3x,
+          y: p3y_neg,
+        })
       },
       // when line through p1 and p2 is non-vertical line
       (EcPoint::Affine(p1), EcPoint::Affine(p2)) => {
@@ -61,7 +97,7 @@ impl <'a> WeierstrassEquation <'a> {
         // then the equation of the line is:
         // y = m(x − p1.x) + p1.y  (1)
         //
-        // starting from a curve equation of Wirestrass form:
+        // starting from a curve equation of Weierstrass form:
         // y^2 = x^3 + Ax + B
         //
         // substitute y with (1):

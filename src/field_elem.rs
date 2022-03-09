@@ -56,6 +56,21 @@ impl <'a> FieldElem<'a> {
     FieldElem { f: self.f, v }
   }
 
+  pub fn mul_u32(&self, other_u32: u32) -> FieldElem<'a> {
+    let other_fe = self.f.element(BigUint::from(other_u32));
+    self.mul(&other_fe)
+  }
+
+  pub fn pow_u32(&self, other_u32: u32) -> FieldElem<'a> {
+    let mut v = self.v.clone();
+    let num_multiply = other_u32 - 1;
+    for _ in 0..num_multiply {
+      v *= &self.v;
+      v %= &self.f.order;
+    }
+    FieldElem { f: self.f, v }
+  }
+
   // based on extended Euclidean algorithm
   pub fn inv(&self) -> Result<FieldElem<'a>, String> {
     if self.v == self.f.zero {
@@ -207,10 +222,18 @@ mod tests {
   #[test]
   fn test_mul_above_order_result() {
     let f = Field::new(BigUint::from(11u32));
-    let a = f.element(BigUint::from(1u32));
-    let b = f.element(BigUint::from(11u32));
+    let a = f.element(BigUint::from(3u32));
+    let b = f.element(BigUint::from(9u32));
     let c = a.mul(&b);
-    assert_eq!(c.v, BigUint::from(0u32));
+    assert_eq!(c.v, BigUint::from(5u32));
+  }
+
+  #[test]
+  fn test_mul_u32_below_order_result() {
+    let f = Field::new(BigUint::from(11u32));
+    let a = f.element(BigUint::from(2u32));
+    let b = a.mul_u32(5);
+    assert_eq!(b.v, BigUint::from(10u32));
   }
 
   struct InvTestCase {
@@ -425,5 +448,19 @@ mod tests {
 
     let neg_a = a.add(&a.neg());
     assert_eq!(neg_a.v, BigUint::from(0u32));
+  }
+
+  #[test]
+  fn test_pow_u32_below_order() {
+    let f = Field::new(BigUint::from(11u32));
+    let a = f.element(BigUint::from(2u32));
+    assert_eq!(a.pow_u32(3u32).v, BigUint::from(8u32));
+  }
+
+  #[test]
+  fn test_pow_u32_above_order() {
+    let f = Field::new(BigUint::from(11u32));
+    let a = f.element(BigUint::from(2u32));
+    assert_eq!(a.pow_u32(4u32).v, BigUint::from(5u32));
   }
 }
