@@ -43,4 +43,5 @@ name = "zk_toolkit"
 version = "0.1.0"
 dependencies = [
  "num-bigint",
+ "num-traits",
 ]

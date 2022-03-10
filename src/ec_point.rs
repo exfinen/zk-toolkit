@@ -1,5 +1,6 @@
 use crate::field_elem::FieldElem;
 
+#[derive(Debug, Clone)]
 pub enum EcPoint<'a> {
   Infinity(),
   Affine(AffineCoord<'a>)
@@ -20,7 +21,10 @@ impl <'a> PartialEq for AffineCoord<'a> {
 impl <'a> Eq for AffineCoord<'a> {}
 
 impl <'a> AffineCoord<'a> {
-  pub fn new(x: FieldElem<'a>, y: FieldElem<'a>) -> Self {
-    AffineCoord { x, y }
+  pub fn new(x: FieldElem<'a>, y: FieldElem<'a>) -> Result<Self, String> {
+    if x.f != y.f {
+      return Err("Orders of field elements differ".to_string());
+    }
+    Ok(AffineCoord { x, y })
   }
 }
