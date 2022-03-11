@@ -4,30 +4,41 @@ use crate::ec_point::{EcPoint, AffineCoord};
 use num_bigint::BigUint;
 use num_traits::identities::{Zero, One};
 use std::ops::{BitAnd, ShrAssign};
+use std::rc::Rc;
 
 // represents: y^2 = x^3 + Ax + B
 #[allow(dead_code)]
-pub struct WeierstrassEc<'a> {
-  pub a: FieldElem<'a>,
-  pub b: FieldElem<'a>,
-  pub g: EcPoint<'a>,
+pub struct WeierstrassEq {
+  pub f: Rc<Field>,
+  pub a: FieldElem,
+  pub b: FieldElem,
+  pub g: EcPoint,
   pub zero: BigUint,
   pub one: BigUint,
 }
 
 #[allow(dead_code)]
-impl <'a> WeierstrassEc <'a> {
-  pub fn new(f: &'a Field, a_bui: BigUint, b_bui: BigUint, gx: BigUint, gy: BigUint) -> Result<Self, String> {
-    let a = f.element(a_bui);
-    let b = f.element(b_bui);
-    let g = EcPoint::Affine(AffineCoord::new(f.element(gx), f.element(gy)).unwrap());
+impl WeierstrassEq {
+  pub fn new(
+    f: Rc<Field>, 
+    a: BigUint, 
+    b: BigUint, 
+    gx: BigUint, 
+    gy: BigUint,
+  ) -> Result<Self, String> {
+    let a = FieldElem::new(f.clone(), a);
+    let b = FieldElem::new(f.clone(), b);
+    let g = EcPoint::Affine(AffineCoord::new(
+      FieldElem::new(f.clone(), gx), 
+      FieldElem::new(f.clone(), gy),
+    ).unwrap());
     let zero = BigUint::zero();
     let one = BigUint::one();
 
-    Ok(WeierstrassEc { a, b, g, zero, one })
+    Ok(WeierstrassEq { f, a, b, g, zero, one })
   }
 
-  pub fn scalar_mul(&self, multiplier: &BigUint) -> EcPoint<'a> {
+  pub fn scalar_mul(&self, multiplier: &BigUint) -> EcPoint {
     let mut n = multiplier.clone();
     let mut res = EcPoint::Infinity();
     let mut factor = self.g.clone();
@@ -43,7 +54,7 @@ impl <'a> WeierstrassEc <'a> {
     res
   }
 
-  pub fn add(&self, p1: &EcPoint<'a>, p2: &EcPoint<'a>) -> EcPoint<'a> {
+  pub fn add(&self, p1: &EcPoint, p2: &EcPoint) -> EcPoint {
     match (p1, p2) {
       // when adding point at infinity to a point
       (EcPoint::Infinity(), EcPoint::Affine(p)) => {
@@ -62,7 +73,7 @@ impl <'a> WeierstrassEc <'a> {
       // when p1 and p2 are the same point
       (EcPoint::Affine(p1), EcPoint::Affine(p2)) if p1.x == p2.x && p1.y == p2.y => {
         // special case: if y == 0, the tangent line is vertical
-        if p1.y.v == p1.y.f.zero {
+        if p1.y.v == BigUint::zero() {
           return EcPoint::Infinity();
         }
         // differentiate y^2 = x^3 + Ax + B w/ implicit differentiation
@@ -172,7 +183,10 @@ mod tests {
   use num_bigint::BigUint;
   use crate::field::Field;
 
-  fn gen_secp256k1_curve<'a>(f: &'a Field) -> Result<WeierstrassEc<'a>, String> {
+  fn gen_secp256k1_curve() -> Result<WeierstrassEq, String> {
+    let p = BigUint::parse_bytes(b"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F", 16).unwrap();
+    let f = Field::new(p);
+
     let a = BigUint::from(0u32);
     let b = BigUint::from(7u32);
 
@@ -181,13 +195,12 @@ mod tests {
     let gy = BigUint::parse_bytes(b"483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8", 16).unwrap();
 
     // curve
-    WeierstrassEc::new(f, a, b, gx, gy)
+    WeierstrassEq::new(f, a, b, gx, gy)
   }
 
   #[test]
   fn test_scalar_mul() {
-    let f = Field::new(BigUint::from(11u32));
-    let _e = gen_secp256k1_curve(&f);
+    let _e = gen_secp256k1_curve();
 
   }
 
@@ -195,9 +208,7 @@ mod tests {
   fn test_secp256k1() {
     // in secp256k1, a = 0, b = 7 i.e. E: y^2 = x^3 + 0x + 7
 
-    let p = BigUint::parse_bytes(b"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F", 16).unwrap();
-    let f = Field::new(p);
-    let _e = gen_secp256k1_curve(&f);
+    let _e = gen_secp256k1_curve();
 
     // order of base point
     //let n = BigUint::parse_bytes(b"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", 16).unwrap();

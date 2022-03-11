@@ -1,24 +1,16 @@
 use num_bigint::BigUint;
-use crate::field_elem::FieldElem;
+use std::rc::Rc;
 
 #[derive(Debug)]
 pub struct Field {
   pub order: BigUint,
-  pub zero: BigUint,
-  pub one: BigUint,
 }
 
 impl Field {
-  pub fn new(order: BigUint) -> Self {
-    Field {
+  pub fn new(order: BigUint) -> Rc<Self> {
+    Rc::new(Field {
       order,
-      zero: BigUint::from(0u32),
-      one: BigUint::from(1u32),
-    }
-  }
-
-  pub fn element(&self, v: BigUint) -> FieldElem {
-    FieldElem::new(self, v)
+    })
   }
 }
 

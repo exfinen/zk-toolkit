@@ -1,27 +1,27 @@
 use crate::field_elem::FieldElem;
 
 #[derive(Debug, Clone)]
-pub enum EcPoint<'a> {
+pub enum EcPoint {
   Infinity(),
-  Affine(AffineCoord<'a>)
+  Affine(AffineCoord)
 }
 
 #[derive(Debug, Clone)]
-pub struct AffineCoord<'a> {
-  pub x: FieldElem<'a>,
-  pub y: FieldElem<'a>,
+pub struct AffineCoord {
+  pub x: FieldElem,
+  pub y: FieldElem,
 }
 
-impl <'a> PartialEq for AffineCoord<'a> {
+impl PartialEq for AffineCoord {
   fn eq(&self, other: &Self) -> bool {
     self.x == other.x && self.y == other.y
   }
 }
 
-impl <'a> Eq for AffineCoord<'a> {}
+impl Eq for AffineCoord {}
 
-impl <'a> AffineCoord<'a> {
-  pub fn new(x: FieldElem<'a>, y: FieldElem<'a>) -> Result<Self, String> {
+impl AffineCoord {
+  pub fn new(x: FieldElem, y: FieldElem) -> Result<Self, String> {
     if x.f != y.f {
       return Err("Orders of field elements differ".to_string());
     }

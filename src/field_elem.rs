@@ -1,85 +1,87 @@
 use crate::field::Field;
-use num_bigint::{BigUint, ToBigInt};
+use num_bigint::{BigUint, BigInt, ToBigInt};
+use std::rc::Rc;
+use num_traits::{Zero, One};
 
 #[derive(Clone, Debug)]
-pub struct FieldElem<'a> {
-  pub f: &'a Field,
+pub struct FieldElem {
+  pub f: Rc<Field>,
   pub v: BigUint,
 }
 
-impl <'a> PartialEq for FieldElem<'a> {
+impl PartialEq for FieldElem {
   fn eq(&self, other: &Self) -> bool {
     self.f == other.f && self.v == other.v
   }
 }
 
-impl <'a> Eq for FieldElem<'a> {}
+impl Eq for FieldElem {}
 
-impl <'a> FieldElem<'a> {
-  pub fn new(f: &'a Field, v: BigUint) -> Self {
+impl FieldElem {
+  pub fn new(f: Rc<Field>, v: BigUint) -> Self {
     if v >= f.order {
       let v = v % &f.order;
-      FieldElem { f, v }
+      FieldElem { f: f.clone(), v }
     } else {
-      FieldElem { f, v }
+      FieldElem { f: f.clone(), v }
     }
   }
 
-  pub fn add(&self, other: &FieldElem<'a>) -> FieldElem<'a> {
+  pub fn add(&self, other: &FieldElem) -> FieldElem {
     let mut v = self.v.clone();
     v += &other.v;
     if v >= self.f.order {
       v -= &self.f.order;
     }
-    FieldElem { f: self.f, v }
+    FieldElem { f: self.f.clone(), v }
   }
 
-  pub fn sub(&self, other: &FieldElem<'a>) -> FieldElem<'a> {
+  pub fn sub(&self, other: &FieldElem) -> FieldElem {
     if self.v < other.v {
       let diff = other.v.clone() - &self.v;
       let v = self.f.order.clone() - diff;
-      FieldElem { f: self.f, v }
+      FieldElem { f: self.f.clone(), v }
     } else {
       let mut v = self.v.clone();
       v -= &other.v;
-      FieldElem { f: self.f, v }
+      FieldElem { f: self.f.clone(), v }
     }
   }
 
-  pub fn mul(&self, other: &FieldElem<'a>) -> FieldElem<'a> {
+  pub fn mul(&self, other: &FieldElem) -> FieldElem {
     let mut v = self.v.clone();
     v *= &other.v;
     v %= &self.f.order;
-    if v < self.f.zero {
+    if v < BigUint::zero() {
       v += &self.f.order;
     }
-    FieldElem { f: self.f, v }
+    FieldElem { f: self.f.clone(), v }
   }
 
-  pub fn mul_u32(&self, other_u32: u32) -> FieldElem<'a> {
-    let other_fe = self.f.element(BigUint::from(other_u32));
+  pub fn mul_u32(&self, other_u32: u32) -> FieldElem {
+    let other_fe = FieldElem::new(self.f.clone(), BigUint::from(other_u32));
     self.mul(&other_fe)
   }
 
-  pub fn pow_u32(&self, other_u32: u32) -> FieldElem<'a> {
+  pub fn pow_u32(&self, other_u32: u32) -> FieldElem {
     let mut v = self.v.clone();
     let num_multiply = other_u32 - 1;
     for _ in 0..num_multiply {
       v *= &self.v;
       v %= &self.f.order;
     }
-    FieldElem { f: self.f, v }
+    FieldElem { f: self.f.clone(), v }
   }
 
   // based on extended Euclidean algorithm
-  pub fn inv(&self) -> Result<FieldElem<'a>, String> {
-    if self.v == self.f.zero {
+  pub fn inv(&self) -> Result<FieldElem, String> {
+    if self.v == BigUint::zero() {
       return Err("Cannot find inverse of zero".to_string());
     }
     let order = self.f.order.to_bigint().unwrap();
     let v = self.v.to_bigint().unwrap();
-    let zero = self.f.zero.to_bigint().unwrap();
-    let one = self.f.one.to_bigint().unwrap();
+    let zero = BigInt::zero();
+    let one = BigInt::one();
 
     // x0*a + y0*b = a
     // x1*a + y1*b = b
@@ -124,21 +126,21 @@ impl <'a> FieldElem<'a> {
         new_v %= order;
       }
     }
-    Ok(FieldElem { f: self.f, v: new_v.to_biguint().unwrap() })
+    Ok(FieldElem { f: self.f.clone(), v: new_v.to_biguint().unwrap() })
   }
 
-  pub fn div(&self, other: &FieldElem<'a>) -> Result<FieldElem<'a>, String> {
+  pub fn div(&self, other: &FieldElem) -> Result<FieldElem, String> {
     let inv = other.inv()?;
     Ok(self.mul(&inv))
   }
 
-  pub fn neg(&self) -> FieldElem<'a> {
-    if self.v == self.f.zero {
-      FieldElem { f: self.f, v: self.v.clone() }
+  pub fn neg(&self) -> FieldElem {
+    if self.v == BigUint::zero() {
+      FieldElem { f: self.f.clone(), v: self.v.clone() }
     } else {
       let mut v = self.f.order.clone();
       v -= &self.v;
-      FieldElem { f: self.f, v }
+      FieldElem { f: self.f.clone(), v }
     }
   }
 }
@@ -150,8 +152,8 @@ mod tests {
   #[test]
   fn test_add_eq_order_result() {
     let f = Field::new(BigUint::from(11u32));
-    let a = f.element(BigUint::from(9u32));
-    let b = f.element(BigUint::from(2u32));
+    let a = FieldElem::new(f.clone(), BigUint::from(9u32));
+    let b = FieldElem::new(f.clone(), BigUint::from(2u32));
     let c = a.add(&b);
     assert_eq!(c.v, BigUint::from(0u32));
   }
@@ -159,8 +161,8 @@ mod tests {
   #[test]
   fn test_add_below_order_result() {
     let f = Field::new(BigUint::from(11u32));
-    let a = f.element(BigUint::from(9u32));
-    let b = f.element(BigUint::from(1u32));
+    let a = FieldElem::new(f.clone(), BigUint::from(9u32));
+    let b = FieldElem::new(f.clone(), BigUint::from(1u32));
     let c = a.add(&b);
     assert_eq!(c.v, BigUint::from(10u32));
   }
@@ -168,8 +170,8 @@ mod tests {
   #[test]
   fn test_add_above_order_result() {
     let f = Field::new(BigUint::from(11u32));
-    let a = f.element(BigUint::from(9u32));
-    let b = f.element(BigUint::from(3u32));
+    let a = FieldElem::new(f.clone(), BigUint::from(9u32));
+    let b = FieldElem::new(f.clone(), BigUint::from(3u32));
     let c = a.add(&b);
     assert_eq!(c.v, BigUint::from(1u32));
   }
@@ -177,8 +179,8 @@ mod tests {
   #[test]
   fn test_sub_smaller_val() {
     let f = Field::new(BigUint::from(11u32));
-    let a = f.element(BigUint::from(9u32));
-    let b = f.element(BigUint::from(2u32));
+    let a = FieldElem::new(f.clone(), BigUint::from(9u32));
+    let b = FieldElem::new(f.clone(), BigUint::from(2u32));
     let c = a.sub(&b);
     assert_eq!(c.v, BigUint::from(7u32));
   }
@@ -186,17 +188,17 @@ mod tests {
   #[test]
   fn test_sub_eq_val() {
     let f = Field::new(BigUint::from(11u32));
-    let a = f.element(BigUint::from(9u32));
-    let b = f.element(BigUint::from(9u32));
+    let a = FieldElem::new(f.clone(), BigUint::from(9u32));
+    let b = FieldElem::new(f.clone(), BigUint::from(9u32));
     let c = a.sub(&b);
-    assert_eq!(c.v, f.zero);
+    assert_eq!(c.v, BigUint::zero());
   }
 
   #[test]
   fn test_sub_larger_val() {
     let f = Field::new(BigUint::from(11u32));
-    let a = f.element(BigUint::from(9u32));
-    let b = f.element(BigUint::from(10u32));
+    let a = FieldElem::new(f.clone(), BigUint::from(9u32));
+    let b = FieldElem::new(f.clone(), BigUint::from(10u32));
     let c = a.sub(&b);
     assert_eq!(c.v, BigUint::from(10u32));
   }
@@ -204,8 +206,8 @@ mod tests {
   #[test]
   fn test_mul_below_order_result() {
     let f = Field::new(BigUint::from(11u32));
-    let a = f.element(BigUint::from(2u32));
-    let b = f.element(BigUint::from(5u32));
+    let a = FieldElem::new(f.clone(), BigUint::from(2u32));
+    let b = FieldElem::new(f.clone(), BigUint::from(5u32));
     let c = a.mul(&b);
     assert_eq!(c.v, BigUint::from(10u32));
   }
@@ -213,8 +215,8 @@ mod tests {
   #[test]
   fn test_mul_eq_order_result() {
     let f = Field::new(BigUint::from(11u32));
-    let a = f.element(BigUint::from(1u32));
-    let b = f.element(BigUint::from(11u32));
+    let a = FieldElem::new(f.clone(), BigUint::from(1u32));
+    let b = FieldElem::new(f.clone(), BigUint::from(11u32));
     let c = a.mul(&b);
     assert_eq!(c.v, BigUint::from(0u32));
   }
@@ -222,8 +224,8 @@ mod tests {
   #[test]
   fn test_mul_above_order_result() {
     let f = Field::new(BigUint::from(11u32));
-    let a = f.element(BigUint::from(3u32));
-    let b = f.element(BigUint::from(9u32));
+    let a = FieldElem::new(f.clone(), BigUint::from(3u32));
+    let b = FieldElem::new(f.clone(), BigUint::from(9u32));
     let c = a.mul(&b);
     assert_eq!(c.v, BigUint::from(5u32));
   }
@@ -231,7 +233,7 @@ mod tests {
   #[test]
   fn test_mul_u32_below_order_result() {
     let f = Field::new(BigUint::from(11u32));
-    let a = f.element(BigUint::from(2u32));
+    let a = FieldElem::new(f.clone(), BigUint::from(2u32));
     let b = a.mul_u32(5);
     assert_eq!(b.v, BigUint::from(10u32));
   }
@@ -412,7 +414,7 @@ mod tests {
 
     for x in test_cases {
       let f = Field::new(BigUint::from(x.order));
-      let a = f.element(BigUint::from(x.v));
+      let a = FieldElem::new(f.clone(), BigUint::from(x.v));
       let inv = a.inv()?;
       assert_eq!(inv.v, BigUint::from(x.exp));
     }
@@ -422,8 +424,8 @@ mod tests {
   #[test]
   fn test_div() {
     let f = Field::new(BigUint::from(11u32));
-    let a = f.element(BigUint::from(4u32));
-    let b = f.element(BigUint::from(2u32));
+    let a = FieldElem::new(f.clone(), BigUint::from(4u32));
+    let b = FieldElem::new(f.clone(), BigUint::from(2u32));
     let c = a.div(&b).unwrap();
     assert_eq!(c.v, BigUint::from(2u32));
   }
@@ -432,7 +434,7 @@ mod tests {
   fn test_inv_secp256k1() -> Result<(), String> {
     let p = BigUint::parse_bytes(b"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F", 16).unwrap();
     let f = Field::new(p);
-    let a = f.element(BigUint::from(1112121212121u64));
+    let a = FieldElem::new(f.clone(), BigUint::from(1112121212121u64));
 
     let exp = BigUint::parse_bytes(b"52624297956533532283067125375510330718705195823487497799082320305224600546911", 10).unwrap();
     let inv = a.inv()?;
@@ -443,7 +445,7 @@ mod tests {
   #[test]
   fn test_neg() {
     let f = Field::new(BigUint::from(11u32));
-    let a = f.element(BigUint::from(5u32));
+    let a = FieldElem::new(f.clone(), BigUint::from(5u32));
     assert_eq!(a.neg().v, BigUint::from(6u32));
 
     let neg_a = a.add(&a.neg());
@@ -453,14 +455,14 @@ mod tests {
   #[test]
   fn test_pow_u32_below_order() {
     let f = Field::new(BigUint::from(11u32));
-    let a = f.element(BigUint::from(2u32));
+    let a = FieldElem::new(f.clone(), BigUint::from(2u32));
     assert_eq!(a.pow_u32(3u32).v, BigUint::from(8u32));
   }
 
   #[test]
   fn test_pow_u32_above_order() {
     let f = Field::new(BigUint::from(11u32));
-    let a = f.element(BigUint::from(2u32));
+    let a = FieldElem::new(f.clone(), BigUint::from(2u32));
     assert_eq!(a.pow_u32(4u32).v, BigUint::from(5u32));
   }
 }
