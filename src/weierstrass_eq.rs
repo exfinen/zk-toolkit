@@ -38,6 +38,21 @@ impl WeierstrassEq {
     Ok(WeierstrassEq { f, a, b, g, zero, one })
   }
 
+  pub fn secp256k1() -> WeierstrassEq {
+    let p = BigUint::parse_bytes(b"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F", 16).unwrap();
+    let f = Field::new(p);
+
+    let a = BigUint::from(0u32);
+    let b = BigUint::from(7u32);
+
+    // base point
+    let gx = BigUint::parse_bytes(b"79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798", 16).unwrap();
+    let gy = BigUint::parse_bytes(b"483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8", 16).unwrap();
+
+    // curve
+    WeierstrassEq::new(f, a, b, gx, gy).unwrap()
+  }
+
   pub fn scalar_mul(&self, multiplier: &BigUint) -> EcPoint {
     let mut n = multiplier.clone();
     let mut res = EcPoint::Infinity();
@@ -83,7 +98,9 @@ impl WeierstrassEq {
         //
         // dy/dx is the slope m of the tangent line at the point 
         // m = (2x^2 + A) / 2y
-        let m = (p1.x.pow_u32(2u32).mul_u32(2u32)).div(&p1.y.mul_u32(2u32)).unwrap();
+        let m1 = p1.x.pow_u32(2u32).mul_u32(2u32);
+        let m2 = p1.y.mul_u32(2u32);
+        let m = m1.div(&m2).unwrap();
 
         // equation of intersecting line is
         // y = m(x − p1.x) + p1.y (1)
@@ -112,11 +129,9 @@ impl WeierstrassEq {
         // y3 = m(x3 − p1.x) + p1.y 
         // 
         // reflecting y3 across the x-axis results in the addition result y-coordinate 
-        // y3 = m(x3 − p1.x) + p1.y
         // result.y = -1 * y3 = m(p1.x - x3) - p1.y
-        let p3y = m.mul(&p3x.sub(&p1.x)).sub(&p1.y);
-        let p3y_neg = p3y.neg();
-
+        let p3y_neg = m.mul(&p1.x.sub(&p3x)).sub(&p1.y);
+        
         EcPoint::Affine(AffineCoord {
           x: p3x,
           y: p3y_neg,
@@ -183,32 +198,27 @@ mod tests {
   use num_bigint::BigUint;
   use crate::field::Field;
 
-  fn gen_secp256k1_curve() -> Result<WeierstrassEq, String> {
-    let p = BigUint::parse_bytes(b"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F", 16).unwrap();
-    let f = Field::new(p);
-
-    let a = BigUint::from(0u32);
-    let b = BigUint::from(7u32);
-
-    // base point
-    let gx = BigUint::parse_bytes(b"79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798", 16).unwrap();
-    let gy = BigUint::parse_bytes(b"483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8", 16).unwrap();
-
-    // curve
-    WeierstrassEq::new(f, a, b, gx, gy)
-  }
-
   #[test]
   fn test_scalar_mul() {
-    let _e = gen_secp256k1_curve();
-
+    let e = WeierstrassEq::secp256k1();
+    let g2 = e.add(&e.g, &e.g);
+    match e.g {
+      EcPoint::Affine(c) => {
+        println!("G: x={:?}, y={:?}", c.x.v, c.y.v);
+      },
+      _ => {},
+    }
+    match g2 {
+      EcPoint::Affine(c) => {
+        println!("G2: x={:?}, y={:?}", c.x.v, c.y.v);
+      },
+      _ => {},
+    }
   }
 
   #[test]
   fn test_secp256k1() {
     // in secp256k1, a = 0, b = 7 i.e. E: y^2 = x^3 + 0x + 7
-
-    let _e = gen_secp256k1_curve();
 
     // order of base point
     //let n = BigUint::parse_bytes(b"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", 16).unwrap();
