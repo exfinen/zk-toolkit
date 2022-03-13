@@ -98,7 +98,7 @@ impl WeierstrassEq {
         //
         // dy/dx is the slope m of the tangent line at the point 
         // m = (3x^2 + A) / 2y
-        let m1 = p1.x.pow_u32(2u32).mul_u32(3u32);
+        let m1 = p1.x.sq().mul_u32(3u32);
         let m2 = p1.y.mul_u32(2u32);
         let m = m1.div(&m2).unwrap();
 
@@ -123,7 +123,7 @@ impl WeierstrassEq {
         // since p1 and p2 are the same point, replace r and s w/ p1.x
         // to get the x-coordinate of the point where (1) intersects the curve
         // x3 = m^2 − 2*p1.x
-        let p3x = m.pow_u32(2u32).sub(&p1.x.mul_u32(2u32));
+        let p3x = m.sq().sub(&p1.x.mul_u32(2u32));
 
         // then get the y-coordinate by substituting x in (1) w/ x3 to get y3
         // y3 = m(x3 − p1.x) + p1.y 

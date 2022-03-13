@@ -73,6 +73,13 @@ impl FieldElem {
     FieldElem { f: self.f.clone(), v }
   }
 
+  pub fn sq(&self) -> FieldElem {
+    let mut v = self.v.clone();
+    v *= &self.v;
+    v %= &self.f.order;
+    FieldElem { f: self.f.clone(), v }
+  }
+
   // based on extended Euclidean algorithm
   pub fn inv(&self) -> Result<FieldElem, String> {
     if self.v == BigUint::zero() {
@@ -464,5 +471,19 @@ mod tests {
     let f = Field::new(BigUint::from(11u32));
     let a = FieldElem::new(f.clone(), BigUint::from(2u32));
     assert_eq!(a.pow_u32(4u32).v, BigUint::from(5u32));
+  }
+
+  #[test]
+  fn test_sq_below_order() {
+    let f = Field::new(BigUint::from(11u32));
+    let a = FieldElem::new(f.clone(), BigUint::from(2u32));
+    assert_eq!(a.sq().v, BigUint::from(4u32));
+  }
+
+  #[test]
+  fn test_sq_above_order() {
+    let f = Field::new(BigUint::from(11u32));
+    let a = FieldElem::new(f.clone(), BigUint::from(4u32));
+    assert_eq!(a.sq().v, BigUint::from(5u32));
   }
 }
