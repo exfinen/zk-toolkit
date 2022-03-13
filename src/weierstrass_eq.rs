@@ -196,23 +196,21 @@ impl WeierstrassEq {
 mod tests {
   use super::*;
   use num_bigint::BigUint;
-  use crate::field::Field;
 
   #[test]
-  fn test_scalar_mul() {
+  fn test_scalar_mul_same_point() {
     let e = WeierstrassEq::secp256k1();
     let g2 = e.add(&e.g, &e.g);
-    match e.g {
-      EcPoint::Affine(c) => {
-        println!("G: x={:?}, y={:?}", c.x.v, c.y.v);
-      },
-      _ => {},
-    }
+    let exp_x = BigUint::parse_bytes(b"89565891926547004231252920425935692360644145829622209833684329913297188986597", 10).unwrap();
+    let exp_y = BigUint::parse_bytes(b"12158399299693830322967808612713398636155367887041628176798871954788371653930", 10).unwrap();
     match g2 {
       EcPoint::Affine(c) => {
-        println!("G2: x={:?}, y={:?}", c.x.v, c.y.v);
+        assert_eq!(c.x.v, exp_x);
+        assert_eq!(c.y.v, exp_y);
       },
-      _ => {},
+      _ => {
+        panic!("Didn't get affine point");
+      }
     }
   }
 
