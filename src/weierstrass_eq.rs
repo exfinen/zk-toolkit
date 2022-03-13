@@ -93,12 +93,12 @@ impl WeierstrassEq {
         }
         // differentiate y^2 = x^3 + Ax + B w/ implicit differentiation
         // d/dx(y^2) = d/dx(x^3 + Ax + B)
-        // 2y dy/dx = 2x^2 + A
-        // dy/dx = (2x^2 + A) / 2y
+        // 2y dy/dx = 3x^2 + A
+        // dy/dx = (3x^2 + A) / 2y
         //
         // dy/dx is the slope m of the tangent line at the point 
-        // m = (2x^2 + A) / 2y
-        let m1 = p1.x.pow_u32(2u32).mul_u32(2u32);
+        // m = (3x^2 + A) / 2y
+        let m1 = p1.x.pow_u32(2u32).mul_u32(3u32);
         let m2 = p1.y.mul_u32(2u32);
         let m = m1.div(&m2).unwrap();
 
