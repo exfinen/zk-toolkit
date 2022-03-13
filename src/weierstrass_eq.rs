@@ -1,6 +1,6 @@
 use crate::field_elem::FieldElem;
 use crate::field::Field;
-use crate::ec_point::{EcPoint, AffineCoord};
+use crate::ec_point::{EcPoint, Coord2};
 use num_bigint::BigUint;
 use num_traits::identities::{Zero, One};
 use std::ops::{BitAnd, ShrAssign};
@@ -28,7 +28,7 @@ impl WeierstrassEq {
   ) -> Result<Self, String> {
     let a = FieldElem::new(f.clone(), a);
     let b = FieldElem::new(f.clone(), b);
-    let g = EcPoint::Affine(AffineCoord::new(
+    let g = EcPoint::Affine(Coord2::new(
       FieldElem::new(f.clone(), gx), 
       FieldElem::new(f.clone(), gy),
     ).unwrap());
@@ -132,7 +132,7 @@ impl WeierstrassEq {
         // result.y = -1 * y3 = m(p1.x - x3) - p1.y
         let p3y_neg = m.mul(&p1.x.sub(&p3x)).sub(&p1.y);
         
-        EcPoint::Affine(AffineCoord {
+        EcPoint::Affine(Coord2 {
           x: p3x,
           y: p3y_neg,
         })
@@ -183,7 +183,7 @@ impl WeierstrassEq {
         // then (p3.x, -p3.y) is the result of adding p1 and p2
         let p3y_neg = p3y.neg();
         
-        EcPoint::Affine(AffineCoord {
+        EcPoint::Affine(Coord2 {
           x: p3x,
           y: p3y_neg,
         })
