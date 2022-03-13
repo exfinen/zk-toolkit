@@ -173,7 +173,7 @@ impl WeierstrassEq {
         //
         // here t is the x coordinate of the p3 we're trying to find:
         // p3.x = m^2 - p1.x - p2.x
-        let p3x = (m.mul(&m)).sub(&p1.x).sub(&p2.x);
+        let p3x = m.sq().sub(&p1.x).sub(&p2.x);
 
         // using (1), find the y-coordinate of the 3rd intersecting point and p3x obtained above
         // y = m(x − p1.x) + p1.y
