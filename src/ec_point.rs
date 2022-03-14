@@ -1,6 +1,6 @@
 use crate::field_elem::FieldElem;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum EcPoint {
   Infinity(),
   Affine(Coord2)

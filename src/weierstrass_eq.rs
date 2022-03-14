@@ -88,7 +88,7 @@ impl WeierstrassEq {
       // when p1 and p2 are the same point
       (EcPoint::Affine(p1), EcPoint::Affine(p2)) if p1.x == p2.x && p1.y == p2.y => {
         // special case: if y == 0, the tangent line is vertical
-        if p1.y.v == BigUint::zero() {
+        if p1.y.v == BigUint::zero() || p2.y.v == BigUint::zero() {
           return EcPoint::Infinity();
         }
         // differentiate y^2 = x^3 + Ax + B w/ implicit differentiation
@@ -209,16 +209,184 @@ mod tests {
         assert_eq!(c.y.v, exp_y);
       },
       _ => {
-        panic!("Didn't get affine point");
+        panic!("Expected affine point");
       }
     }
   }
 
   #[test]
-  fn test_secp256k1() {
-    // in secp256k1, a = 0, b = 7 i.e. E: y^2 = x^3 + 0x + 7
+  fn test_scalar_mul_y_eq_0() {
+    // TODO implement this. need to find the x-coord when y is zero
+  }
 
-    // order of base point
-    //let n = BigUint::parse_bytes(b"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", 16).unwrap();
+  #[test]
+  fn test_scalar_mul_vertical_line() {
+    let e = WeierstrassEq::secp256k1();
+    let a = e.g.clone();
+    match e.g.clone() {
+      EcPoint::Affine(c) => {
+      let b = EcPoint::Affine(Coord2::new(c.x, c.y.neg()).unwrap());
+        match e.add(&a, &b) {
+          EcPoint::Affine(_) => {
+            panic!("Expected point at infinity");
+          },
+          EcPoint::Infinity() => {},
+        }
+      },
+      _ => {}
+    }
+  }
+
+  #[test]
+  fn test_scalar_mul_inf_affine() {
+    let e = WeierstrassEq::secp256k1();
+    let inf = EcPoint::Infinity();
+    let inf_plus_g = e.add(&e.g, &inf);
+    match (e.g, inf_plus_g) {
+      (EcPoint::Affine(c1), EcPoint::Affine(c2)) => {
+        assert_eq!(c1, c2);
+      },
+      _ => {
+        panic!("Expected inf+g to be g");
+      }
+    }
+  }
+
+  #[test]
+  fn test_scalar_mul_affine_inf() {
+    let e = WeierstrassEq::secp256k1();
+    let inf = EcPoint::Infinity();
+    let g_plus_inf = e.add(&inf, &e.g);
+    match (e.g, g_plus_inf) {
+      (EcPoint::Affine(c1), EcPoint::Affine(c2)) => {
+        assert_eq!(c1, c2);
+      },
+      _ => {
+        panic!("Expected g+inf to be g");
+      }
+    }
+  }
+
+  #[test]
+  fn test_scalar_mul_inf_inf() {
+    let e = WeierstrassEq::secp256k1();
+    let inf = EcPoint::Infinity();
+    let g2 = e.add(&inf, &inf);
+    match g2 {
+      EcPoint::Infinity() => {
+      },
+      _ => {
+        panic!("Expected inf+inf to be inf");
+      }
+    }
+  }
+
+  struct Xy<'a> {
+    _n: &'a str,
+    x: &'a [u8; 64],
+    y: &'a [u8; 64],
+  }
+
+  impl<'a> Xy<'a> {
+    fn to_ec_point(&'a self, f: Rc<Field>) -> EcPoint {
+      let gx = BigUint::parse_bytes(self.x, 16).unwrap();
+      let gy = BigUint::parse_bytes(self.y, 16).unwrap();
+      EcPoint::Affine(Coord2::new(
+        FieldElem::new(f.clone(), gx), 
+        FieldElem::new(f, gy),
+      ).unwrap())
+    }
+  }
+
+  // expects a + b = c
+  struct AddTestCase {
+    a: usize,
+    b: usize,
+    c: usize,
+  }
+
+  impl AddTestCase {
+    fn new(a: usize, b: usize, c: usize) -> AddTestCase {
+      if a + b != c {
+        panic!("Bad add test case: {} + {} = {}", a, b, c);
+      }
+      AddTestCase { a, b, c }
+    }
+  }
+
+  #[test]
+  fn test_add_different_points() {
+    let ps = [
+      Xy { _n: "1", x: b"79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798", y: b"483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8" },
+      Xy { _n: "2", x: b"C6047F9441ED7D6D3045406E95C07CD85C778E4B8CEF3CA7ABAC09B95C709EE5", y: b"1AE168FEA63DC339A3C58419466CEAEEF7F632653266D0E1236431A950CFE52A" },
+      Xy { _n: "3", x: b"F9308A019258C31049344F85F89D5229B531C845836F99B08601F113BCE036F9", y: b"388F7B0F632DE8140FE337E62A37F3566500A99934C2231B6CB9FD7584B8E672" },
+      Xy { _n: "4", x: b"E493DBF1C10D80F3581E4904930B1404CC6C13900EE0758474FA94ABE8C4CD13", y: b"51ED993EA0D455B75642E2098EA51448D967AE33BFBDFE40CFE97BDC47739922" },
+      Xy { _n: "5", x: b"2F8BDE4D1A07209355B4A7250A5C5128E88B84BDDC619AB7CBA8D569B240EFE4", y: b"D8AC222636E5E3D6D4DBA9DDA6C9C426F788271BAB0D6840DCA87D3AA6AC62D6" },
+
+      Xy { _n: "6", x: b"FFF97BD5755EEEA420453A14355235D382F6472F8568A18B2F057A1460297556", y: b"AE12777AACFBB620F3BE96017F45C560DE80F0F6518FE4A03C870C36B075F297" },
+      Xy { _n: "7", x: b"5CBDF0646E5DB4EAA398F365F2EA7A0E3D419B7E0330E39CE92BDDEDCAC4F9BC", y: b"6AEBCA40BA255960A3178D6D861A54DBA813D0B813FDE7B5A5082628087264DA" },
+      Xy { _n: "8", x: b"2F01E5E15CCA351DAFF3843FB70F3C2F0A1BDD05E5AF888A67784EF3E10A2A01", y: b"5C4DA8A741539949293D082A132D13B4C2E213D6BA5B7617B5DA2CB76CBDE904" },
+      Xy { _n: "9", x: b"ACD484E2F0C7F65309AD178A9F559ABDE09796974C57E714C35F110DFC27CCBE", y: b"CC338921B0A7D9FD64380971763B61E9ADD888A4375F8E0F05CC262AC64F9C37" },
+      Xy { _n: "10", x: b"A0434D9E47F3C86235477C7B1AE6AE5D3442D49B1943C2B752A68E2A47E247C7", y: b"893ABA425419BC27A3B6C7E693A24C696F794C2ED877A1593CBEE53B037368D7" },
+    ];
+
+    let large_1 = Xy { 
+      _n: "28948022309329048855892746252171976963209391069768726095651290785379540373584", 
+      x: b"A6B594B38FB3E77C6EDF78161FADE2041F4E09FD8497DB776E546C41567FEB3C", 
+      y: b"71444009192228730CD8237A490FEBA2AFE3D27D7CC1136BC97E439D13330D55",
+    };
+    let large_2 = Xy { 
+      _n: "57896044618658097711785492504343953926418782139537452191302581570759080747168", 
+      x: b"00000000000000000000003B78CE563F89A0ED9414F5AA28AD0D96D6795F9C63", 
+      y: b"3F3979BF72AE8202983DC989AEC7F2FF2ED91BDD69CE02FC0700CA100E59DDF3",
+    };
+    let large_3 = Xy { 
+      _n: "86844066927987146567678238756515930889628173209306178286953872356138621120752", 
+      x: b"E24CE4BEEE294AA6350FAA67512B99D388693AE4E7F53D19882A6EA169FC1CE1", 
+      y: b"8B71E83545FC2B5872589F99D948C03108D36797C4DE363EBD3FF6A9E1A95B10",
+    };
+
+    let e = WeierstrassEq::secp256k1();
+    let mut gs = vec![e.g.clone()];  // gs[0] is used to match index and g's n and will not be actually used
+    for p in ps {
+      gs.push(p.to_ec_point(e.f.clone()));
+    }
+
+    let test_cases = [
+      AddTestCase::new(1, 2, 3), 
+      AddTestCase::new(2, 2, 4), 
+      AddTestCase::new(2, 6, 8), 
+      AddTestCase::new(3, 4, 7), 
+      AddTestCase::new(5, 1, 6), 
+      AddTestCase::new(5, 2, 7), 
+      AddTestCase::new(8, 1, 9), 
+      AddTestCase::new(9, 1, 10), 
+    ];
+
+    for tc in test_cases {
+      let res = e.add(&gs[tc.a], &gs[tc.b]);
+      match (&res, &gs[tc.c]) {
+        (EcPoint::Affine(c1), EcPoint::Affine(c2)) => {
+          assert_eq!(c1, c2);
+        },
+        _ => {
+          panic!("Expected g{} + g{} to be g{}", tc.a, tc.b, tc.c);
+        }
+      }
+    }
+
+    let l1 = large_1.to_ec_point(e.f.clone());
+    let l2 = large_2.to_ec_point(e.f.clone());
+    let l3 = large_3.to_ec_point(e.f.clone());
+
+    let l1_plus_l2 = e.add(&l1, &l2);
+    match (&l1_plus_l2, &l3) {
+      (EcPoint::Affine(c1), EcPoint::Affine(c2)) => {
+        assert_eq!(c1, c2);
+      },
+      _ => {
+        panic!("Expected l1 + l2 to be l3");
+      }
+    }
   }
 }
