@@ -401,11 +401,10 @@ mod tests {
         FieldElem::new(e.f.clone(), y),
       ).unwrap());
 
-      print!("Calculating...");
       let beg = Instant::now();
       let gk = e.scalar_mul(&k);
       let end = beg.elapsed();
-      println!("Done in {}.{:03} sec", end.as_secs(), end.subsec_nanos() / 1_000_000);
+      println!("Large number scalar mul done in {}.{:03} sec", end.as_secs(), end.subsec_nanos() / 1_000_000);
 
       match (&p, &gk) {
         (EcPoint::Affine(c1), EcPoint::Affine(c2)) => {
