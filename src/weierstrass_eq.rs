@@ -56,14 +56,14 @@ impl WeierstrassEq {
   pub fn scalar_mul(&self, multiplier: &BigUint) -> EcPoint {
     let mut n = multiplier.clone();
     let mut res = EcPoint::Infinity();
-    let mut factor = self.g.clone();
-    let two = BigUint::from(2u32);
+    let mut g_pow_n = self.g.clone();
+    let one = BigUint::one();
 
     while !n.is_zero() {
-      if n.clone().bitand(&two).is_one() {
-        res = self.add(&res, &factor);
-        factor = self.add(&factor, &factor);
+      if n.clone().bitand(&one).is_one() {
+        res = self.add(&res, &g_pow_n);
       }
+      g_pow_n = self.add(&g_pow_n, &g_pow_n);
       n.shr_assign(1usize);
     }
     res
@@ -314,9 +314,8 @@ mod tests {
     }
   }
 
-  #[test]
-  fn test_add_different_points() {
-    let ps = [
+  fn get_g_multiples<'a>(e: &WeierstrassEq) -> Vec<EcPoint> {
+    let ps = vec![
       Xy { _n: "1", x: b"79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798", y: b"483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8" },
       Xy { _n: "2", x: b"C6047F9441ED7D6D3045406E95C07CD85C778E4B8CEF3CA7ABAC09B95C709EE5", y: b"1AE168FEA63DC339A3C58419466CEAEEF7F632653266D0E1236431A950CFE52A" },
       Xy { _n: "3", x: b"F9308A019258C31049344F85F89D5229B531C845836F99B08601F113BCE036F9", y: b"388F7B0F632DE8140FE337E62A37F3566500A99934C2231B6CB9FD7584B8E672" },
@@ -329,7 +328,98 @@ mod tests {
       Xy { _n: "9", x: b"ACD484E2F0C7F65309AD178A9F559ABDE09796974C57E714C35F110DFC27CCBE", y: b"CC338921B0A7D9FD64380971763B61E9ADD888A4375F8E0F05CC262AC64F9C37" },
       Xy { _n: "10", x: b"A0434D9E47F3C86235477C7B1AE6AE5D3442D49B1943C2B752A68E2A47E247C7", y: b"893ABA425419BC27A3B6C7E693A24C696F794C2ED877A1593CBEE53B037368D7" },
     ];
+    let mut gs = vec![e.g.clone()];  // gs[0] is used to match index and g's n and will not be actually used
+    for p in ps {
+      gs.push(p.to_ec_point(e.f.clone()));
+    }
+    gs
+  }
 
+  #[test]
+  fn test_scalar_mul_smaller_nums() {
+    let e = WeierstrassEq::secp256k1();
+    let gs = get_g_multiples(&e);
+
+    for n in 1usize..=10 {
+      let res = e.scalar_mul(&BigUint::from(n));
+      match (&res, &gs[n]) {
+        (EcPoint::Affine(c1), EcPoint::Affine(c2)) => {
+          assert_eq!(c1, c2);
+        },
+        _ => {
+          panic!("Expected g * {} to be g{}", n, n);
+        }
+      }
+    }
+  }
+
+  struct ScalarMulTest<'a> {
+    k: &'a [u8; 64],
+    x: &'a [u8; 64],
+    y: &'a [u8; 64],
+  }
+
+  #[test]
+  fn test_scalar_mul_gen_pubkey() {
+    let test_cases = vec![
+      ScalarMulTest { 
+        k: b"AA5E28D6A97A2479A65527F7290311A3624D4CC0FA1578598EE3C2613BF99522",
+        x: b"34F9460F0E4F08393D192B3C5133A6BA099AA0AD9FD54EBCCFACDFA239FF49C6",
+        y: b"0B71EA9BD730FD8923F6D25A7A91E7DD7728A960686CB5A901BB419E0F2CA232",
+      },
+      ScalarMulTest { 
+        k: b"7E2B897B8CEBC6361663AD410835639826D590F393D90A9538881735256DFAE3",
+        x: b"D74BF844B0862475103D96A611CF2D898447E288D34B360BC885CB8CE7C00575",
+        y: b"131C670D414C4546B88AC3FF664611B1C38CEB1C21D76369D7A7A0969D61D97D",
+      },
+      ScalarMulTest { 
+        k: b"6461E6DF0FE7DFD05329F41BF771B86578143D4DD1F7866FB4CA7E97C5FA945D",
+        x: b"E8AECC370AEDD953483719A116711963CE201AC3EB21D3F3257BB48668C6A72F",
+        y: b"C25CAF2F0EBA1DDB2F0F3F47866299EF907867B7D27E95B3873BF98397B24EE1",
+      },
+      ScalarMulTest { 
+        k: b"376A3A2CDCD12581EFFF13EE4AD44C4044B8A0524C42422A7E1E181E4DEECCEC",
+        x: b"14890E61FCD4B0BD92E5B36C81372CA6FED471EF3AA60A3E415EE4FE987DABA1",
+        y: b"297B858D9F752AB42D3BCA67EE0EB6DCD1C2B7B0DBE23397E66ADC272263F982",
+      },
+      ScalarMulTest { 
+        k: b"1B22644A7BE026548810C378D0B2994EEFA6D2B9881803CB02CEFF865287D1B9",
+        x: b"F73C65EAD01C5126F28F442D087689BFA08E12763E0CEC1D35B01751FD735ED3",
+        y: b"F449A8376906482A84ED01479BD18882B919C140D638307F0C0934BA12590BDE",
+      },
+    ];
+
+    use std::time::Instant;
+    let e = WeierstrassEq::secp256k1();
+
+    for t in test_cases {
+      let k = BigUint::parse_bytes(t.k, 16).unwrap();
+      let x = BigUint::parse_bytes(t.x, 16).unwrap();
+      let y = BigUint::parse_bytes(t.y, 16).unwrap();
+      let p = EcPoint::Affine(Coord2::new(
+        FieldElem::new(e.f.clone(), x), 
+        FieldElem::new(e.f.clone(), y),
+      ).unwrap());
+
+      print!("Calculating...");
+      let beg = Instant::now();
+      let gk = e.scalar_mul(&k);
+      let end = beg.elapsed();
+      println!("Done in {}.{:03} sec", end.as_secs(), end.subsec_nanos() / 1_000_000);
+
+      match (&p, &gk) {
+        (EcPoint::Affine(c1), EcPoint::Affine(c2)) => {
+          assert_eq!(c1, c2);
+        },
+        _ => {
+          panic!("Expected gk to be p");
+        }
+      }
+    }
+  }
+
+  #[test]
+  fn test_add_different_points() {
     let large_1 = Xy { 
       _n: "28948022309329048855892746252171976963209391069768726095651290785379540373584", 
       x: b"A6B594B38FB3E77C6EDF78161FADE2041F4E09FD8497DB776E546C41567FEB3C", 
@@ -347,10 +437,7 @@ mod tests {
     };
 
     let e = WeierstrassEq::secp256k1();
-    let mut gs = vec![e.g.clone()];  // gs[0] is used to match index and g's n and will not be actually used
-    for p in ps {
-      gs.push(p.to_ec_point(e.f.clone()));
-    }
+    let gs = get_g_multiples(&e);
 
     let test_cases = [
       AddTestCase::new(1, 2, 3), 
