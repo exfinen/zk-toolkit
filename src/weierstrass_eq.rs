@@ -1,23 +1,23 @@
 use crate::field_elem::FieldElem;
 use crate::field::Field;
 use crate::ec_point::{EcPoint, Coord2};
+use crate::curve::Curve;
 use num_bigint::BigUint;
 use num_traits::identities::{Zero, One};
 use std::ops::{BitAnd, ShrAssign};
 use std::rc::Rc;
 
 // represents: y^2 = x^3 + Ax + B
-#[allow(dead_code)]
 pub struct WeierstrassEq {
   pub f: Rc<Field>,
   pub a: FieldElem,
   pub b: FieldElem,
   pub g: EcPoint,
+  pub n: BigUint,
   pub zero: BigUint,
   pub one: BigUint,
 }
 
-#[allow(dead_code)]
 impl WeierstrassEq {
   pub fn new(
     f: Rc<Field>, 
@@ -25,6 +25,7 @@ impl WeierstrassEq {
     b: BigUint, 
     gx: BigUint, 
     gy: BigUint,
+    n: BigUint,
   ) -> Result<Self, String> {
     let a = FieldElem::new(f.clone(), a);
     let b = FieldElem::new(f.clone(), b);
@@ -35,7 +36,7 @@ impl WeierstrassEq {
     let zero = BigUint::zero();
     let one = BigUint::one();
 
-    Ok(WeierstrassEq { f, a, b, g, zero, one })
+    Ok(WeierstrassEq { f, a, b, g, n, zero, one })
   }
 
   pub fn secp256k1() -> WeierstrassEq {
@@ -49,11 +50,24 @@ impl WeierstrassEq {
     let gx = BigUint::parse_bytes(b"79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798", 16).unwrap();
     let gy = BigUint::parse_bytes(b"483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8", 16).unwrap();
 
+    // order of base point
+    let n = BigUint::parse_bytes(b"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", 16).unwrap();
+
     // curve
-    WeierstrassEq::new(f, a, b, gx, gy).unwrap()
+    WeierstrassEq::new(f, a, b, gx, gy, n).unwrap()
+  }
+}
+
+impl Curve for WeierstrassEq {
+  fn g(&self) -> EcPoint {
+    self.g.clone()
+  }
+  
+  fn n(&self) -> BigUint {
+    self.n.clone()
   }
 
-  pub fn scalar_mul(&self, multiplier: &BigUint) -> EcPoint {
+  fn scalar_mul(&self, multiplier: &BigUint) -> EcPoint {
     let mut n = multiplier.clone();
     let mut res = EcPoint::Infinity();
     let mut g_pow_n = self.g.clone();
@@ -69,7 +83,7 @@ impl WeierstrassEq {
     res
   }
 
-  pub fn add(&self, p1: &EcPoint, p2: &EcPoint) -> EcPoint {
+  fn add(&self, p1: &EcPoint, p2: &EcPoint) -> EcPoint {
     match (p1, p2) {
       // when adding point at infinity to a point
       (EcPoint::Infinity(), EcPoint::Affine(p)) => {

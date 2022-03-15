@@ -157,6 +157,20 @@ mod tests {
   use super::*;
 
   #[test]
+  fn test_new_below_order() {
+    let f = Field::new(BigUint::from(11u32));
+    let a = FieldElem::new(f.clone(), BigUint::from(7u32));
+    assert_eq!(a.v, BigUint::from(7u32));
+  }
+
+  #[test]
+  fn test_new_above_order() {
+    let f = Field::new(BigUint::from(11u32));
+    let a = FieldElem::new(f.clone(), BigUint::from(13u32));
+    assert_eq!(a.v, BigUint::from(2u32));
+  }
+
+  #[test]
   fn test_add_eq_order_result() {
     let f = Field::new(BigUint::from(11u32));
     let a = FieldElem::new(f.clone(), BigUint::from(9u32));
