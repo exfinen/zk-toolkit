@@ -49,7 +49,7 @@ impl<'a> Ecdsa<'a> {
       let k = self.gen_random_number_order_n();  // mod n
       
       // e = HASH(message)
-      // z = e's leftmost Ln bits (Ln = order of n = 256 bits)
+      // z = e's uppermost Ln bits (Ln = order of n = 256 bits)
       let z = BigUint::from_bytes_be(&Hash::sha256(message));
 
       // p = kG (k != 0)
@@ -102,7 +102,7 @@ impl<'a> Ecdsa<'a> {
     } 
     else {
       // compute e = HASH(m)
-      // z = e's leftmost Ln bits (Ln = order of n = 256 bits)
+      // z = e's uppermost Ln bits (Ln = order of n = 256 bits)
       let z = BigUint::from_bytes_be(&Hash::sha256(message));
       let z_fe = FieldElem::new(self.f_n.clone(), BigUint::from(z));  // mod n
       let w = sig.s.inv().unwrap();  // mod n
