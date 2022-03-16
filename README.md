@@ -6,5 +6,5 @@ To build a zk library from scratch keeping the implementation as easily understa
 
 ## What's implemented so far
 - Basic operations in field calculation (add, sub, mul, inv, pow, sq)
-- ECDSA add and scalar mul on Weierstrass equation 
+- Add and scalar multiplicaiton on Weierstrass equation 
 - ECDSA sign and verify
