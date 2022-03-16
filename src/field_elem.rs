@@ -27,6 +27,10 @@ impl FieldElem {
     }
   }
 
+  pub fn new_elem(&self, v: BigUint) -> Self {
+    FieldElem::new(self.f.clone(), v)
+  }
+
   pub fn add(&self, other: &FieldElem) -> FieldElem {
     let mut v = self.v.clone();
     v += &other.v;

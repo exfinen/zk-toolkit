@@ -1,30 +1,42 @@
 use crate::field_elem::FieldElem;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum EcPoint {
-  Infinity(),
-  Affine(Coord2)
-}
+use crate::field::Field;
+use num_bigint::BigUint;
+use num_traits::identities::{Zero, One};
 
 #[derive(Debug, Clone)]
-pub struct Coord2 {
+pub struct EcPoint {
   pub x: FieldElem,
   pub y: FieldElem,
+  pub is_inf: bool,
 }
 
-impl PartialEq for Coord2 {
+impl PartialEq for EcPoint {
   fn eq(&self, other: &Self) -> bool {
-    self.x == other.x && self.y == other.y
+    if self.is_inf != other.is_inf {
+      false
+    } else if self.is_inf {  // both is_inf's are true 
+      true
+    } else {  // both is_inf's are false 
+      self.x == other.x && self.y == other.y
+    }
   }
 }
 
-impl Eq for Coord2 {}
+impl Eq for EcPoint {}
 
-impl Coord2 {
+impl EcPoint {
+  pub fn inf() -> Self {
+    EcPoint {
+      x: FieldElem::new(Field::new(BigUint::one()), BigUint::zero()),
+      y: FieldElem::new(Field::new(BigUint::one()), BigUint::zero()),
+      is_inf: true,
+    }
+  }
+
   pub fn new(x: FieldElem, y: FieldElem) -> Result<Self, String> {
     if x.f != y.f {
       return Err("Orders of field elements differ".to_string());
     }
-    Ok(Coord2 { x, y })
+    Ok(EcPoint { x, y, is_inf: false })
   }
 }

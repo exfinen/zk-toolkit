@@ -1,13 +1,13 @@
 use crate::field_elem::FieldElem;
 use crate::field::Field;
-use crate::ec_point::{EcPoint, Coord2};
+use crate::ec_point::EcPoint;
 use crate::curve::Curve;
 use num_bigint::BigUint;
 use num_traits::identities::{Zero, One};
 use std::ops::{BitAnd, ShrAssign};
 use std::rc::Rc;
 
-// represents: y^2 = x^3 + Ax + B
+// y^2 = x^3 + Ax + B
 pub struct WeierstrassEq {
   pub f: Rc<Field>,
   pub a: FieldElem,
@@ -29,10 +29,10 @@ impl WeierstrassEq {
   ) -> Result<Self, String> {
     let a = FieldElem::new(f.clone(), a);
     let b = FieldElem::new(f.clone(), b);
-    let g = EcPoint::Affine(Coord2::new(
+    let g = EcPoint::new(
       FieldElem::new(f.clone(), gx), 
       FieldElem::new(f.clone(), gy),
-    ).unwrap());
+    ).unwrap();
     let zero = BigUint::zero();
     let one = BigUint::one();
 
@@ -67,141 +67,138 @@ impl Curve for WeierstrassEq {
     self.n.clone()
   }
 
-  fn scalar_mul(&self, multiplier: &BigUint) -> EcPoint {
+  fn is_on_curve(&self, pt: &EcPoint) -> bool {
+    if pt.is_inf {
+      false
+    } else {
+      let x3 = pt.x.mul(&pt.x).mul(&pt.x);
+      let ax = self.a.mul(&pt.x);
+      let y2 = pt.y.mul(&pt.y);
+
+      // check if y^2 = x^3 + Ax + B
+      y2 == x3.add(&ax).add(&self.b)
+    }
+  }
+
+  // TODO check if all points are based on the same field
+  fn scalar_mul(&self, pt: &EcPoint, multiplier: &BigUint) -> EcPoint {
     let mut n = multiplier.clone();
-    let mut res = EcPoint::Infinity();
-    let mut g_pow_n = self.g.clone();
+    let mut res = EcPoint::inf();
+    let mut pt_pow_n = pt.clone();
     let one = BigUint::one();
 
     while !n.is_zero() {
       if n.clone().bitand(&one).is_one() {
-        res = self.add(&res, &g_pow_n);
+        res = self.add(&res, &pt_pow_n);
       }
-      g_pow_n = self.add(&g_pow_n, &g_pow_n);
+      pt_pow_n = self.add(&pt_pow_n, &pt_pow_n);
       n.shr_assign(1usize);
     }
     res
   }
 
+  // TODO check if all points are based on the same field
   fn add(&self, p1: &EcPoint, p2: &EcPoint) -> EcPoint {
-    match (p1, p2) {
-      // when adding point at infinity to a point
-      (EcPoint::Infinity(), EcPoint::Affine(p)) => {
-        EcPoint::Affine(p.clone())
-      },
-      (EcPoint::Affine(p), EcPoint::Infinity()) => {
-        EcPoint::Affine(p.clone())
-      },
-      (EcPoint::Infinity(), EcPoint::Infinity()) => {
-        EcPoint::Infinity()
-      },
-      // when line through p1 and p2 is vertical line
-      (EcPoint::Affine(p1), EcPoint::Affine(p2)) if p1.x == p2.x && p1.y != p2.y => {
-        EcPoint::Infinity()
-      },
-      // when p1 and p2 are the same point
-      (EcPoint::Affine(p1), EcPoint::Affine(p2)) if p1.x == p2.x && p1.y == p2.y => {
-        // special case: if y == 0, the tangent line is vertical
-        if p1.y.v == BigUint::zero() || p2.y.v == BigUint::zero() {
-          return EcPoint::Infinity();
-        }
-        // differentiate y^2 = x^3 + Ax + B w/ implicit differentiation
-        // d/dx(y^2) = d/dx(x^3 + Ax + B)
-        // 2y dy/dx = 3x^2 + A
-        // dy/dx = (3x^2 + A) / 2y
-        //
-        // dy/dx is the slope m of the tangent line at the point 
-        // m = (3x^2 + A) / 2y
-        let m1 = p1.x.sq().mul_u32(3u32);
-        let m2 = p1.y.mul_u32(2u32);
-        let m = m1.div(&m2).unwrap();
+    if p1.is_inf && p2.is_inf {  // inf + inf is inf
+      EcPoint::inf()
+    } else if p1.is_inf {  // adding p2 to inf is p2
+      p2.clone()
+    } else if p2.is_inf {  // adding p1 to inf is p1
+      p1.clone()
+    } else if p1.x == p2.x && p1.y != p2.y {  // if line through p1 and p2 is vertical line
+      EcPoint::inf()
+    } else if p1.x == p2.x && p1.y == p2.y {  // if adding the same point
+      // special case: if y == 0, the tangent line is vertical
+      if p1.y.v == BigUint::zero() || p2.y.v == BigUint::zero() {
+        return EcPoint::inf();
+      }
+      // differentiate y^2 = x^3 + Ax + B w/ implicit differentiation
+      // d/dx(y^2) = d/dx(x^3 + Ax + B)
+      // 2y dy/dx = 3x^2 + A
+      // dy/dx = (3x^2 + A) / 2y
+      //
+      // dy/dx is the slope m of the tangent line at the point 
+      // m = (3x^2 + A) / 2y
+      let m1 = p1.x.sq().mul_u32(3u32);
+      let m2 = p1.y.mul_u32(2u32);
+      let m = m1.div(&m2).unwrap();
 
-        // equation of intersecting line is
-        // y = m(x − p1.x) + p1.y (1)
-        //
-        // substitute y with (1):
-        // (m(x − p1.x) + p1.y)^2 = x^3 + Ax + B
-        //
-        // moving LHS to RHS, we get:
-        // 0 = x^3 - m^2 x^2 + ...  (2)
-        //
-        // with below equation:
-        // (x - r)(x - s)(x - t) = x^3 + (r + s + t)x^2 + (ab + ac + bc)x − abc 
-        // 
-        // we know that the coefficient of x^2 term is:
-        // r + s + t 
-        //
-        // using (2), the coefficient of x^2 term of the intersecting line is:
-        // m^2 = r + s + t
-        // 
-        // since p1 and p2 are the same point, replace r and s w/ p1.x
-        // to get the x-coordinate of the point where (1) intersects the curve
-        // x3 = m^2 − 2*p1.x
-        let p3x = m.sq().sub(&p1.x.mul_u32(2u32));
+      // equation of intersecting line is
+      // y = m(x − p1.x) + p1.y (1)
+      //
+      // substitute y with (1):
+      // (m(x − p1.x) + p1.y)^2 = x^3 + Ax + B
+      //
+      // moving LHS to RHS, we get:
+      // 0 = x^3 - m^2 x^2 + ...  (2)
+      //
+      // with below equation:
+      // (x - r)(x - s)(x - t) = x^3 + (r + s + t)x^2 + (ab + ac + bc)x − abc 
+      // 
+      // we know that the coefficient of x^2 term is:
+      // r + s + t 
+      //
+      // using (2), the coefficient of x^2 term of the intersecting line is:
+      // m^2 = r + s + t
+      // 
+      // since p1 and p2 are the same point, replace r and s w/ p1.x
+      // to get the x-coordinate of the point where (1) intersects the curve
+      // x3 = m^2 − 2*p1.x
+      let p3x = m.sq().sub(&p1.x.mul_u32(2u32));
 
-        // then get the y-coordinate by substituting x in (1) w/ x3 to get y3
-        // y3 = m(x3 − p1.x) + p1.y 
-        // 
-        // reflecting y3 across the x-axis results in the addition result y-coordinate 
-        // result.y = -1 * y3 = m(p1.x - x3) - p1.y
-        let p3y_neg = m.mul(&p1.x.sub(&p3x)).sub(&p1.y);
-        
-        EcPoint::Affine(Coord2 {
-          x: p3x,
-          y: p3y_neg,
-        })
-      },
-      // when line through p1 and p2 is non-vertical line
-      (EcPoint::Affine(p1), EcPoint::Affine(p2)) => {
+      // then get the y-coordinate by substituting x in (1) w/ x3 to get y3
+      // y3 = m(x3 − p1.x) + p1.y 
+      // 
+      // reflecting y3 across the x-axis results in the addition result y-coordinate 
+      // result.y = -1 * y3 = m(p1.x - x3) - p1.y
+      let p3y_neg = m.mul(&p1.x.sub(&p3x)).sub(&p1.y);
+      EcPoint::new(p3x, p3y_neg).unwrap()
 
-        // slope m of the line that intersects the curve at p1 and p2:
-        // p2.y - p1.y = m(p2.x - p1.x)
-        // m(p2.x - p1.x) = p2.y - p1.y
-        // m = (p2.y - p1.y) / (p2.x - p1.x)
-        let m = (p2.y.sub(&p1.y)).div(&p2.x.sub(&p1.x)).unwrap();
+    } else {  // when line through p1 and p2 is non-vertical line
+      // slope m of the line that intersects the curve at p1 and p2:
+      // p2.y - p1.y = m(p2.x - p1.x)
+      // m(p2.x - p1.x) = p2.y - p1.y
+      // m = (p2.y - p1.y) / (p2.x - p1.x)
+      let m = (p2.y.sub(&p1.y)).div(&p2.x.sub(&p1.x)).unwrap();
 
-        // then the equation of the line is:
-        // y = m(x − p1.x) + p1.y  (1)
-        //
-        // starting from a curve equation of Weierstrass form:
-        // y^2 = x^3 + Ax + B
-        //
-        // substitute y with (1):
-        // (m(x − p1.x) + p1.y)^2 = x^3 + Ax + B
-        //
-        // moving LHS to RHS, we get:
-        // 0 = x^3 - m^2 x^2 + ...  (2)
-        //
-        // with below equation:
-        // (x - r)(x - s)(x - t) = x^3 + (r + s + t)x^2 + (ab + ac + bc)x − abc 
-        // 
-        // we know that the coefficient of x^2 term is:
-        // r + s + t 
-        //
-        // using (2), the coefficient of x^2 term of the intersecting line is:
-        // m^2 = r + s + t
-        // 
-        // substitute r and s with the known 2 roots - p1.x and p2.x:
-        // m^2 = p1.x + p2. + t
-        // t = m^2 - p1.x - p2.x
-        //
-        // here t is the x coordinate of the p3 we're trying to find:
-        // p3.x = m^2 - p1.x - p2.x
-        let p3x = m.sq().sub(&p1.x).sub(&p2.x);
+      // then the equation of the line is:
+      // y = m(x − p1.x) + p1.y  (1)
+      //
+      // starting from a curve equation of Weierstrass form:
+      // y^2 = x^3 + Ax + B
+      //
+      // substitute y with (1):
+      // (m(x − p1.x) + p1.y)^2 = x^3 + Ax + B
+      //
+      // moving LHS to RHS, we get:
+      // 0 = x^3 - m^2 x^2 + ...  (2)
+      //
+      // with below equation:
+      // (x - r)(x - s)(x - t) = x^3 + (r + s + t)x^2 + (ab + ac + bc)x − abc 
+      // 
+      // we know that the coefficient of x^2 term is:
+      // r + s + t 
+      //
+      // using (2), the coefficient of x^2 term of the intersecting line is:
+      // m^2 = r + s + t
+      // 
+      // substitute r and s with the known 2 roots - p1.x and p2.x:
+      // m^2 = p1.x + p2. + t
+      // t = m^2 - p1.x - p2.x
+      //
+      // here t is the x coordinate of the p3 we're trying to find:
+      // p3.x = m^2 - p1.x - p2.x
+      let p3x = m.sq().sub(&p1.x).sub(&p2.x);
 
-        // using (1), find the y-coordinate of the 3rd intersecting point and p3x obtained above
-        // y = m(x − p1.x) + p1.y
-        // p3.y = m(p3.x − p1.x) + p1.y
-        let p3y = m.mul(&p3x.sub(&p1.x)).add(&p1.y);
-        
-        // then (p3.x, -p3.y) is the result of adding p1 and p2
-        let p3y_neg = p3y.neg();
-        
-        EcPoint::Affine(Coord2 {
-          x: p3x,
-          y: p3y_neg,
-        })
-      },
+      // using (1), find the y-coordinate of the 3rd intersecting point and p3x obtained above
+      // y = m(x − p1.x) + p1.y
+      // p3.y = m(p3.x − p1.x) + p1.y
+      let p3y = m.mul(&p3x.sub(&p1.x)).add(&p1.y);
+      
+      // then (p3.x, -p3.y) is the result of adding p1 and p2
+      let p3y_neg = p3y.neg();
+      
+      EcPoint::new(p3x, p3y_neg).unwrap()
     }
   }
 }
@@ -212,87 +209,52 @@ mod tests {
   use num_bigint::BigUint;
 
   #[test]
-  fn test_scalar_mul_same_point() {
+  fn test_add_same_point() {
     let e = WeierstrassEq::secp256k1();
     let g2 = e.add(&e.g, &e.g);
     let exp_x = BigUint::parse_bytes(b"89565891926547004231252920425935692360644145829622209833684329913297188986597", 10).unwrap();
     let exp_y = BigUint::parse_bytes(b"12158399299693830322967808612713398636155367887041628176798871954788371653930", 10).unwrap();
-    match g2 {
-      EcPoint::Affine(c) => {
-        assert_eq!(c.x.v, exp_x);
-        assert_eq!(c.y.v, exp_y);
-      },
-      _ => {
-        panic!("Expected affine point");
-      }
-    }
+    assert_eq!(g2.x.v, exp_x);
+    assert_eq!(g2.y.v, exp_y);
   }
 
   #[test]
-  fn test_scalar_mul_y_eq_0() {
+  fn test_add_same_point_y_eq_0() {
     // TODO implement this. need to find the x-coord when y is zero
   }
 
   #[test]
-  fn test_scalar_mul_vertical_line() {
+  fn test_add_vertical_line() {
     let e = WeierstrassEq::secp256k1();
     let a = e.g.clone();
-    match e.g.clone() {
-      EcPoint::Affine(c) => {
-      let b = EcPoint::Affine(Coord2::new(c.x, c.y.neg()).unwrap());
-        match e.add(&a, &b) {
-          EcPoint::Affine(_) => {
-            panic!("Expected point at infinity");
-          },
-          EcPoint::Infinity() => {},
-        }
-      },
-      _ => {}
-    }
+    let b = EcPoint::new(a.x.clone(), a.y.neg()).unwrap();
+    let exp = EcPoint::inf();
+    let act = e.add(&a, &b);
+    assert_eq!(act, exp);
   }
 
   #[test]
-  fn test_scalar_mul_inf_affine() {
+  fn test_add_inf_and_affine() {
     let e = WeierstrassEq::secp256k1();
-    let inf = EcPoint::Infinity();
+    let inf = EcPoint::inf();
     let inf_plus_g = e.add(&e.g, &inf);
-    match (e.g, inf_plus_g) {
-      (EcPoint::Affine(c1), EcPoint::Affine(c2)) => {
-        assert_eq!(c1, c2);
-      },
-      _ => {
-        panic!("Expected inf+g to be g");
-      }
-    }
+    assert_eq!(e.g, inf_plus_g);
   }
 
   #[test]
-  fn test_scalar_mul_affine_inf() {
+  fn test_add_affine_and_inf() {
     let e = WeierstrassEq::secp256k1();
-    let inf = EcPoint::Infinity();
+    let inf = EcPoint::inf();
     let g_plus_inf = e.add(&inf, &e.g);
-    match (e.g, g_plus_inf) {
-      (EcPoint::Affine(c1), EcPoint::Affine(c2)) => {
-        assert_eq!(c1, c2);
-      },
-      _ => {
-        panic!("Expected g+inf to be g");
-      }
-    }
+    assert_eq!(e.g, g_plus_inf);
   }
 
   #[test]
-  fn test_scalar_mul_inf_inf() {
+  fn test_add_inf_and_inf() {
     let e = WeierstrassEq::secp256k1();
-    let inf = EcPoint::Infinity();
-    let g2 = e.add(&inf, &inf);
-    match g2 {
-      EcPoint::Infinity() => {
-      },
-      _ => {
-        panic!("Expected inf+inf to be inf");
-      }
-    }
+    let inf = EcPoint::inf();
+    let inf_plus_inf = e.add(&inf, &inf);
+    assert_eq!(inf_plus_inf, inf);
   }
 
   struct Xy<'a> {
@@ -305,10 +267,10 @@ mod tests {
     fn to_ec_point(&'a self, f: Rc<Field>) -> EcPoint {
       let gx = BigUint::parse_bytes(self.x, 16).unwrap();
       let gy = BigUint::parse_bytes(self.y, 16).unwrap();
-      EcPoint::Affine(Coord2::new(
+      EcPoint::new(
         FieldElem::new(f.clone(), gx), 
         FieldElem::new(f, gy),
-      ).unwrap())
+      ).unwrap()
     }
   }
 
@@ -354,15 +316,8 @@ mod tests {
     let gs = get_g_multiples(&e);
 
     for n in 1usize..=10 {
-      let res = e.scalar_mul(&BigUint::from(n));
-      match (&res, &gs[n]) {
-        (EcPoint::Affine(c1), EcPoint::Affine(c2)) => {
-          assert_eq!(c1, c2);
-        },
-        _ => {
-          panic!("Expected g * {} to be g{}", n, n);
-        }
-      }
+      let res = e.scalar_mul(&e.g, &BigUint::from(n));
+      assert_eq!(&res, &gs[n]); 
     }
   }
 
@@ -409,24 +364,16 @@ mod tests {
       let k = BigUint::parse_bytes(t.k, 16).unwrap();
       let x = BigUint::parse_bytes(t.x, 16).unwrap();
       let y = BigUint::parse_bytes(t.y, 16).unwrap();
-      let p = EcPoint::Affine(Coord2::new(
+      let p = EcPoint::new(
         FieldElem::new(e.f.clone(), x), 
         FieldElem::new(e.f.clone(), y),
-      ).unwrap());
+      ).unwrap();
 
       let beg = Instant::now();
-      let gk = e.scalar_mul(&k);
+      let gk = e.scalar_mul(&e.g, &k);
       let end = beg.elapsed();
       println!("Large number scalar mul done in {}.{:03} sec", end.as_secs(), end.subsec_nanos() / 1_000_000);
-
-      match (&p, &gk) {
-        (EcPoint::Affine(c1), EcPoint::Affine(c2)) => {
-          assert_eq!(c1, c2);
-        },
-        _ => {
-          panic!("Expected gk to be p");
-        }
-      }
+      assert_eq!(p, gk);
     }
   }
 
@@ -464,14 +411,7 @@ mod tests {
 
     for tc in test_cases {
       let res = e.add(&gs[tc.a], &gs[tc.b]);
-      match (&res, &gs[tc.c]) {
-        (EcPoint::Affine(c1), EcPoint::Affine(c2)) => {
-          assert_eq!(c1, c2);
-        },
-        _ => {
-          panic!("Expected g{} + g{} to be g{}", tc.a, tc.b, tc.c);
-        }
-      }
+      assert_eq!(&res, &gs[tc.c]);
     }
 
     let l1 = large_1.to_ec_point(e.f.clone());
@@ -479,13 +419,6 @@ mod tests {
     let l3 = large_3.to_ec_point(e.f.clone());
 
     let l1_plus_l2 = e.add(&l1, &l2);
-    match (&l1_plus_l2, &l3) {
-      (EcPoint::Affine(c1), EcPoint::Affine(c2)) => {
-        assert_eq!(c1, c2);
-      },
-      _ => {
-        panic!("Expected l1 + l2 to be l3");
-      }
-    }
+    assert_eq!(l1_plus_l2, l3);
   }
 }

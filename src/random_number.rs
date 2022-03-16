@@ -1,5 +1,5 @@
 use rand_chacha::ChaChaRng;
-use rand::{RngCore, SeedableRng};
+use rand::SeedableRng;
 
 pub struct RandomNumber {
   pub gen: ChaChaRng,
@@ -15,6 +15,7 @@ impl RandomNumber {
 #[cfg(test)]
 mod tests {
   use super::*;
+  use rand::RngCore;
 
   #[test]
   fn test_1() {
