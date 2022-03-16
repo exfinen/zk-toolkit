@@ -14,6 +14,7 @@ pub struct Ecdsa<'a> {
   pub f_n: Rc<Field>,
 }
 
+#[derive(Debug, Clone)]
 pub struct Signature {
   pub r: FieldElem,   // mod n
   pub s: FieldElem,   // mod n
@@ -123,15 +124,157 @@ mod tests {
   use crate::weierstrass_eq::WeierstrassEq;
 
   #[test]
-  fn test_1() {
+  // TODO create separate tests for not-on-curve and pub_key-not-order-n cases
+  fn test_sign_verify_bad_pub_key() {
     let curve = WeierstrassEq::secp256k1();
-    let ecdsa = Ecdsa::new(&curve);
+    let mut ecdsa = Ecdsa::new(&curve);
 
-    // create private key
+    let message = vec![1u8, 2, 3];
+
+    // sign with newly generated private key
+    let priv_key = ecdsa.gen_random_number_order_n();
+    let sig = ecdsa.sign(&priv_key, &message).unwrap();
+
+    let good_pub_key = curve.scalar_mul(&curve.g(), &priv_key.v);
+    let bad_pub_key = EcPoint {
+      x: good_pub_key.x.clone(),
+      y: good_pub_key.x.clone(),
+      is_inf: false,
+    };
+    let is_verified = ecdsa.verify(&sig, &bad_pub_key, &message);
+    assert_eq!(is_verified, false);
+  }
+
+  #[test]
+  fn test_sign_verify_inf_pub_key() {
+    let curve = WeierstrassEq::secp256k1();
+    let mut ecdsa = Ecdsa::new(&curve);
+
+    let message = vec![1u8, 2, 3];
+
+    // sign with newly generated private key
+    let priv_key = ecdsa.gen_random_number_order_n();
+    let sig = ecdsa.sign(&priv_key, &message).unwrap();
+
+    // use inf public key for verifying
+    let pub_key = EcPoint::inf();
+    let is_verified = ecdsa.verify(&sig, &pub_key, &message);
+    assert_eq!(is_verified, false);
+  }
+
+  #[test]
+  fn test_sign_verify_sig_r_out_of_range() {
+    let curve = WeierstrassEq::secp256k1();
+    let mut ecdsa = Ecdsa::new(&curve);
+
+    let message = vec![1u8, 2, 3];
+
+    // sign with newly generated private key
+    let priv_key = ecdsa.gen_random_number_order_n();
+
+    // create public key from the private key used for signing for verifying
+    let pub_key = curve.scalar_mul(&curve.g(), &priv_key.v);
+
+    let sig = ecdsa.sign(&priv_key, &message).unwrap();
+
+    let sig_r_too_large = Signature {
+      r: sig.clone().s.new_elem(curve.n()),
+      s: sig.clone().s,
+    };
+    let is_verified = ecdsa.verify(&sig_r_too_large, &pub_key, &message);
+    assert_eq!(is_verified, false);
+
+    let sig_r_too_small = Signature {
+      r: sig.r.new_elem(BigUint::zero()),
+      s: sig.s,
+    };
+    let is_verified = ecdsa.verify(&sig_r_too_small, &pub_key, &message);
+    assert_eq!(is_verified, false);
+  }
+
+  #[test]
+  fn test_sign_verify_sig_s_out_of_range() {
+    let curve = WeierstrassEq::secp256k1();
+    let mut ecdsa = Ecdsa::new(&curve);
+
+    let message = vec![1u8, 2, 3];
+
+    // sign with newly generated private key
+    let priv_key = ecdsa.gen_random_number_order_n();
+
+    // create public key from the private key used for signing for verifying
+    let pub_key = curve.scalar_mul(&curve.g(), &priv_key.v);
+
+    let sig = ecdsa.sign(&priv_key, &message).unwrap();
+
+    let sig_s_too_large = Signature {
+      r: sig.clone().r,
+      s: sig.clone().s.new_elem(curve.n()),
+    };
+    let is_verified = ecdsa.verify(&sig_s_too_large, &pub_key, &message);
+    assert_eq!(is_verified, false);
+
+    let sig_s_too_small = Signature {
+      r: sig.r,
+      s: sig.s.new_elem(BigUint::zero()),
+    };
+    let is_verified = ecdsa.verify(&sig_s_too_small, &pub_key, &message);
+    assert_eq!(is_verified, false);
+  }
+
+  #[test]
+  fn test_sign_verify_all_good() {
+    let curve = WeierstrassEq::secp256k1();
+    let mut ecdsa = Ecdsa::new(&curve);
+
+    let message = vec![1u8, 2, 3];
+
+    // sign with newly generated private key
+    let priv_key = ecdsa.gen_random_number_order_n();
+    let sig = ecdsa.sign(&priv_key, &message).unwrap();
+
+    // create public key from the private key used for signing for verifying
+    let pub_key = curve.scalar_mul(&curve.g(), &priv_key.v);
+    let is_verified = ecdsa.verify(&sig, &pub_key, &message);
+    assert_eq!(is_verified, true);
+  }
+
+  #[test]
+  fn test_sign_verify_bad_priv_key() {
+    let curve = WeierstrassEq::secp256k1();
+    let mut ecdsa = Ecdsa::new(&curve);
+
+    let message = vec![1u8, 2, 3];
+
+    // sign with newly generated private key
+    let priv_key = ecdsa.gen_random_number_order_n();
+    let sig = ecdsa.sign(&priv_key, &message).unwrap();
+
+    // change private key and create public key from it
     let priv_key = ecdsa.gen_random_number_order_n();
     let pub_key = curve.scalar_mul(&curve.g(), &priv_key.v);
 
-    println!("priv={:?}", priv_key);
-    println!("pub={:?}", pub_key);
+    let is_verified = ecdsa.verify(&sig, &pub_key, &message);
+    assert_eq!(is_verified, false);
+  }
+
+  #[test]
+  fn test_sign_verify_different_message() {
+    let curve = WeierstrassEq::secp256k1();
+    let mut ecdsa = Ecdsa::new(&curve);
+
+    let message = vec![1u8, 2, 3];
+
+    // sign with newly generated private key
+    let priv_key = ecdsa.gen_random_number_order_n();
+    let sig = ecdsa.sign(&priv_key, &message).unwrap();
+
+    // create public key from the private key used for signing for verifying
+    let pub_key = curve.scalar_mul(&curve.g(), &priv_key.v);
+
+    // change message and verify
+    let message = vec![1u8, 2, 3, 4];
+    let is_verified = ecdsa.verify(&sig, &pub_key, &message);
+    assert_eq!(is_verified, false);
   }
 }
