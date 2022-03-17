@@ -6,3 +6,5 @@ pub mod weierstrass_eq;
 pub mod ecdsa;
 pub mod random_number;
 pub mod hash;
+pub mod jacobian_add_ops;
+pub mod affine_add_ops;
