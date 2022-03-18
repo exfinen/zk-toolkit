@@ -123,13 +123,13 @@ impl<'a> Ecdsa<'a> {
 mod tests {
   use super::*;
   use crate::weierstrass_eq::WeierstrassEq;
-  use crate::affine_add_ops::AffineAddOps;
+  use crate::weierstrass_add_ops::JacobianAddOps;
 
   #[test]
   // TODO create separate tests for not-on-curve and pub_key-not-order-n cases
   fn test_sign_verify_bad_pub_key() {
     let weier = WeierstrassEq::secp256k1();
-    let ops = AffineAddOps::new();
+    let ops = JacobianAddOps::new();
     let mut ecdsa = Ecdsa::new(&weier, &ops);
 
     let message = vec![1u8, 2, 3];
@@ -151,7 +151,7 @@ mod tests {
   #[test]
   fn test_sign_verify_inf_pub_key() {
     let weier = WeierstrassEq::secp256k1();
-    let ops = AffineAddOps::new();
+    let ops = JacobianAddOps::new();
     let mut ecdsa = Ecdsa::new(&weier, &ops);
 
     let message = vec![1u8, 2, 3];
@@ -169,7 +169,7 @@ mod tests {
   #[test]
   fn test_sign_verify_sig_r_out_of_range() {
     let weier = WeierstrassEq::secp256k1();
-    let ops = AffineAddOps::new();
+    let ops = JacobianAddOps::new();
     let mut ecdsa = Ecdsa::new(&weier, &ops);
 
     let message = vec![1u8, 2, 3];
@@ -200,7 +200,7 @@ mod tests {
   #[test]
   fn test_sign_verify_sig_s_out_of_range() {
     let weier = WeierstrassEq::secp256k1();
-    let ops = AffineAddOps::new();
+    let ops = JacobianAddOps::new();
     let mut ecdsa = Ecdsa::new(&weier, &ops);
 
     let message = vec![1u8, 2, 3];
@@ -231,7 +231,7 @@ mod tests {
   #[test]
   fn test_sign_verify_all_good() {
     let weier = WeierstrassEq::secp256k1();
-    let ops = AffineAddOps::new();
+    let ops = JacobianAddOps::new();
     let mut ecdsa = Ecdsa::new(&weier, &ops);
 
     let message = vec![1u8, 2, 3];
@@ -249,7 +249,7 @@ mod tests {
   #[test]
   fn test_sign_verify_bad_priv_key() {
     let weier = WeierstrassEq::secp256k1();
-    let ops = AffineAddOps::new();
+    let ops = JacobianAddOps::new();
     let mut ecdsa = Ecdsa::new(&weier, &ops);
 
     let message = vec![1u8, 2, 3];
@@ -269,7 +269,7 @@ mod tests {
   #[test]
   fn test_sign_verify_different_message() {
     let weier = WeierstrassEq::secp256k1();
-    let ops = AffineAddOps::new();
+    let ops = JacobianAddOps::new();
     let mut ecdsa = Ecdsa::new(&weier, &ops);
 
     let message = vec![1u8, 2, 3];

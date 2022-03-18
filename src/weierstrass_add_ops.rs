@@ -1,7 +1,8 @@
 use crate::curve::AddOps;
+use crate::field_elem::FieldElem;
 use crate::ec_point::EcPoint;
 use num_bigint::BigUint;
-use num_traits::identities::{Zero};
+use num_traits::identities::{One, Zero};
 
 pub struct AffineAddOps;
 
@@ -118,6 +119,119 @@ impl AddOps for AffineAddOps {
   }
 }
 
+#[derive(Debug, Clone)]
+pub struct JacobianPoint {
+  pub x: FieldElem,
+  pub y: FieldElem,
+  pub z: FieldElem,
+}
+
+pub struct JacobianConv;
+
+impl JacobianPoint {
+  pub fn from_ec_point(pt: &EcPoint) -> Result<JacobianPoint, String> {
+    if pt.is_inf {
+      Err("Cannot convert inf to Jacobian point".to_string())
+    } else {
+      let pt = pt.clone();
+      Ok(JacobianPoint {
+        x: pt.x.clone(),
+        y: pt.y,
+        z: pt.x.new_elem(BigUint::one()),
+      })
+    }
+  }
+  
+  pub fn to_ec_point(&self) -> Result<EcPoint, String> {
+    if self.z.v == BigUint::zero() {
+      Err("z is not expected to be zero".to_string())
+    } else {
+      let z2 = self.z.sq();
+      let z3 = z2.mul(&self.z);
+      let x = self.x.div(&z2).unwrap();
+      let y = self.y.div(&z3).unwrap();
+      Ok(EcPoint { x, y, is_inf: false })
+    }
+  }
+}
+
+pub struct JacobianAddOps;
+
+impl JacobianAddOps {
+  pub fn new() -> Self {
+    JacobianAddOps {}
+  }
+}
+
+impl AddOps for JacobianAddOps {
+
+  // TODO check if all points are based on the same field
+  fn add(&self, p1: &EcPoint, p2: &EcPoint) -> EcPoint {
+    if p1.is_inf && p2.is_inf {  // inf + inf is inf
+      EcPoint::inf()
+    } else if p1.is_inf {  // adding p2 to inf is p2
+      p2.clone()
+    } else if p2.is_inf {  // adding p1 to inf is p1
+      p1.clone()
+    } else if p1.x == p2.x && p1.y != p2.y {  // if line through p1 and p2 is vertical line
+      EcPoint::inf()
+    } else if p1.x == p2.x && p1.y == p2.y {  // if adding the same point
+      // special case: if y == 0, the tangent line is vertical
+      if p1.y.v == BigUint::zero() || p2.y.v == BigUint::zero() {
+        return EcPoint::inf();
+      }
+
+      // using: http://hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#doubling-dbl-2009-l
+      let jp = JacobianPoint::from_ec_point(p1).unwrap(); 
+
+      let a = jp.x.sq();
+      let b = jp.y.sq();
+      let c = b.sq();
+      let d = (((jp.x.add(&b)).sq()).sub(&a).sub(&c)).mul_u32(2);
+      let e = a.mul_u32(3);
+      let f = e.sq();
+      let x3 = f.sub(&d.mul_u32(2));
+      let y3 = e.mul(&d.sub(&x3)).sub(&c.mul_u32(8));
+      let z3 = jp.y.mul_u32(2).mul(&jp.z);
+
+      let jp2 = JacobianPoint {
+        x: x3,
+        y: y3,
+        z: z3,
+      };
+      jp2.to_ec_point().unwrap()
+
+    } else {  // when line through p1 and p2 is non-vertical line
+
+      // using: https://hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-3.html#addition-add-2007-bl
+      let jp1 = JacobianPoint::from_ec_point(p1).unwrap(); 
+      let jp2 = JacobianPoint::from_ec_point(p2).unwrap();
+      let z1z1 = jp1.z.sq();
+      let z2z2 = jp2.z.sq();
+      let u1 = jp1.x.mul(&z2z2);
+      let u2 = jp2.x.mul(&z1z1);
+      let s1 = jp1.y.mul(&jp2.z).mul(&z2z2);
+      let s2 = jp2.y.mul(&jp1.z).mul(&z1z1);
+      let h = u2.sub(&u1);
+      let i = (h.mul_u32(2)).sq();
+      let j = h.mul(&i);
+      let r = (s2.sub(&s1)).mul_u32(2);
+      let v = u1.mul(&i);
+      let x3 = (r.sq()).sub(&j).sub(&v.mul_u32(2));
+      let y3 = r.mul(&v.sub(&x3)).sub(&s1.mul(&j).mul_u32(2));
+      let z3 = (((jp1.z.add(&jp2.z)).sq()).sub(&z1z1).sub(&z2z2)).mul(&h);
+
+      let jp3 = JacobianPoint {
+        x: x3,
+        y: y3,
+        z: z3,
+      };
+      jp3.to_ec_point().unwrap()
+    }
+  }
+}
+
+
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -127,15 +241,20 @@ mod tests {
   use crate::field_elem::FieldElem;
   use crate::field::Field;
 
+  fn get_ops_list<'a>() -> Vec<Box<dyn AddOps>> {
+    vec![Box::new(AffineAddOps::new()), Box::new(JacobianAddOps::new())]
+  }
+
   #[test]
   fn test_add_same_point() {
     let e = WeierstrassEq::secp256k1();
-    let ops = AffineAddOps::new();
-    let g2 = ops.add(&e.g, &e.g);
-    let exp_x = BigUint::parse_bytes(b"89565891926547004231252920425935692360644145829622209833684329913297188986597", 10).unwrap();
-    let exp_y = BigUint::parse_bytes(b"12158399299693830322967808612713398636155367887041628176798871954788371653930", 10).unwrap();
-    assert_eq!(g2.x.v, exp_x);
-    assert_eq!(g2.y.v, exp_y);
+    for ops in get_ops_list() {
+      let g2 = ops.add(&e.g, &e.g);
+      let exp_x = BigUint::parse_bytes(b"89565891926547004231252920425935692360644145829622209833684329913297188986597", 10).unwrap();
+      let exp_y = BigUint::parse_bytes(b"12158399299693830322967808612713398636155367887041628176798871954788371653930", 10).unwrap();
+      assert_eq!(g2.x.v, exp_x);
+      assert_eq!(g2.y.v, exp_y);
+    }
   }
 
   #[test]
@@ -146,30 +265,33 @@ mod tests {
   #[test]
   fn test_add_vertical_line() {
     let e = WeierstrassEq::secp256k1();
-    let ops = AffineAddOps::new();
-    let a = e.g.clone();
-    let b = EcPoint::new(a.x.clone(), a.y.neg()).unwrap();
-    let exp = EcPoint::inf();
-    let act = ops.add(&a, &b);
-    assert_eq!(act, exp);
+    for ops in get_ops_list() {
+      let a = e.g.clone();
+      let b = EcPoint::new(a.x.clone(), a.y.neg()).unwrap();
+      let exp = EcPoint::inf();
+      let act = ops.add(&a, &b);
+      assert_eq!(act, exp);
+    }
   }
 
   #[test]
   fn test_add_inf_and_affine() {
     let e = WeierstrassEq::secp256k1();
-    let ops = AffineAddOps::new();
-    let inf = EcPoint::inf();
-    let inf_plus_g = ops.add(&e.g, &inf);
-    assert_eq!(e.g, inf_plus_g);
+    for ops in get_ops_list() {
+      let inf = EcPoint::inf();
+      let inf_plus_g = ops.add(&e.g, &inf);
+      assert_eq!(e.g, inf_plus_g);
+    }
   }
 
   #[test]
   fn test_add_affine_and_inf() {
     let e = WeierstrassEq::secp256k1();
-    let ops = AffineAddOps::new();
-    let inf = EcPoint::inf();
-    let g_plus_inf = ops.add(&inf, &e.g);
-    assert_eq!(e.g, g_plus_inf);
+    for ops in get_ops_list() {
+      let inf = EcPoint::inf();
+      let g_plus_inf = ops.add(&inf, &e.g);
+      assert_eq!(e.g, g_plus_inf);
+    }
   }
 
   #[test]
@@ -236,12 +358,13 @@ mod tests {
   #[test]
   fn test_scalar_mul_smaller_nums() {
     let e = WeierstrassEq::secp256k1();
-    let ops = AffineAddOps::new();
-    let gs = get_g_multiples(&e);
+    for ops in get_ops_list() {
+      let gs = get_g_multiples(&e);
 
-    for n in 1usize..=10 {
-      let res = ops.scalar_mul(&e.g, &BigUint::from(n));
-      assert_eq!(&res, &gs[n]); 
+      for n in 1usize..=10 {
+        let res = ops.scalar_mul(&e.g, &BigUint::from(n));
+        assert_eq!(&res, &gs[n]); 
+      }
     }
   }
 
@@ -283,22 +406,22 @@ mod tests {
 
     use std::time::Instant;
     let e = WeierstrassEq::secp256k1();
-    let ops = AffineAddOps::new();
+    for ops in get_ops_list() {
+      for t in &test_cases {
+        let k = BigUint::parse_bytes(t.k, 16).unwrap();
+        let x = BigUint::parse_bytes(t.x, 16).unwrap();
+        let y = BigUint::parse_bytes(t.y, 16).unwrap();
+        let p = EcPoint::new(
+          FieldElem::new(e.f.clone(), x), 
+          FieldElem::new(e.f.clone(), y),
+        ).unwrap();
 
-    for t in test_cases {
-      let k = BigUint::parse_bytes(t.k, 16).unwrap();
-      let x = BigUint::parse_bytes(t.x, 16).unwrap();
-      let y = BigUint::parse_bytes(t.y, 16).unwrap();
-      let p = EcPoint::new(
-        FieldElem::new(e.f.clone(), x), 
-        FieldElem::new(e.f.clone(), y),
-      ).unwrap();
-
-      let beg = Instant::now();
-      let gk = ops.scalar_mul(&e.g, &k);
-      let end = beg.elapsed();
-      println!("Large number scalar mul done in {}.{:03} sec", end.as_secs(), end.subsec_nanos() / 1_000_000);
-      assert_eq!(p, gk);
+        let beg = Instant::now();
+        let gk = ops.scalar_mul(&e.g, &k);
+        let end = beg.elapsed();
+        println!("Large number scalar mul done in {}.{:03} sec", end.as_secs(), end.subsec_nanos() / 1_000_000);
+        assert_eq!(p, gk);
+      }
     }
   }
 
@@ -321,30 +444,31 @@ mod tests {
     };
 
     let e = WeierstrassEq::secp256k1();
-    let ops = AffineAddOps::new();
-    let gs = get_g_multiples(&e);
+    for ops in get_ops_list() {
+      let gs = get_g_multiples(&e);
 
-    let test_cases = [
-      AddTestCase::new(1, 2, 3), 
-      AddTestCase::new(2, 2, 4), 
-      AddTestCase::new(2, 6, 8), 
-      AddTestCase::new(3, 4, 7), 
-      AddTestCase::new(5, 1, 6), 
-      AddTestCase::new(5, 2, 7), 
-      AddTestCase::new(8, 1, 9), 
-      AddTestCase::new(9, 1, 10), 
-    ];
+      let test_cases = [
+        AddTestCase::new(1, 2, 3), 
+        AddTestCase::new(2, 2, 4), 
+        AddTestCase::new(2, 6, 8), 
+        AddTestCase::new(3, 4, 7), 
+        AddTestCase::new(5, 1, 6), 
+        AddTestCase::new(5, 2, 7), 
+        AddTestCase::new(8, 1, 9), 
+        AddTestCase::new(9, 1, 10), 
+      ];
 
-    for tc in test_cases {
-      let res = ops.add(&gs[tc.a], &gs[tc.b]);
-      assert_eq!(&res, &gs[tc.c]);
+      for tc in test_cases {
+        let res = ops.add(&gs[tc.a], &gs[tc.b]);
+        assert_eq!(&res, &gs[tc.c]);
+      }
+
+      let l1 = large_1.to_ec_point(e.f.clone());
+      let l2 = large_2.to_ec_point(e.f.clone());
+      let l3 = large_3.to_ec_point(e.f.clone());
+
+      let l1_plus_l2 = ops.add(&l1, &l2);
+      assert_eq!(l1_plus_l2, l3);
     }
-
-    let l1 = large_1.to_ec_point(e.f.clone());
-    let l2 = large_2.to_ec_point(e.f.clone());
-    let l3 = large_3.to_ec_point(e.f.clone());
-
-    let l1_plus_l2 = ops.add(&l1, &l2);
-    assert_eq!(l1_plus_l2, l3);
   }
 }
