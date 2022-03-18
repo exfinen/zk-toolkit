@@ -6,5 +6,5 @@ To build a zk library from scratch keeping the implementation as easily understa
 
 ## What's implemented so far
 - Basic operations in field calculation (add, sub, mul, inv, pow, sq)
-- Add and scalar multiplicaiton on Weierstrass equation 
+- Weierstrass type elliptic curve add and scalar mul operations in affine/jacobian coordinates
 - ECDSA sign and verify
