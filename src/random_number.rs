@@ -18,7 +18,7 @@ mod tests {
   use rand::RngCore;
 
   #[test]
-  fn test_1() {
+  fn 1() {
     let mut r = RandomNumber::new();
     let mut buf = [0u8; 32];
     r.gen.fill_bytes(&mut buf);

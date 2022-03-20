@@ -7,7 +7,7 @@ use num_bigint::{BigUint};
 use rand::RngCore;
 use std::rc::Rc;
 use num_traits::identities::Zero;
-use crate::hash::Hash;
+use crate::sha256::Sha256;
 
 pub struct Ecdsa<'a> {
   pub curve: &'a dyn Curve,
@@ -51,7 +51,7 @@ impl<'a> Ecdsa<'a> {
       
       // e = HASH(message)
       // z = e's uppermost Ln bits (Ln = order of n = 256 bits)
-      let z = BigUint::from_bytes_be(&Hash::sha256(message));
+      let z = BigUint::from_bytes_be(&Sha256::get_digest(message));
 
       // p = kG (k != 0)
       let p: EcPoint = self.ops.scalar_mul(&self.curve.g(), &k.v);
@@ -104,7 +104,7 @@ impl<'a> Ecdsa<'a> {
     else {
       // compute e = HASH(m)
       // z = e's uppermost Ln bits (Ln = order of n = 256 bits)
-      let z = BigUint::from_bytes_be(&Hash::sha256(message));
+      let z = BigUint::from_bytes_be(&Sha256::get_digest(message));
       let z_fe = FieldElem::new(self.f_n.clone(), BigUint::from(z));  // mod n
       let w = sig.s.inv().unwrap();  // mod n
       let u1 = z_fe.mul(&w);  // mod n
@@ -127,7 +127,7 @@ mod tests {
 
   #[test]
   // TODO create separate tests for not-on-curve and pub_key-not-order-n cases
-  fn test_sign_verify_bad_pub_key() {
+  fn sign_verify_bad_pub_key() {
     let weier = WeierstrassEq::secp256k1();
     let ops = JacobianAddOps::new();
     let mut ecdsa = Ecdsa::new(&weier, &ops);
@@ -149,7 +149,7 @@ mod tests {
   }
 
   #[test]
-  fn test_sign_verify_inf_pub_key() {
+  fn sign_verify_inf_pub_key() {
     let weier = WeierstrassEq::secp256k1();
     let ops = JacobianAddOps::new();
     let mut ecdsa = Ecdsa::new(&weier, &ops);
@@ -167,7 +167,7 @@ mod tests {
   }
 
   #[test]
-  fn test_sign_verify_sig_r_out_of_range() {
+  fn sign_verify_sig_r_out_of_range() {
     let weier = WeierstrassEq::secp256k1();
     let ops = JacobianAddOps::new();
     let mut ecdsa = Ecdsa::new(&weier, &ops);
@@ -198,7 +198,7 @@ mod tests {
   }
 
   #[test]
-  fn test_sign_verify_sig_s_out_of_range() {
+  fn sign_verify_sig_s_out_of_range() {
     let weier = WeierstrassEq::secp256k1();
     let ops = JacobianAddOps::new();
     let mut ecdsa = Ecdsa::new(&weier, &ops);
@@ -229,7 +229,7 @@ mod tests {
   }
 
   #[test]
-  fn test_sign_verify_all_good() {
+  fn sign_verify_all_good() {
     let weier = WeierstrassEq::secp256k1();
     let ops = JacobianAddOps::new();
     let mut ecdsa = Ecdsa::new(&weier, &ops);
@@ -247,7 +247,7 @@ mod tests {
   }
 
   #[test]
-  fn test_sign_verify_bad_priv_key() {
+  fn sign_verify_bad_priv_key() {
     let weier = WeierstrassEq::secp256k1();
     let ops = JacobianAddOps::new();
     let mut ecdsa = Ecdsa::new(&weier, &ops);
@@ -267,7 +267,7 @@ mod tests {
   }
 
   #[test]
-  fn test_sign_verify_different_message() {
+  fn sign_verify_different_message() {
     let weier = WeierstrassEq::secp256k1();
     let ops = JacobianAddOps::new();
     let mut ecdsa = Ecdsa::new(&weier, &ops);

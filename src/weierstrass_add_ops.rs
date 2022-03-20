@@ -270,7 +270,7 @@ mod tests {
   }
 
   #[test]
-  fn test_add_same_point() {
+  fn add_same_point() {
     let e = WeierstrassEq::secp256k1();
     for ops in get_ops_list() {
       let g2 = ops.add(&e.g, &e.g);
@@ -282,12 +282,12 @@ mod tests {
   }
 
   #[test]
-  fn test_add_same_point_y_eq_0() {
+  fn add_same_point_y_eq_0() {
     // TODO implement this. need to find the x-coord when y is zero
   }
 
   #[test]
-  fn test_add_vertical_line() {
+  fn add_vertical_line() {
     let e = WeierstrassEq::secp256k1();
     for ops in get_ops_list() {
       let a = e.g.clone();
@@ -299,7 +299,7 @@ mod tests {
   }
 
   #[test]
-  fn test_add_inf_and_affine() {
+  fn add_inf_and_affine() {
     let e = WeierstrassEq::secp256k1();
     for ops in get_ops_list() {
       let inf = EcPoint::inf();
@@ -309,7 +309,7 @@ mod tests {
   }
 
   #[test]
-  fn test_add_affine_and_inf() {
+  fn add_affine_and_inf() {
     let e = WeierstrassEq::secp256k1();
     for ops in get_ops_list() {
       let inf = EcPoint::inf();
@@ -319,7 +319,7 @@ mod tests {
   }
 
   #[test]
-  fn test_add_inf_and_inf() {
+  fn add_inf_and_inf() {
     let ops = AffineAddOps::new();
     let inf = EcPoint::inf();
     let inf_plus_inf = ops.add(&inf, &inf);
@@ -380,7 +380,7 @@ mod tests {
   }
 
   #[test]
-  fn test_scalar_mul_smaller_nums() {
+  fn scalar_mul_smaller_nums() {
     let e = WeierstrassEq::secp256k1();
     for ops in get_ops_list() {
       let gs = get_g_multiples(&e);
@@ -399,7 +399,7 @@ mod tests {
   }
 
   #[test]
-  fn test_scalar_mul_gen_pubkey() {
+  fn scalar_mul_gen_pubkey() {
     let test_cases = vec![
       ScalarMulTest { 
         k: b"AA5E28D6A97A2479A65527F7290311A3624D4CC0FA1578598EE3C2613BF99522",
@@ -450,7 +450,7 @@ mod tests {
   }
 
   #[test]
-  fn test_add_different_points() {
+  fn add_different_points() {
     let large_1 = Xy { 
       _n: "28948022309329048855892746252171976963209391069768726095651290785379540373584", 
       x: b"A6B594B38FB3E77C6EDF78161FADE2041F4E09FD8497DB776E546C41567FEB3C", 

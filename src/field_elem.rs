@@ -161,21 +161,21 @@ mod tests {
   use super::*;
 
   #[test]
-  fn test_new_below_order() {
+  fn new_below_order() {
     let f = Field::new(BigUint::from(11u32));
     let a = FieldElem::new(f.clone(), BigUint::from(7u32));
     assert_eq!(a.v, BigUint::from(7u32));
   }
 
   #[test]
-  fn test_new_above_order() {
+  fn new_above_order() {
     let f = Field::new(BigUint::from(11u32));
     let a = FieldElem::new(f.clone(), BigUint::from(13u32));
     assert_eq!(a.v, BigUint::from(2u32));
   }
 
   #[test]
-  fn test_add_eq_order_result() {
+  fn add_eq_order_result() {
     let f = Field::new(BigUint::from(11u32));
     let a = FieldElem::new(f.clone(), BigUint::from(9u32));
     let b = FieldElem::new(f.clone(), BigUint::from(2u32));
@@ -184,7 +184,7 @@ mod tests {
   }
 
   #[test]
-  fn test_add_below_order_result() {
+  fn add_below_order_result() {
     let f = Field::new(BigUint::from(11u32));
     let a = FieldElem::new(f.clone(), BigUint::from(9u32));
     let b = FieldElem::new(f.clone(), BigUint::from(1u32));
@@ -193,7 +193,7 @@ mod tests {
   }
 
   #[test]
-  fn test_add_above_order_result() {
+  fn add_above_order_result() {
     let f = Field::new(BigUint::from(11u32));
     let a = FieldElem::new(f.clone(), BigUint::from(9u32));
     let b = FieldElem::new(f.clone(), BigUint::from(3u32));
@@ -202,7 +202,7 @@ mod tests {
   }
 
   #[test]
-  fn test_sub_smaller_val() {
+  fn sub_smaller_val() {
     let f = Field::new(BigUint::from(11u32));
     let a = FieldElem::new(f.clone(), BigUint::from(9u32));
     let b = FieldElem::new(f.clone(), BigUint::from(2u32));
@@ -211,7 +211,7 @@ mod tests {
   }
 
   #[test]
-  fn test_sub_eq_val() {
+  fn sub_eq_val() {
     let f = Field::new(BigUint::from(11u32));
     let a = FieldElem::new(f.clone(), BigUint::from(9u32));
     let b = FieldElem::new(f.clone(), BigUint::from(9u32));
@@ -220,7 +220,7 @@ mod tests {
   }
 
   #[test]
-  fn test_sub_larger_val() {
+  fn sub_larger_val() {
     let f = Field::new(BigUint::from(11u32));
     let a = FieldElem::new(f.clone(), BigUint::from(9u32));
     let b = FieldElem::new(f.clone(), BigUint::from(10u32));
@@ -229,7 +229,7 @@ mod tests {
   }
 
   #[test]
-  fn test_mul_below_order_result() {
+  fn mul_below_order_result() {
     let f = Field::new(BigUint::from(11u32));
     let a = FieldElem::new(f.clone(), BigUint::from(2u32));
     let b = FieldElem::new(f.clone(), BigUint::from(5u32));
@@ -238,7 +238,7 @@ mod tests {
   }
 
   #[test]
-  fn test_mul_eq_order_result() {
+  fn mul_eq_order_result() {
     let f = Field::new(BigUint::from(11u32));
     let a = FieldElem::new(f.clone(), BigUint::from(1u32));
     let b = FieldElem::new(f.clone(), BigUint::from(11u32));
@@ -247,7 +247,7 @@ mod tests {
   }
 
   #[test]
-  fn test_mul_above_order_result() {
+  fn mul_above_order_result() {
     let f = Field::new(BigUint::from(11u32));
     let a = FieldElem::new(f.clone(), BigUint::from(3u32));
     let b = FieldElem::new(f.clone(), BigUint::from(9u32));
@@ -256,7 +256,7 @@ mod tests {
   }
 
   #[test]
-  fn test_mul_u32_below_order_result() {
+  fn mul_u32_below_order_result() {
     let f = Field::new(BigUint::from(11u32));
     let a = FieldElem::new(f.clone(), BigUint::from(2u32));
     let b = a.mul_u32(5);
@@ -270,7 +270,7 @@ mod tests {
   }
 
   #[test]
-  fn test_inv_small_primes() -> Result<(), String> {
+  fn inv_small_primes() -> Result<(), String> {
     let test_cases = [
       // order 97
       InvTestCase { order: 97u32, v: 1u32, exp: 1u32 },
@@ -447,7 +447,7 @@ mod tests {
   }
 
   #[test]
-  fn test_div() {
+  fn div() {
     let f = Field::new(BigUint::from(11u32));
     let a = FieldElem::new(f.clone(), BigUint::from(4u32));
     let b = FieldElem::new(f.clone(), BigUint::from(2u32));
@@ -456,7 +456,7 @@ mod tests {
   }
 
   #[test]
-  fn test_inv_secp256k1() -> Result<(), String> {
+  fn inv_secp256k1() -> Result<(), String> {
     let p = BigUint::parse_bytes(b"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F", 16).unwrap();
     let f = Field::new(p);
     let a = FieldElem::new(f.clone(), BigUint::from(1112121212121u64));
@@ -468,7 +468,7 @@ mod tests {
   }
 
   #[test]
-  fn test_neg() {
+  fn neg() {
     let f = Field::new(BigUint::from(11u32));
     let a = FieldElem::new(f.clone(), BigUint::from(5u32));
     assert_eq!(a.neg().v, BigUint::from(6u32));
@@ -478,28 +478,28 @@ mod tests {
   }
 
   #[test]
-  fn test_pow_u32_below_order() {
+  fn pow_u32_below_order() {
     let f = Field::new(BigUint::from(11u32));
     let a = FieldElem::new(f.clone(), BigUint::from(2u32));
     assert_eq!(a.pow_u32(3u32).v, BigUint::from(8u32));
   }
 
   #[test]
-  fn test_pow_u32_above_order() {
+  fn pow_u32_above_order() {
     let f = Field::new(BigUint::from(11u32));
     let a = FieldElem::new(f.clone(), BigUint::from(2u32));
     assert_eq!(a.pow_u32(4u32).v, BigUint::from(5u32));
   }
 
   #[test]
-  fn test_sq_below_order() {
+  fn sq_below_order() {
     let f = Field::new(BigUint::from(11u32));
     let a = FieldElem::new(f.clone(), BigUint::from(2u32));
     assert_eq!(a.sq().v, BigUint::from(4u32));
   }
 
   #[test]
-  fn test_sq_above_order() {
+  fn sq_above_order() {
     let f = Field::new(BigUint::from(11u32));
     let a = FieldElem::new(f.clone(), BigUint::from(4u32));
     assert_eq!(a.sq().v, BigUint::from(5u32));
