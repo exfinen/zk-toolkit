@@ -25,9 +25,9 @@ impl<'a> Block<'a> {
     }
   }
 
-  pub fn at(&self, i: usize) -> u32 {
-    let beg = i * 4;
-    let end = (i + 1) * 4;
+  pub fn message_schedule(&self, idx: usize) -> u32 {
+    let beg = idx * 4;
+    let end = (idx + 1) * 4;
     let buf: [u8; 4] = self.data[beg..end].try_into().unwrap();
     u32::from_be_bytes(buf)
   }
@@ -161,10 +161,10 @@ impl Sha256 {
   // using the same parameter names as the spec
   // m = Block, w = Message Schedule
   // using wrapping_add to perform addition in modulo 2^32
-  fn prepare_message_schedules<'a>(m: &Block<'a>) -> [u32; 64] {
+  fn prepare_message_schedules<'a>(block: &Block<'a>) -> [u32; 64] {
     let mut W = vec![];
     for t in 0..16 {
-      W.push(m.at(t));
+      W.push(block.message_schedule(t));
     }
     for t in 16..64 {
       let x = Self::sml_sigma_256_1(W[t-2])
