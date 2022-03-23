@@ -28,14 +28,15 @@ impl Sha256 {
     ].iter().map(|hex| hex_to_u32!(hex)).collect();
     K256.try_into().unwrap()
   }
+  
   const fn initial_hash_value() -> HashValue {
     let h: Vec<u32> = [
       "6a09e667", "bb67ae85", "3c6ef372", "a54ff53a", "510e527f", "9b05688c", "1f83d9ab", "5be0cd19",
     ].iter().map(|hex| hex_to_u32!(hex)).collect();
     HashValue { h: h.try_into().unwrap() }
   }
-
 }
+
 // block consists of sixteen 32-bit words
 struct Block<'a> {
   data: &'a[u8],
