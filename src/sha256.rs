@@ -93,11 +93,6 @@ impl Sha256 {
     HashValue { h: h.try_into().unwrap() }
   }
 
-  // pub fn get_digest(message: &[u8]) -> [u8; 32] {
-  //   let digest: [u8; 32] = Sha256::digest(message).into();
-  //   digest
-  // }
-
   // Append the bit 1 to the end of the message, followed by k zero bits, 
   // where k is the smallest, non-negative solution to the equation:
   // l + 1 + k = 448 mod 512 
