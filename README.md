@@ -8,3 +8,4 @@ To build a zk library from scratch keeping the implementation as easily understa
 - Basic operations in field calculation (add, sub, mul, inv, pow, sq)
 - Weierstrass type elliptic curve add and scalar mul operations in affine/jacobian coordinates
 - ECDSA sign and verify
+- Sha256 hasher
