@@ -1,6 +1,4 @@
 #![allow(non_snake_case)]
-
-//use sha2::{Digest, Sha256};
 use hex::FromHex;
 use crate::hasher::Hasher;
 use std::ops::Shr;
