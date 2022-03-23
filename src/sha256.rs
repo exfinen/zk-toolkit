@@ -12,80 +12,29 @@ macro_rules! hex_to_u32 {
 // constants
 const w: u32 = 32u32;
 
-pub struct Sha256 {
-  K256: [u32; 64],
-}
+pub struct Sha256;
 
 impl Sha256 {
-  pub fn new() -> Self {
-    const K256: [u32; 64] = [
-      hex_to_u32!("428a2f98"),
-      hex_to_u32!("71374491"),
-      hex_to_u32!("b5c0fbcf"),
-      hex_to_u32!("e9b5dba5"),
-      hex_to_u32!("3956c25b"),
-      hex_to_u32!("59f111f1"),
-      hex_to_u32!("923f82a4"),
-      hex_to_u32!("ab1c5ed5"),
-      hex_to_u32!("d807aa98"),
-      hex_to_u32!("12835b01"),
-      hex_to_u32!("243185be"),
-      hex_to_u32!("550c7dc3"),
-      hex_to_u32!("72be5d74"),
-      hex_to_u32!("80deb1fe"),
-      hex_to_u32!("9bdc06a7"),
-      hex_to_u32!("c19bf174"),
-      hex_to_u32!("e49b69c1"),
-      hex_to_u32!("efbe4786"),
-      hex_to_u32!("0fc19dc6"),
-      hex_to_u32!("240ca1cc"),
-      hex_to_u32!("2de92c6f"),
-      hex_to_u32!("4a7484aa"),
-      hex_to_u32!("5cb0a9dc"),
-      hex_to_u32!("76f988da"),
-      hex_to_u32!("983e5152"),
-      hex_to_u32!("a831c66d"),
-      hex_to_u32!("b00327c8"),
-      hex_to_u32!("bf597fc7"),
-      hex_to_u32!("c6e00bf3"),
-      hex_to_u32!("d5a79147"),
-      hex_to_u32!("06ca6351"),
-      hex_to_u32!("14292967"),
-      hex_to_u32!("27b70a85"),
-      hex_to_u32!("2e1b2138"),
-      hex_to_u32!("4d2c6dfc"),
-      hex_to_u32!("53380d13"),
-      hex_to_u32!("650a7354"),
-      hex_to_u32!("766a0abb"),
-      hex_to_u32!("81c2c92e"),
-      hex_to_u32!("92722c85"),
-      hex_to_u32!("a2bfe8a1"),
-      hex_to_u32!("a81a664b"),
-      hex_to_u32!("c24b8b70"),
-      hex_to_u32!("c76c51a3"),
-      hex_to_u32!("d192e819"),
-      hex_to_u32!("d6990624"),
-      hex_to_u32!("f40e3585"),
-      hex_to_u32!("106aa070"),
-      hex_to_u32!("19a4c116"),
-      hex_to_u32!("1e376c08"),
-      hex_to_u32!("2748774c"),
-      hex_to_u32!("34b0bcb5"),
-      hex_to_u32!("391c0cb3"),
-      hex_to_u32!("4ed8aa4a"),
-      hex_to_u32!("5b9cca4f"),
-      hex_to_u32!("682e6ff3"),
-      hex_to_u32!("748f82ee"),
-      hex_to_u32!("78a5636f"),
-      hex_to_u32!("84c87814"),
-      hex_to_u32!("8cc70208"),
-      hex_to_u32!("90befffa"),
-      hex_to_u32!("a4506ceb"),
-      hex_to_u32!("bef9a3f7"),
-      hex_to_u32!("c67178f2"),
-    ];
-    Sha256{ K256 }
+  const fn K256() -> [u32; 64] { 
+    let K256: Vec<u32> = [
+      "428a2f98", "71374491", "b5c0fbcf", "e9b5dba5", "3956c25b", "59f111f1", "923f82a4", "ab1c5ed5",
+      "d807aa98", "12835b01", "243185be", "550c7dc3", "72be5d74", "80deb1fe", "9bdc06a7", "c19bf174",
+      "e49b69c1", "efbe4786", "0fc19dc6", "240ca1cc", "2de92c6f", "4a7484aa", "5cb0a9dc", "76f988da",
+      "983e5152", "a831c66d", "b00327c8", "bf597fc7", "c6e00bf3", "d5a79147", "06ca6351", "14292967",
+      "27b70a85", "2e1b2138", "4d2c6dfc", "53380d13", "650a7354", "766a0abb", "81c2c92e", "92722c85",
+      "a2bfe8a1", "a81a664b", "c24b8b70", "c76c51a3", "d192e819", "d6990624", "f40e3585", "106aa070",
+      "19a4c116", "1e376c08", "2748774c", "34b0bcb5", "391c0cb3", "4ed8aa4a", "5b9cca4f", "682e6ff3",
+      "748f82ee", "78a5636f", "84c87814", "8cc70208", "90befffa", "a4506ceb", "bef9a3f7", "c67178f2",
+    ].iter().map(|hex| hex_to_u32!(hex)).collect();
+    K256.try_into().unwrap()
   }
+  const fn initial_hash_value() -> HashValue {
+    let h: Vec<u32> = [
+      "6a09e667", "bb67ae85", "3c6ef372", "a54ff53a", "510e527f", "9b05688c", "1f83d9ab", "5be0cd19",
+    ].iter().map(|hex| hex_to_u32!(hex)).collect();
+    HashValue { h: h.try_into().unwrap() }
+  }
+
 }
 // block consists of sixteen 32-bit words
 struct Block<'a> {
@@ -172,20 +121,6 @@ impl Sha256 {
     blocks
   }
 
-  fn get_initial_hash_value() -> HashValue {
-    let mut h = [0u32; 8];
-    h[0] = hex_to_u32!("6a09e667");
-    h[1] = hex_to_u32!("bb67ae85");
-    h[2] = hex_to_u32!("3c6ef372");
-    h[3] = hex_to_u32!("a54ff53a");
-    h[4] = hex_to_u32!("510e527f");
-    h[5] = hex_to_u32!("9b05688c");
-    h[6] = hex_to_u32!("1f83d9ab");
-    h[7] = hex_to_u32!("5be0cd19");
-    
-    HashValue { h }
-  }
-
   // rorate right x by n positions
   fn rotr(x: u32, n: u32) -> u32 {
     (x >> n) | (x << (w - n))
@@ -247,9 +182,10 @@ impl Sha256 {
       let mut h: u32 = hash_value.h[7]; 
 
       let W = Self::prepare_message_schedules(block);
+      let K256 = Self::K256();
 
       for t in 0..64 {
-        let t1 = h + Self::large_sigma_256_1(e) + Self::ch(e, f, g) + self.K256[t] + W[t];
+        let t1 = h + Self::large_sigma_256_1(e) + Self::ch(e, f, g) + K256[t] + W[t];
         let t2 = Self::large_sigma_256_0(a) + Self::maj(a, b, c);
         h = g;
         g = f;
@@ -277,7 +213,7 @@ impl Sha256 {
   pub fn get_digest(&self, msg: &[u8]) -> [u8; 32] {
     let padded_msg = Self::pad_msg(msg);
     let blocks = Self::parse_padded_msg(&padded_msg);
-    let init_hash_value = Self::get_initial_hash_value();
+    let init_hash_value = Self::initial_hash_value();
     let hash_value = self.compute_hash(init_hash_value, &blocks);
     hash_value.consolidate()
   }
