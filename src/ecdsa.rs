@@ -3,15 +3,17 @@ use crate::ec_point::EcPoint;
 use crate::field_elem::FieldElem;
 use crate::field::Field;
 use crate::random_number::RandomNumber;
+use crate::hasher::Hasher;
 use num_bigint::{BigUint};
 use rand::RngCore;
 use std::rc::Rc;
 use num_traits::identities::Zero;
 use crate::sha256::Sha256;
 
-pub struct Ecdsa<'a> {
+pub struct Ecdsa<'a, const HASHER_OUT_SIZE: usize> {
   pub curve: &'a dyn Curve,
   pub ops: &'a dyn AddOps,
+  pub hasher: &'a dyn Hasher<HASHER_OUT_SIZE>,
   pub f_n: Rc<Field>,
 }
 
@@ -21,10 +23,14 @@ pub struct Signature {
   pub s: FieldElem,   // mod n
 }
 
-impl<'a> Ecdsa<'a> {
-  pub fn new(curve: &'a dyn Curve, ops: &'a dyn AddOps) -> Self {
+impl<'a, const HASHER_OUT_SIZE: usize> Ecdsa<'a, HASHER_OUT_SIZE> {
+  pub fn new(
+    curve: &'a dyn Curve, 
+    ops: &'a dyn AddOps, 
+    hasher: &'a dyn Hasher<HASHER_OUT_SIZE>,
+  ) -> Self {
     let f_n = Field::new(curve.n());
-    Ecdsa { curve, ops, f_n }
+    Ecdsa { curve, ops, hasher, f_n }
   }
 
   // generate random number from range [1, n-1]
@@ -45,13 +51,15 @@ impl<'a> Ecdsa<'a> {
     // dA = private key in [1, n-1]
     let n = self.curve.n();
 
+    let sha256 = Sha256::new();
+
     loop {
       // generate temporary non-zero random number k (mod n) 
       let k = self.gen_random_number_order_n();  // mod n
       
       // e = HASH(message)
       // z = e's uppermost Ln bits (Ln = order of n = 256 bits)
-      let z = BigUint::from_bytes_be(&Sha256::get_digest(message));
+      let z = BigUint::from_bytes_be(&sha256.get_digest(message));
 
       // p = kG (k != 0)
       let p: EcPoint = self.ops.scalar_mul(&self.curve.g(), &k.v);
@@ -104,7 +112,7 @@ impl<'a> Ecdsa<'a> {
     else {
       // compute e = HASH(m)
       // z = e's uppermost Ln bits (Ln = order of n = 256 bits)
-      let z = BigUint::from_bytes_be(&Sha256::get_digest(message));
+      let z = BigUint::from_bytes_be(&self.hasher.get_digest(message));
       let z_fe = FieldElem::new(self.f_n.clone(), BigUint::from(z));  // mod n
       let w = sig.s.inv().unwrap();  // mod n
       let u1 = z_fe.mul(&w);  // mod n
@@ -130,7 +138,8 @@ mod tests {
   fn sign_verify_bad_pub_key() {
     let weier = WeierstrassEq::secp256k1();
     let ops = JacobianAddOps::new();
-    let mut ecdsa = Ecdsa::new(&weier, &ops);
+    let hasher = Sha256::new();
+    let mut ecdsa = Ecdsa::new(&weier, &ops, &hasher);
 
     let message = vec![1u8, 2, 3];
 
@@ -152,7 +161,8 @@ mod tests {
   fn sign_verify_inf_pub_key() {
     let weier = WeierstrassEq::secp256k1();
     let ops = JacobianAddOps::new();
-    let mut ecdsa = Ecdsa::new(&weier, &ops);
+    let hasher = Sha256::new();
+    let mut ecdsa = Ecdsa::new(&weier, &ops, &hasher);
 
     let message = vec![1u8, 2, 3];
 
@@ -170,7 +180,8 @@ mod tests {
   fn sign_verify_sig_r_out_of_range() {
     let weier = WeierstrassEq::secp256k1();
     let ops = JacobianAddOps::new();
-    let mut ecdsa = Ecdsa::new(&weier, &ops);
+    let hasher = Sha256::new();
+    let mut ecdsa = Ecdsa::new(&weier, &ops, &hasher);
 
     let message = vec![1u8, 2, 3];
 
@@ -201,7 +212,8 @@ mod tests {
   fn sign_verify_sig_s_out_of_range() {
     let weier = WeierstrassEq::secp256k1();
     let ops = JacobianAddOps::new();
-    let mut ecdsa = Ecdsa::new(&weier, &ops);
+    let hasher = Sha256::new();
+    let mut ecdsa = Ecdsa::new(&weier, &ops, &hasher);
 
     let message = vec![1u8, 2, 3];
 
@@ -232,7 +244,8 @@ mod tests {
   fn sign_verify_all_good() {
     let weier = WeierstrassEq::secp256k1();
     let ops = JacobianAddOps::new();
-    let mut ecdsa = Ecdsa::new(&weier, &ops);
+    let hasher = Sha256::new();
+    let mut ecdsa = Ecdsa::new(&weier, &ops, &hasher);
 
     let message = vec![1u8, 2, 3];
 
@@ -250,7 +263,8 @@ mod tests {
   fn sign_verify_bad_priv_key() {
     let weier = WeierstrassEq::secp256k1();
     let ops = JacobianAddOps::new();
-    let mut ecdsa = Ecdsa::new(&weier, &ops);
+    let hasher = Sha256::new();
+    let mut ecdsa = Ecdsa::new(&weier, &ops, &hasher);
 
     let message = vec![1u8, 2, 3];
 
@@ -270,7 +284,8 @@ mod tests {
   fn sign_verify_different_message() {
     let weier = WeierstrassEq::secp256k1();
     let ops = JacobianAddOps::new();
-    let mut ecdsa = Ecdsa::new(&weier, &ops);
+    let hasher = Sha256::new();
+    let mut ecdsa = Ecdsa::new(&weier, &ops, &hasher);
 
     let message = vec![1u8, 2, 3];
 
