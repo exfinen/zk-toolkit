@@ -9,3 +9,7 @@ To build a zk library from scratch keeping the implementation as easily understa
 - Weierstrass type elliptic curve add and scalar mul operations in affine/jacobian coordinates
 - ECDSA sign and verify
 - SHA256 hasher
+
+# What's NOT implemented so far
+- Big number
+- Random number generation
