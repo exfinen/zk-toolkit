@@ -12,4 +12,5 @@ To build a zk library from scratch keeping the implementation as easily understa
 
 ## What's NOT implemented so far
 - Big number
-- Random number generation
+- Random number generator
+
