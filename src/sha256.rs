@@ -247,18 +247,18 @@ mod tests {
     assert_eq!(digest.encode_hex::<String>(), "5df6e0e2761359d30a8275058e299fcc0381534545f55cf43e41983f5d4c9456");
   }
 
-  #[test]
-  fn hash_abc_1000_times() {
-    use std::time::Instant;
-    let hasher = Sha256::new();
-    let msg = [b'a', b'b', b'c'];
+  // #[test]
+  // fn hash_abc_1000_times() {
+  //   use std::time::Instant;
+  //   let hasher = Sha256::new();
+  //   let msg = [b'a', b'b', b'c'];
 
-    let t = Instant::now();
-    for _ in 0..1000 {
-      let _ = hasher.get_digest(&msg);
-    }
-    println!("took {}ms", t.elapsed().as_millis());
-  }
+  //   let t = Instant::now();
+  //   for _ in 0..1000 {
+  //     let _ = hasher.get_digest(&msg);
+  //   }
+  //   println!("took {}ns", t.elapsed().as_nanos());
+  // }
   
   #[test]
   fn hash_abc() {

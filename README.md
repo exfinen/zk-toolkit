@@ -10,6 +10,6 @@ To build a zk library from scratch keeping the implementation as easily understa
 - ECDSA sign and verify
 - SHA256 hasher
 
-# What's NOT implemented so far
+## What's NOT implemented so far
 - Big number
 - Random number generation
