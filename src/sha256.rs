@@ -135,19 +135,23 @@ impl Sha256 {
     blocks
   }
 
-  fn sml_sigma_256_0(x: u32) -> u32 {
+  // lower case sigma function 0
+  fn lc_sigma_256_0(x: u32) -> u32 {
     x.rotate_right(7) ^ x.rotate_right(18) ^ x.shr(3)
   }
 
-  fn sml_sigma_256_1(x: u32) -> u32 {
+  // lower case sigma function 1
+  fn lc_sigma_256_1(x: u32) -> u32 {
     x.rotate_right(17) ^ x.rotate_right(19) ^ x.shr(10)
   }
 
-  fn large_sigma_256_0(x: u32) -> u32 {
+  // upper case sigma function 0
+  fn uc_sigma_256_0(x: u32) -> u32 {
     x.rotate_right(2) ^ x.rotate_right(13) ^ x.rotate_right(22)
   }
 
-  fn large_sigma_256_1(x: u32) -> u32 {
+  // upper case sigma function 1
+  fn uc_sigma_256_1(x: u32) -> u32 {
     x.rotate_right(6) ^ x.rotate_right(11) ^ x.rotate_right(25)
   }
 
@@ -168,9 +172,9 @@ impl Sha256 {
       W.push(block.message_schedule(t));
     }
     for t in 16..64 {
-      let x = Self::sml_sigma_256_1(W[t-2])
+      let x = Self::lc_sigma_256_1(W[t-2])
         .wrapping_add(W[t-7])
-        .wrapping_add(Self::sml_sigma_256_0(W[t-15]))
+        .wrapping_add(Self::lc_sigma_256_0(W[t-15]))
         .wrapping_add(W[t-16]);
       W.push(x);
     }
@@ -194,11 +198,11 @@ impl Sha256 {
       let W = Self::prepare_message_schedules(block);
 
       for t in 0..64 {
-        let t1 = h.wrapping_add(Self::large_sigma_256_1(e))
+        let t1 = h.wrapping_add(Self::uc_sigma_256_1(e))
           .wrapping_add(Self::ch(e, f, g))
           .wrapping_add(self.K256[t])
           .wrapping_add(W[t]);
-        let t2 = Self::large_sigma_256_0(a).wrapping_add(Self::maj(a, b, c));
+        let t2 = Self::uc_sigma_256_0(a).wrapping_add(Self::maj(a, b, c));
         h = g;
         g = f;
         f = e;
