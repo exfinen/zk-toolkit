@@ -234,6 +234,10 @@ impl Hasher<32> for Sha256 {
     let hash_value = self.compute_hash(&blocks);
     hash_value.consolidate()
   } 
+
+  fn get_block_size(&self) -> usize {
+    64
+  }
 }
 
 #[cfg(test)]

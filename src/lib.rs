@@ -8,3 +8,4 @@ pub mod random_number;
 pub mod sha256;
 pub mod weierstrass_add_ops;
 pub mod hasher;
+pub mod hmac;
