@@ -8,7 +8,7 @@ To build a zk library from scratch keeping the implementation as easily understa
 - Basic operations in field calculation (add, sub, mul, inv, pow, sq)
 - Weierstrass type elliptic curve add and scalar mul operations in affine/jacobian coordinates
 - ECDSA sign and verify
-- SHA256 hasher
+- SHA256 and SHA512 hashers
 - Generic HMAC
 
 ## What's NOT implemented so far

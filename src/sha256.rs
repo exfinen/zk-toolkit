@@ -100,20 +100,20 @@ impl Sha256 {
   fn pad_msg(msg: &[u8]) -> Vec<u8> {
     let mut v = msg.to_vec();
 
-    // add first padding byte w/ leftmost bit 1
+    // add bit-1 at the end of msg
     v.push(0b1000_0000u8);
 
-    let v_len = v.len() % 64; 
+    let last_block_v_len = v.len() % 64; 
 
-    // if 512 block containing msg has room to add length part
-    if v_len <= 56 {
-      let k = 56 - v_len;
+    // if the last block has room to add length part after msg
+    if last_block_v_len <= 56 {
+      let k = 56 - last_block_v_len;
       v.extend(vec![0u8; k]);
 
-    } else { // otherwise create another block and store length part there
-      // # of bytes remaining in 512 block containing msg
-      let rest = 64 - v_len;
-      // data part of next 512 block is fully filled by padding
+    } else { // otherwise another block needs to be created to store length part 
+      // # of bytes remaining in the current last block after msg
+      let rest = 64 - last_block_v_len;
+      // fill the current last block w/ rest, and create another block consisting of 0s and length part
       let k = rest + 56;
       v.extend(vec![0u8; k]);
     }
@@ -255,19 +255,6 @@ mod tests {
     assert_eq!(digest.encode_hex::<String>(), "5df6e0e2761359d30a8275058e299fcc0381534545f55cf43e41983f5d4c9456");
   }
 
-  // #[test]
-  // fn hash_abc_1000_times() {
-  //   use std::time::Instant;
-  //   let hasher = Sha256::new();
-  //   let msg = [b'a', b'b', b'c'];
-
-  //   let t = Instant::now();
-  //   for _ in 0..1000 {
-  //     let _ = hasher.get_digest(&msg);
-  //   }
-  //   println!("took {}ns", t.elapsed().as_nanos());
-  // }
-  
   #[test]
   fn hash_abc() {
     let hasher = Sha256::new();
