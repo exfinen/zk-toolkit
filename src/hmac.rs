@@ -53,7 +53,7 @@ mod tests {
 
   #[test]
   fn hmac_empty_key_empty_text() {
-    let hasher = Sha256::new();
+    let hasher = Sha256();
     let hmac = Hmac::new(Box::new(hasher));
 
     let key = [];
@@ -64,7 +64,7 @@ mod tests {
 
   #[test]
   fn hmac_non_empty_key_non_empty_text() {
-    let hasher = Sha256::new();
+    let hasher = Sha256();
     let hmac = Hmac::new(Box::new(hasher));
 
     let key = b"key foo";
@@ -75,7 +75,7 @@ mod tests {
 
   #[test]
   fn hmac_non_empty_key_long_text() {
-    let hasher = Sha256::new();
+    let hasher = Sha256();
     let hmac = Hmac::new(Box::new(hasher));
 
     let key = b"fx502p";

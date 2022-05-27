@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 use hex::FromHex;
 use crate::hasher::Hasher;
-use std::ops::Shr;
+use crate::sha::{Block, MessageSchedule, HashValue, ShaFunctions};
 
 // implementation based on: https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf
 
@@ -11,36 +11,12 @@ macro_rules! hex_to_u32 {
   };
 }
 
-// block consists of sixteen 32-bit words
-struct Block<'a> {
-  data: &'a[u8],
-}
+const BLOCK_SIZE: usize = 64;
+const DIGEST_SIZE: usize = 32;
 
-impl<'a> Block<'a> {
-  pub fn of(msg: &'a[u8], from: usize) -> Block<'a> {
-    let beg = from * 64;
-    let end = (from + 1) * 64;
-    Block {
-      data: &msg[beg..end],
-    }
-  }
-
-  pub fn message_schedule(&self, idx: usize) -> u32 {
-    let beg = idx * 4;
-    let end = (idx + 1) * 4;
-    let buf: [u8; 4] = self.data[beg..end].try_into().unwrap();
-    u32::from_be_bytes(buf)
-  }
-}
-
-#[derive(Clone)]
-struct HashValue {
-  h: [u32; 8],
-}
-
-impl HashValue {
-  pub fn consolidate(&self) -> [u8; 32] {
-    let mut x = [0u8; 32];
+impl HashValue<u32> {
+  pub fn consolidate(&self) -> [u8; DIGEST_SIZE] {
+    let mut x = [0u8; DIGEST_SIZE];
     for i in 0..8 {
       let bytes = self.h[i].to_be_bytes();
       x[i * 4 + 0] = bytes[0];
@@ -52,21 +28,31 @@ impl HashValue {
   }
 }
 
-pub struct Sha256 {
-  K256: [u32; 64],
-  initial_hash_value: HashValue,
+impl<'a> MessageSchedule<u32> for Block<'a> {
+  fn message_schedule(&self, idx: usize) -> u32 {
+    let beg = idx * 4;
+    let end = (idx + 1) * 4;
+    let buf: [u8; 4] = self.data[beg..end].try_into().unwrap();
+    u32::from_be_bytes(buf)
+  }
 }
 
-impl Sha256 {
-  pub fn new() -> Self {
-    Sha256 {
-      K256: Self::K256(),
-      initial_hash_value: Self::initial_hash_value(),
-    }
-  }
- 
-  fn K256() -> [u32; 64] { 
-    let K256: Vec<u32> = [
+pub struct Sha256();
+
+impl<'a> ShaFunctions<
+  'a,
+  u32,
+  64,  // message schedule len
+  BLOCK_SIZE,
+  8,  // length part len
+  7, 18, 3,
+  17, 19, 10,
+  2, 13, 22,
+  6, 11, 25,
+> for Sha256 {
+
+  fn get_K() -> [u32; 64] {
+    let K: Vec<u32> = [
       "428a2f98", "71374491", "b5c0fbcf", "e9b5dba5", "3956c25b", "59f111f1", "923f82a4", "ab1c5ed5",
       "d807aa98", "12835b01", "243185be", "550c7dc3", "72be5d74", "80deb1fe", "9bdc06a7", "c19bf174",
       "e49b69c1", "efbe4786", "0fc19dc6", "240ca1cc", "2de92c6f", "4a7484aa", "5cb0a9dc", "76f988da",
@@ -76,10 +62,10 @@ impl Sha256 {
       "19a4c116", "1e376c08", "2748774c", "34b0bcb5", "391c0cb3", "4ed8aa4a", "5b9cca4f", "682e6ff3",
       "748f82ee", "78a5636f", "84c87814", "8cc70208", "90befffa", "a4506ceb", "bef9a3f7", "c67178f2",
     ].iter().map(|x| hex_to_u32!(x)).collect();
-    K256.try_into().unwrap()
+    K.try_into().unwrap()
   }
 
-  fn initial_hash_value() -> HashValue {
+  fn get_initial_hash_value() -> HashValue<u32> {
     let h: Vec<u32> = [
       "6a09e667", 
       "bb67ae85", 
@@ -92,151 +78,18 @@ impl Sha256 {
     ].iter().map(|x| hex_to_u32!(x)).collect();
     HashValue { h: h.try_into().unwrap() }
   }
-
-  // Append the bit 1 to the end of the message, followed by k zero bits, 
-  // where k is the smallest, non-negative solution to the equation:
-  // l + 1 + k = 448 mod 512 
-  // resulting msg will have a length that is a multiple of 512 bits
-  fn pad_msg(msg: &[u8]) -> Vec<u8> {
-    let mut v = msg.to_vec();
-
-    // add bit-1 at the end of msg
-    v.push(0b1000_0000u8);
-
-    let last_block_v_len = v.len() % 64; 
-
-    // if the last block has room to add length part after msg
-    if last_block_v_len <= 56 {
-      let k = 56 - last_block_v_len;
-      v.extend(vec![0u8; k]);
-
-    } else { // otherwise another block needs to be created to store length part 
-      // # of bytes remaining in the current last block after msg
-      let rest = 64 - last_block_v_len;
-      // fill the current last block w/ rest, and create another block consisting of 0s and length part
-      let k = rest + 56;
-      v.extend(vec![0u8; k]);
-    }
-    // append 8-byte length part to the end 
-    let data_bit_len: u64 = (msg.len() * 8).try_into().unwrap();
-    v.extend(data_bit_len.to_be_bytes());
-    v
-  }
-
-  // convert msg whose length is a multiple of 64 into blocks
-  // consisting of 16 32-bit words
-  fn parse_padded_msg<'a>(msg: &'a Vec<u8>) -> Vec<Block<'a>> {
-    let mut blocks = vec![];
-    let num_blocks = msg.len() / 64;
-    for i in 0..num_blocks {
-      let block = Block::of(&msg, i);
-      blocks.push(block);
-    }
-    blocks
-  }
-
-  // lower case sigma function 0
-  fn lc_sigma_0(x: u32) -> u32 {
-    x.rotate_right(7) ^ x.rotate_right(18) ^ x.shr(3)
-  }
-
-  // lower case sigma function 1
-  fn lc_sigma_1(x: u32) -> u32 {
-    x.rotate_right(17) ^ x.rotate_right(19) ^ x.shr(10)
-  }
-
-  // upper case sigma function 0
-  fn uc_sigma_0(x: u32) -> u32 {
-    x.rotate_right(2) ^ x.rotate_right(13) ^ x.rotate_right(22)
-  }
-
-  // upper case sigma function 1
-  fn uc_sigma_1(x: u32) -> u32 {
-    x.rotate_right(6) ^ x.rotate_right(11) ^ x.rotate_right(25)
-  }
-
-  fn ch(x: u32, y: u32, z: u32) -> u32 {
-    (x & y) ^ (!x & z)
-  }
-
-  fn maj(x: u32, y: u32, z: u32) -> u32 {
-    (x & y) ^ (x & z) ^ (y & z)
-  }
-
-  // using the same parameter names as the spec
-  // m = Block, w = Message Schedule
-  // using wrapping_add to perform addition in modulo 2^32
-  fn prepare_message_schedules<'a>(block: &Block<'a>) -> [u32; 64] {
-    let mut W = vec![];
-    for t in 0..16 {
-      W.push(block.message_schedule(t));
-    }
-    for t in 16..64 {
-      let x = Self::lc_sigma_1(W[t-2])
-        .wrapping_add(W[t-7])
-        .wrapping_add(Self::lc_sigma_0(W[t-15]))
-        .wrapping_add(W[t-16]);
-      W.push(x);
-    }
-    W.try_into().unwrap()
-  }
-
-  // using wrapping_add to perform addition in modulo 2^32
-  fn compute_hash<'a>(&self, blocks: &Vec<Block<'a>>) -> HashValue {
-    let mut tmp: [u32; 8] = [0u32; 8];
-    let mut hash_value = self.initial_hash_value.clone();
-    for block in blocks {
-      let mut a: u32 = hash_value.h[0]; 
-      let mut b: u32 = hash_value.h[1]; 
-      let mut c: u32 = hash_value.h[2]; 
-      let mut d: u32 = hash_value.h[3]; 
-      let mut e: u32 = hash_value.h[4]; 
-      let mut f: u32 = hash_value.h[5]; 
-      let mut g: u32 = hash_value.h[6]; 
-      let mut h: u32 = hash_value.h[7]; 
-
-      let W = Self::prepare_message_schedules(block);
-
-      for t in 0..64 {
-        let t1 = h.wrapping_add(Self::uc_sigma_1(e))
-          .wrapping_add(Self::ch(e, f, g))
-          .wrapping_add(self.K256[t])
-          .wrapping_add(W[t]);
-        let t2 = Self::uc_sigma_0(a).wrapping_add(Self::maj(a, b, c));
-        h = g;
-        g = f;
-        f = e;
-        e = d.wrapping_add(t1);
-        d = c;
-        c = b;
-        b = a;
-        a = t1.wrapping_add(t2);
-      }
-      
-      tmp[0] = a.wrapping_add(hash_value.h[0]);
-      tmp[1] = b.wrapping_add(hash_value.h[1]);
-      tmp[2] = c.wrapping_add(hash_value.h[2]);
-      tmp[3] = d.wrapping_add(hash_value.h[3]);
-      tmp[4] = e.wrapping_add(hash_value.h[4]);
-      tmp[5] = f.wrapping_add(hash_value.h[5]);
-      tmp[6] = g.wrapping_add(hash_value.h[6]);
-      tmp[7] = h.wrapping_add(hash_value.h[7]);
-      hash_value = HashValue { h: tmp };
-    }
-    hash_value
-  }
 }
 
-impl Hasher<32> for Sha256 {
-  fn get_digest(&self, msg: &[u8]) -> [u8; 32] {
-    let padded_msg = Self::pad_msg(msg);
-    let blocks = Self::parse_padded_msg(&padded_msg);
+impl Hasher<DIGEST_SIZE> for Sha256 {
+  fn get_digest(&self, msg: &[u8]) -> [u8; DIGEST_SIZE] {
+    let padded_msg = self.pad_msg(msg);
+    let blocks = Block::parse_padded_msg(&padded_msg, BLOCK_SIZE);
     let hash_value = self.compute_hash(&blocks);
     hash_value.consolidate()
   } 
 
   fn get_block_size(&self) -> usize {
-    64
+    BLOCK_SIZE
   }
 }
 
@@ -247,7 +100,7 @@ mod tests {
 
   #[test]
   fn hash_empty() {
-    let hasher = Sha256::new();
+    let hasher = Sha256();
     let msg = [];
     let digest = hasher.get_digest(&msg);
     assert_eq!(digest.encode_hex::<String>(), "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
@@ -257,7 +110,7 @@ mod tests {
 
   #[test]
   fn hash_abc() {
-    let hasher = Sha256::new();
+    let hasher = Sha256();
     let msg = [b'a', b'b', b'c'];
     let digest = hasher.get_digest(&msg);
     assert_eq!(digest.encode_hex::<String>(), "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
@@ -267,7 +120,7 @@ mod tests {
 
   #[test]
   fn hash_a_times_1mil() {
-    let hasher = Sha256::new();
+    let hasher = Sha256();
     let msg = [b'a'; 1_000_000];
     let digest = hasher.get_digest(&msg);
     assert_eq!(digest.encode_hex::<String>(), "cdc76e5c9914fb9281a1c7e284d73e67f1809a48a497200e046d39ccc7112cd0");
@@ -277,7 +130,7 @@ mod tests {
 
   #[test]
   fn hash_rc4_key_0_stream_first_16() {
-    let hasher = Sha256::new();
+    let hasher = Sha256();
     let msg = hex::decode("de188941a3375d3a8a061e67576e926d").unwrap();
     let digest = hasher.get_digest(&msg);
     assert_eq!(digest.encode_hex::<String>(), "067c531269735ca7f541fdaca8f0dc76305d3cada140f89372a410fe5eff6e4d");
@@ -287,7 +140,7 @@ mod tests {
 
   #[test]
   fn hash_rc4_key_0_stream_first_55() {
-    let hasher = Sha256::new();
+    let hasher = Sha256();
     let msg = hex::decode("de188941a3375d3a8a061e67576e926dc71a7fa3f0cceb97452b4d3227965f9ea8cc75076d9fb9c5417aa5cb30fc22198b34982dbb629e").unwrap();
     let digest = hasher.get_digest(&msg);
     assert_eq!(digest.encode_hex::<String>(), "038051e9c324393bd1ca1978dd0952c2aa3742ca4f1bd5cd4611cea83892d382");
@@ -297,16 +150,18 @@ mod tests {
 
   #[test]
   fn parse_padded_msg_empty_msg() {
+    let hasher = Sha256();
     let m = [0u8; 0];
-    let pad_m = Sha256::pad_msg(&m);
-    let blocks = Sha256::parse_padded_msg(&pad_m);
+    let pad_m = hasher.pad_msg(&m);
+    let blocks = Block::parse_padded_msg(&pad_m, BLOCK_SIZE);
     assert_eq!(blocks.len(), 1);
   }
 
   #[test]
   fn add_padding_len_0_msg() {
+    let hasher = Sha256();
     let m = [0u8; 0];
-    let pad_m = Sha256::pad_msg(&m);
+    let pad_m = hasher.pad_msg(&m);
     assert_eq!(pad_m.len(), 64);
     assert_eq!(pad_m[0], 0b1000_0000);
     for i in 1..64 {
@@ -316,8 +171,9 @@ mod tests {
 
   #[test]
   fn add_padding_len_1_msg() {
+    let hasher = Sha256();
     let m = [0b1000_0001; 1];
-    let pad_m = Sha256::pad_msg(&m);
+    let pad_m = hasher.pad_msg(&m);
     assert_eq!(pad_m.len(), 64);
     assert_eq!(pad_m[0], 0b1000_0001);
     assert_eq!(pad_m[1], 0b1000_0000);
@@ -329,8 +185,9 @@ mod tests {
   
   #[test]
   fn add_padding_len_55_msg() {
+    let hasher = Sha256();
     let m = [0b1000_0001; 55];
-    let pad_m = Sha256::pad_msg(&m);
+    let pad_m = hasher.pad_msg(&m);
     assert_eq!(pad_m.len(), 64);
     for i in 0..55 {
       assert_eq!(pad_m[i], 0b1000_0001);
@@ -341,8 +198,9 @@ mod tests {
   
   #[test]
   fn add_padding_len_56_msg() {
+    let hasher = Sha256();
     let m = [0b1000_0001; 56];
-    let pad_m = Sha256::pad_msg(&m);
+    let pad_m = hasher.pad_msg(&m);
     assert_eq!(pad_m.len(), 128);
     for i in 0..56 {
       assert_eq!(pad_m[i], 0b1000_0001);
