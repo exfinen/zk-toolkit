@@ -42,7 +42,7 @@ pub trait MessageSchedule<U: PrimInt> {
   fn message_schedule(&self, idx: usize) -> U;
 }
 
-pub trait ShaFunctions<
+pub trait CoreLogic<
   'a,
   U: PrimInt + WrappingAdd + Debug + Default + From<u32>,
   const MSG_SCHE_LEN: usize,

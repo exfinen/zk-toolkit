@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 use hex::FromHex;
 use crate::hasher::Hasher;
-use crate::sha_common::{Block, MessageSchedule, HashValue, ShaFunctions};
+use crate::sha_common::{Block, MessageSchedule, HashValue, CoreLogic};
 
 // implementation based on: https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf
 
@@ -15,7 +15,7 @@ const BLOCK_SIZE: usize = 64;
 const DIGEST_SIZE: usize = 32;
 
 impl HashValue<u32> {
-  pub fn consolidate(&self) -> [u8; DIGEST_SIZE] {
+  pub fn to_u8_array(&self) -> [u8; DIGEST_SIZE] {
     let mut x = [0u8; DIGEST_SIZE];
     for i in 0..8 {
       let bytes = self.h[i].to_be_bytes();
@@ -39,7 +39,7 @@ impl<'a> MessageSchedule<u32> for Block<'a> {
 
 pub struct Sha256();
 
-impl<'a> ShaFunctions<
+impl<'a> CoreLogic<
   'a,
   u32,
   64,  // message schedule len
@@ -85,7 +85,7 @@ impl Hasher<DIGEST_SIZE> for Sha256 {
     let padded_msg = self.pad_msg(msg);
     let blocks = Block::parse_padded_msg(&padded_msg, BLOCK_SIZE);
     let hash_value = self.compute_hash(&blocks);
-    hash_value.consolidate()
+    hash_value.to_u8_array()
   } 
 
   fn get_block_size(&self) -> usize {
