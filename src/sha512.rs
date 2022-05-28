@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 use hex::FromHex;
 use crate::hasher::Hasher;
-use crate::sha::{Block, MessageSchedule, HashValue, ShaFunctions};
+use crate::sha_common::{Block, MessageSchedule, HashValue, ShaFunctions};
 
 // implementation based on: https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf
 
@@ -49,10 +49,10 @@ impl<'a> ShaFunctions<
   80,  // message schedule len
   BLOCK_SIZE,
   16,  // length part len
-  28, 34, 39,
-  14, 18, 41,
   1, 8, 7,
   19, 61, 6,
+  28, 34, 39,
+  14, 18, 41,
 > for Sha512 {
 
   fn get_K() -> [u64; 80] { 

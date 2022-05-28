@@ -11,6 +11,7 @@ pub struct HashValue<U> {
 }
 
 // block consists of sixteen words
+#[derive(Debug)]
 pub struct Block<'a> {
   pub data: &'a[u8],
 }
@@ -94,7 +95,7 @@ pub trait ShaFunctions<
       W.push(block.message_schedule(t));
     }
     for t in 16..MSG_SCHE_LEN {
-      let x = Self::lc_sigma_1(W[t-2])
+      let x= Self::lc_sigma_1(W[t-2])
         .wrapping_add(&W[t-7])
         .wrapping_add(&Self::lc_sigma_0(W[t-15]))
         .wrapping_add(&W[t-16]);
@@ -108,7 +109,6 @@ pub trait ShaFunctions<
     let mut tmp = [U::default(); 8];
     let mut hash_value = Self::get_initial_hash_value();
     let K = Self::get_K();
-
     for block in blocks {
       let mut a: U = hash_value.h[0]; 
       let mut b: U = hash_value.h[1]; 
@@ -119,13 +119,13 @@ pub trait ShaFunctions<
       let mut g: U = hash_value.h[6]; 
       let mut h: U = hash_value.h[7]; 
 
-      let w = self.prepare_message_schedules(block);
+      let W = self.prepare_message_schedules(block);
 
-      for t in 0..64 {
+      for t in 0..MSG_SCHE_LEN {
         let t1 = h.wrapping_add(&Self::uc_sigma_1(e))
           .wrapping_add(&Self::ch(e, f, g))
           .wrapping_add(&K[t])
-          .wrapping_add(&w[t]);
+          .wrapping_add(&W[t]);
         let t2 = Self::uc_sigma_0(a).wrapping_add(&Self::maj(a, b, c));
         h = g;
         g = f;
@@ -177,9 +177,14 @@ pub trait ShaFunctions<
       v.extend(vec![0u8; k]);
     }
     // append length part to the end 
-    let data_bit_len: u128 = (msg.len() * 8).try_into().unwrap();
+    let msg_len: usize = (msg.len() * 8).try_into().unwrap();
+    let msg_len_be = msg_len.to_be_bytes();
 
-    v.extend(data_bit_len.to_be_bytes());
+    // write msg_len to length part
+    let mut length_part = [0u8; LENGTH_PART_LEN];
+    length_part[LENGTH_PART_LEN - msg_len_be.len()..].copy_from_slice(&msg_len_be);
+
+    v.extend_from_slice(&length_part);
     v
   }
 }

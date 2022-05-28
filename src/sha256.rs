@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 use hex::FromHex;
 use crate::hasher::Hasher;
-use crate::sha::{Block, MessageSchedule, HashValue, ShaFunctions};
+use crate::sha_common::{Block, MessageSchedule, HashValue, ShaFunctions};
 
 // implementation based on: https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf
 
