@@ -1,7 +1,6 @@
 #![allow(non_snake_case)]
 use num_traits::{int::PrimInt, WrappingAdd};
 use std::fmt::Debug;
-use std::convert::From;
 
 // implementation based on: https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf
 
@@ -44,7 +43,7 @@ pub trait MessageSchedule<U: PrimInt> {
 
 pub trait CoreLogic<
   'a,
-  U: PrimInt + WrappingAdd + Debug + Default + From<u32>,
+  U: PrimInt + WrappingAdd + Debug + Default,
   const MSG_SCHE_LEN: usize,
   const BLOCK_SIZE: usize,
   const LENGTH_PART_LEN: usize,
