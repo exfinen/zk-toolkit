@@ -36,8 +36,8 @@ impl AddOps for AffineAddOps {
       //
       // dy/dx is the slope m of the tangent line at the point 
       // m = (3x^2 + A) / 2y
-      let m1 = p1.x.sq().times(&f.elem(&3u8));
-      let m2 = p1.y.times(&f.elem(&2u8));
+      let m1 = p1.x.sq().times(&3u8);
+      let m2 = p1.y.times(&2u8);
       let m = m1.div(&m2);
 
       // equation of intersecting line is
@@ -61,7 +61,7 @@ impl AddOps for AffineAddOps {
       // since p1 and p2 are the same point, replace r and s w/ p1.x
       // to get the x-coordinate of the point where (1) intersects the curve
       // x3 = m^2 − 2*p1.x
-      let p3x = m.sq() - &p1.x.times(&f.elem(&2u8));
+      let p3x = m.sq() - &p1.x.times(&2u8);
 
       // then get the y-coordinate by substituting x in (1) w/ x3 to get y3
       // y3 = m(x3 − p1.x) + p1.y 

@@ -37,7 +37,7 @@ pub fn gen_priv_key(k: [u8; 32]) -> KeyPair {
   let q = F.elem(&q);
 
   // base point is (x, 4/5) w/ positive x
-  let bp_y = F.elem(&5u8).times(&F.elem(&4u32));
+  let bp_y = F.elem(&5u8).times(&4u32);
 
   // d = -121665 / 121666
   let d = F.elem(&121665u32).neg().div(&121666u32);
@@ -47,7 +47,7 @@ pub fn gen_priv_key(k: [u8; 32]) -> KeyPair {
 
   let I = F.elem(&2u8).pow(&(q.clone() - &1u8)).div(&4u8);
 
-  let mut x = xx.pow(&(q + &F.elem(&3u8))).div(&1u8);
+  let mut x = xx.pow(&(q + &3u8)).div(&1u8);
   if (x.times(&x) - &xx).n != BigUint::from(0u8) { // if x is not the solution, multiply I
     x = x.times(&I);
   }

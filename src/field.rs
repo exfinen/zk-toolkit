@@ -343,7 +343,7 @@ mod tests {
   fn mul_u32_below_order_result() {
     let f = Field::new(BigUint::from(11u8));
     let a = FieldElem::new(f.clone(), BigUint::from(2u8));
-    let b = a.times(&f.elem(&5u8));
+    let b = a.times(&5u8);
     assert_eq!(b.n, BigUint::from(10u8));
   }
 
