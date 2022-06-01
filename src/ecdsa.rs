@@ -1,7 +1,6 @@
 use crate::curve::{Curve, AddOps};
 use crate::ec_point::EcPoint;
-use crate::field_elem::FieldElem;
-use crate::field::Field;
+use crate::field::{Field, FieldElem};
 use crate::random_number::RandomNumber;
 use crate::hasher::Hasher;
 use num_bigint::{BigUint};

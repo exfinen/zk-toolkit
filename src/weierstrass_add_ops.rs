@@ -1,5 +1,5 @@
 use crate::curve::AddOps;
-use crate::field_elem::FieldElem;
+use crate::field::FieldElem;
 use crate::ec_point::EcPoint;
 use num_bigint::BigUint;
 use num_traits::identities::{One, Zero};
@@ -259,7 +259,7 @@ mod tests {
   use super::*;
   use num_bigint::BigUint;
   use crate::weierstrass_eq::WeierstrassEq;
-  use crate::field_elem::FieldElem;
+  use crate::field::FieldElem;
   use crate::field::Field;
 
   fn get_ops_list<'a>() -> Vec<Box<dyn AddOps>> {

@@ -1,4 +1,4 @@
-use crate::field_elem::FieldElem;
+use crate::field::FieldElem;
 use crate::field::Field;
 use crate::ec_point::EcPoint;
 use crate::curve::Curve;

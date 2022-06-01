@@ -1,5 +1,4 @@
-use crate::field_elem::FieldElem;
-use crate::field::Field;
+use crate::field::{Field, FieldElem};
 use num_bigint::BigUint;
 use num_traits::identities::{Zero, One};
 
