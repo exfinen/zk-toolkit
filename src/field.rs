@@ -27,6 +27,14 @@ impl ops::Add<&dyn ToBigUint> for FieldElem {
   }
 }
 
+impl ops::Sub<&dyn ToBigUint> for FieldElem {
+  type Output = Self;
+
+  fn sub(self, rhs: &dyn ToBigUint) -> Self::Output {
+    self.minus(&rhs.to_biguint())
+  }
+}
+
 impl FieldElem {
   pub fn new(f: Field, n: BigUint) -> Self {
     if n.ge(&f.order) {
@@ -282,7 +290,7 @@ mod tests {
     let f = Field::new(BigUint::from(11u32));
     let a = FieldElem::new(f.clone(), BigUint::from(9u32));
     let b = FieldElem::new(f.clone(), BigUint::from(2u32));
-    let c = a.minus(&b);
+    let c = a - &b;
     assert_eq!(c.n, BigUint::from(7u32));
   }
 
@@ -291,7 +299,7 @@ mod tests {
     let f = Field::new(BigUint::from(11u32));
     let a = FieldElem::new(f.clone(), BigUint::from(9u32));
     let b = FieldElem::new(f.clone(), BigUint::from(9u32));
-    let c = a.minus(&b);
+    let c = a - &b;
     assert_eq!(c.n, BigUint::zero());
   }
 
@@ -300,7 +308,7 @@ mod tests {
     let f = Field::new(BigUint::from(11u32));
     let a = FieldElem::new(f.clone(), BigUint::from(9u32));
     let b = FieldElem::new(f.clone(), BigUint::from(10u32));
-    let c = a.minus(&b);
+    let c = a - &b;
     assert_eq!(c.n, BigUint::from(10u32));
   }
 
