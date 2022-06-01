@@ -2,6 +2,7 @@ use std::rc::Rc;
 use num_bigint::{BigUint, BigInt, ToBigInt};
 use num_traits::{Zero, One};
 use core::ops::Rem;
+use bitvec::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct FieldElem {
@@ -27,30 +28,31 @@ impl FieldElem {
     }
   }
 
-  pub fn add(&self, other: &FieldElem) -> FieldElem {
+  pub fn add(&self, rhs: &impl ToBigUint) -> FieldElem {
     let mut n = self.n.clone();
-    n += &other.n;
+    n += &rhs.to_biguint();
     if n >= *self.f.order {
       n -= &(*self.f.order);
     }
     FieldElem { f: self.f.clone(), n }
   }
 
-  pub fn sub(&self, other: &FieldElem) -> FieldElem {
-    if self.n < other.n {
-      let diff = other.n.clone() - &self.n;
+  pub fn sub(&self, rhs: &impl ToBigUint) -> FieldElem {
+    let rhs = rhs.to_biguint();
+    if self.n < rhs {
+      let diff = rhs.clone() - &self.n;
       let n = &(*self.f.order) - diff;
       FieldElem { f: self.f.clone(), n }
     } else {
       let mut n = self.n.clone();
-      n -= &other.n;
+      n -= &rhs;
       FieldElem { f: self.f.clone(), n }
     }
   }
 
-  pub fn mul(&self, other: &FieldElem) -> FieldElem {
+  pub fn mul(&self, rhs: &impl ToBigUint) -> FieldElem {
     let mut n = self.n.clone();
-    n *= &other.n;
+    n *= &rhs.to_biguint();
     n %= &(*self.f.order);
     if n < BigUint::zero() {
       n += &(*self.f.order);
@@ -58,14 +60,24 @@ impl FieldElem {
     FieldElem { f: self.f.clone(), n }
   }
 
-  pub fn pow_u32(&self, other_u32: u32) -> FieldElem {
-    let mut n = self.n.clone();
-    let num_multiply = other_u32 - 1;
-    for _ in 0..num_multiply {
-      n *= &self.n;
-      n %= &(*self.f.order);
+  // calculate w/ binary method
+  pub fn pow(&self, rhs: &impl ToBigUint) -> FieldElem {
+    let rhs = rhs.to_biguint();
+    let rhs_le_bytes = rhs.to_bytes_le();
+
+    let mut sum = BigUint::one();
+    let mut bit_value = self.n.clone();
+    let rhs_in_bits = rhs_le_bytes.view_bits::<Lsb0>();
+
+    for bit in rhs_in_bits {
+      if bit == true {
+        sum *= bit_value.clone();
+      }
+      bit_value = bit_value.clone() * bit_value.clone();
+      sum %= &(*self.f.order);
     }
-    FieldElem { f: self.f.clone(), n }
+
+    FieldElem { f: self.f.clone(), n: sum }
   }
 
   pub fn sq(&self) -> FieldElem {
@@ -131,8 +143,8 @@ impl FieldElem {
     Ok(FieldElem { f: self.f.clone(), n: new_v.to_biguint().unwrap() })
   }
 
-  pub fn div(&self, other: &FieldElem) -> Result<FieldElem, String> {
-    let inv = other.inv()?;
+  pub fn div(&self, other: &impl ToBigUint) -> Result<FieldElem, String> {
+    let inv = self.f.elem(&other.to_biguint()).inv()?;
     Ok(self.mul(&inv))
   }
 
@@ -162,6 +174,12 @@ impl ToBigUint for BigUint {
   }
 }
 
+impl ToBigUint for FieldElem {
+  fn to_biguint(&self) -> BigUint {
+    self.n.clone()
+  }
+}
+
 macro_rules! impl_to_biguint_for {
   ($name: ty) => {
     impl ToBigUint for $name {
@@ -186,6 +204,37 @@ impl Field {
 
   pub fn elem(&self, n: &impl ToBigUint) -> FieldElem {
     FieldElem::new(self.clone(), n.to_biguint())
+  }
+
+  pub fn zero(&self) -> FieldElem {
+    FieldElem::new(self.clone(), 0u8.to_biguint())
+  }
+  pub fn one(&self) -> FieldElem {
+    FieldElem::new(self.clone(), 1u8.to_biguint())
+  }
+  pub fn two(&self) -> FieldElem {
+    FieldElem::new(self.clone(), 2u8.to_biguint())
+  }
+  pub fn three(&self) -> FieldElem {
+    FieldElem::new(self.clone(), 3u8.to_biguint())
+  }
+  pub fn four(&self) -> FieldElem {
+    FieldElem::new(self.clone(), 4u8.to_biguint())
+  }
+  pub fn five(&self) -> FieldElem {
+    FieldElem::new(self.clone(), 5u8.to_biguint())
+  }
+  pub fn six(&self) -> FieldElem {
+    FieldElem::new(self.clone(), 6u8.to_biguint())
+  }
+  pub fn seven(&self) -> FieldElem {
+    FieldElem::new(self.clone(), 7u8.to_biguint())
+  }
+  pub fn eight(&self) -> FieldElem {
+    FieldElem::new(self.clone(), 8u8.to_biguint())
+  }
+  pub fn nine(&self) -> FieldElem {
+    FieldElem::new(self.clone(), 9u8.to_biguint())
   }
 }
 
@@ -519,17 +568,40 @@ mod tests {
   }
 
   #[test]
-  fn pow_u32_below_order() {
-    let f = Field::new(BigUint::from(11u32));
-    let a = FieldElem::new(f.clone(), BigUint::from(2u32));
-    assert_eq!(a.pow_u32(3u32).n, BigUint::from(8u32));
+  fn pow_various_combinations() {
+    let f = Field::new(BigUint::from(100000000u128));
+    let test_cases = [
+      (2u128, 0u128, 1u128),
+      (2u128, 1u128, 2u128),
+      (2u128, 2u128, 4u128),
+      (2u128, 3u128, 8u128),
+      (3u128, 0u128, 1u128),
+      (3u128, 1u128, 3u128),
+      (3u128, 2u128, 9u128),
+      (3u128, 3u128, 27u128),
+      (17u128, 7u128, 10338673u128),
+    ];
+    
+    for t in test_cases {
+      let base = FieldElem::new(f.clone(), BigUint::from(t.0));
+      let exponent = BigUint::from(t.1);
+      let expected = BigUint::from(t.2);
+      assert_eq!(base.pow(&exponent).n, BigUint::from(expected));
+    }
   }
 
   #[test]
-  fn pow_u32_above_order() {
+  fn pow_below_order() {
     let f = Field::new(BigUint::from(11u32));
     let a = FieldElem::new(f.clone(), BigUint::from(2u32));
-    assert_eq!(a.pow_u32(4u32).n, BigUint::from(5u32));
+    assert_eq!(a.pow(&3u32).n, BigUint::from(8u32));
+  }
+
+  #[test]
+  fn pow_above_order() {
+    let f = Field::new(BigUint::from(11u32));
+    let a = FieldElem::new(f.clone(), BigUint::from(2u32));
+    assert_eq!(a.pow(&4u32).n, BigUint::from(5u32));
   }
 
   #[test]

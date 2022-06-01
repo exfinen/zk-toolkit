@@ -1,8 +1,7 @@
 #![allow(non_snake_case)]
 use crate::hasher::Hasher;
 use crate::sha512::Sha512;
-use crate::field::Field;
-use crate::field_elem::FieldElem;
+use crate::field::{Field};
 use num_bigint::BigUint;
 use core::ops::Sub;
 
@@ -34,31 +33,24 @@ pub fn gen_priv_key(k: [u8; 32]) -> KeyPair {
 
   // q = 2^255 - 19
   let q = BigUint::from(2u8).nth_root(255u32).sub(19u8);
-  let F_q = Field::new(q);
+  let F = Field::new(q.clone());
 
   // base point is (x, 4/5) w/ positive x
-  let inv5 = FieldElem::new(F_q, BigUint::from(5u8)).inv().unwrap();
-  let bp_y = inv5.mul_u32(4u32);
+  let bp_y = F.elem(&5u8).mul(&F.elem(&4u32));
 
-  let n_121666 = FieldElem::new(F_q, BigUint::from(121666));
-  let n_minus_121665 = FieldElem::new(F_q, BigUint::from(121665)).neg();
-  let d = n_minus_121665.div(n_121666);
+  // d = -121665 / 121666
+  let d = F.elem(&121665u32).neg().div(&121666u32).unwrap();
   
   // xx = x^2 = (y^2 - 1) / (1 + d*y^2)
-  let one = FieldElem::new(F_q, BigUint::from(1u8));
-  let xx = bp_y.mul(&bp_y).sub(&one).div(one.add(&d.mul(&bp_y).mul(&bp_y)));
+  let xx = bp_y.mul(&bp_y).sub(&1u8).div(&1u8).unwrap().add(&d.mul(&bp_y.sq()));
 
-  let two = FieldElem::new(F_q, BigUint::from(2u8));
-  let four = FieldElem::new(F_q, BigUint::from(4u8));
+  let q_minus_1_over_4 = F.elem(&q).sub(&1u8).div(&4u8).unwrap();
 
-  let q_minus_1_over_4 = q.sub(one).div(four);
-  let I = two.pow(q_minus_1_over_4);
+  let I = F.two().pow(&q_minus_1_over_4);
 
-  let three = FieldElem::new(F_q, BigUint::from(3u8));
-  let eight = FieldElem::new(F_q, BigUint::from(8u8));
-  let q_plus_3_over_8 = (q.add(three)).div(eight);
-  let mut x = xx.pot(q_plus_3_over_8);
-  if x.mul(&x).sub(&xx) != 0 { // if x is not the solution, multiply I
+  let q_plus_3_over_8 = (F.elem(&q).add(&3u8)).div(&F.eight()).unwrap();
+  let mut x = xx.pow(&q_plus_3_over_8);
+  if x.mul(&x).sub(&xx).n != BigUint::from(0u8) { // if x is not the solution, multiply I
     x = x.mul(&I);
   }
   // x should be positive

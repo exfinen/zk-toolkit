@@ -10,3 +10,4 @@ pub mod sha512;
 pub mod weierstrass_add_ops;
 pub mod hasher;
 pub mod hmac;
+pub mod ed25519_sha512;
