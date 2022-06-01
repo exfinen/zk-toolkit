@@ -227,14 +227,14 @@ impl AddOps for JacobianAddOps {
       // let u2 = jp2.x.times(&z1z1);
       // let s1 = jp1.y.times(&jp2.z).times(&z2z2);
       // let s2 = jp2.y.times(&jp1.z).times(&z1z1);
-      // let h = u2.minus(&u1);
+      // let h = u2 - &u1;
       // let i = (h.mul_u32(2)).sq();
       // let j = h.times(&i);
-      // let r = (s2.minus(&s1)).mul_u32(2);
+      // let r = (s2 - &s1).mul_u32(2);
       // let v = u1.times(&i);
-      // let x3 = (r.sq()).minus(&j).minus(&v.mul_u32(2));
-      // let y3 = r.times(&v.minus(&x3)).minus(&s1.times(&j).mul_u32(2));
-      // let z3 = (((jp1.z.add(&jp2.z)).sq()).minus(&z1z1).minus(&z2z2)).times(&h);
+      // let x3 = (r.sq() - &j - &v.mul_u32(2);
+      // let y3 = r.times(&v - &x3) - &s1.times(&j).mul_u32(2);
+      // let z3 = (((jp1.z.add(&jp2.z)).sq()) - &z1z1 - &z2z2).times(&h);
 
       // formula w/ unnecessary computation removed
       let h = jp2.x - &jp1.x;
@@ -242,7 +242,7 @@ impl AddOps for JacobianAddOps {
       let j = h.times(&i);
       let r = (jp2.y - &jp1.y).times(&2u8);
       let v = jp1.x.times(&i);
-      let x3 = (r.sq()).minus(&j).minus(&v.times(&field.elem(&2u8)));
+      let x3 = (r.sq() - &j).minus(&v.times(&field.elem(&2u8)));
       let y3 = r.times(&v.minus(&x3)).minus(&jp1.y.times(&j).times(&field.elem(&2u8)));
       let z3 = h.times(&field.elem(&2u8));
 
