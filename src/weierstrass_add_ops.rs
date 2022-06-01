@@ -110,7 +110,7 @@ impl AddOps for AffineAddOps {
       // using (1), find the y-coordinate of the 3rd intersecting point and p3x obtained above
       // y = m(x − p1.x) + p1.y
       // p3.y = m(p3.x − p1.x) + p1.y
-      let p3y = m.mul(&p3x.sub(&p1.x)).add(&p1.y);
+      let p3y = m.mul(&p3x.sub(&p1.x)) + &p1.y;
       
       // then (p3.x, -p3.y) is the result of adding p1 and p2
       let p3y_neg = p3y.neg();
@@ -200,7 +200,7 @@ impl AddOps for JacobianAddOps {
       let a = jp.x.sq();
       let b = jp.y.sq();
       let c = b.sq();
-      let d = (((jp.x.add(&b)).sq()).sub(&a).sub(&c)).mul(&field.elem(&2u8));
+      let d = (((jp.x + &b).sq()).sub(&a).sub(&c)).mul(&field.elem(&2u8));
       let e = a.mul(&field.elem(&3u8));
       let f = e.sq();
       let x3 = f.sub(&d.mul(&field.elem(&2u8)));

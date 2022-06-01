@@ -75,7 +75,7 @@ impl Curve for WeierstrassEq {
       let y2 = pt.y.mul(&pt.y);
 
       // check if y^2 = x^3 + Ax + B
-      y2 == x3.add(&ax).add(&self.b)
+      y2 == x3 + &ax + &self.b
     }
   }
 }

@@ -1,4 +1,5 @@
 use std::rc::Rc;
+use std::ops;
 use num_bigint::{BigUint, BigInt, ToBigInt};
 use num_traits::{Zero, One};
 use core::ops::Rem;
@@ -18,6 +19,14 @@ impl PartialEq for FieldElem {
 
 impl Eq for FieldElem {}
 
+impl ops::Add<&dyn ToBigUint> for FieldElem {
+  type Output = Self;
+
+  fn add(self, rhs: &dyn ToBigUint) -> Self::Output {
+    self.add_(&rhs.to_biguint())
+  }
+}
+
 impl FieldElem {
   pub fn new(f: Field, n: BigUint) -> Self {
     if n.ge(&f.order) {
@@ -28,7 +37,7 @@ impl FieldElem {
     }
   }
 
-  pub fn add(&self, rhs: &impl ToBigUint) -> FieldElem {
+  pub fn add_(&self, rhs: &impl ToBigUint) -> FieldElem {
     let mut n = self.n.clone();
     n += &rhs.to_biguint();
     if n >= *self.f.order {
@@ -246,7 +255,7 @@ mod tests {
     let f = Field::new(BigUint::from(11u32));
     let a = FieldElem::new(f.clone(), BigUint::from(9u32));
     let b = FieldElem::new(f.clone(), BigUint::from(2u32));
-    let c = a.add(&b);
+    let c = a + &b;
     assert_eq!(c.n, BigUint::from(0u32));
   }
 
@@ -255,7 +264,7 @@ mod tests {
     let f = Field::new(BigUint::from(11u32));
     let a = FieldElem::new(f.clone(), BigUint::from(9u32));
     let b = FieldElem::new(f.clone(), BigUint::from(1u32));
-    let c = a.add(&b);
+    let c = a + &b;
     assert_eq!(c.n, BigUint::from(10u32));
   }
 
@@ -264,7 +273,7 @@ mod tests {
     let f = Field::new(BigUint::from(11u32));
     let a = FieldElem::new(f.clone(), BigUint::from(9u32));
     let b = FieldElem::new(f.clone(), BigUint::from(3u32));
-    let c = a.add(&b);
+    let c = a + &b;
     assert_eq!(c.n, BigUint::from(1u32));
   }
 
@@ -540,7 +549,7 @@ mod tests {
     let a = FieldElem::new(f.clone(), BigUint::from(5u32));
     assert_eq!(a.neg().n, BigUint::from(6u32));
 
-    let neg_a = a.add(&a.neg());
+    let neg_a = a.clone() + &a.neg();
     assert_eq!(neg_a.n, BigUint::from(0u32));
   }
 

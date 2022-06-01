@@ -43,14 +43,11 @@ pub fn gen_priv_key(k: [u8; 32]) -> KeyPair {
   let d = F.elem(&121665u32).neg().div(&121666u32);
   
   // xx = x^2 = (y^2 - 1) / (1 + d*y^2)
-  let xx = bp_y.mul(&bp_y).sub(&1u8).div(&1u8).add(&d.mul(&bp_y.sq()));
+  let xx = bp_y.mul(&bp_y).sub(&1u8).div(&1u8) + &d.mul(&bp_y.sq());
 
-  let q_minus_1_over_4 = q.sub(&1u8).div(&4u8);
+  let I = F.elem(&2u8).pow(&q.sub(&1u8).div(&4u8));
 
-  let I = F.elem(&2u8).pow(&q_minus_1_over_4);
-
-  let q_plus_3_over_8 = q.add(&3u8).div(&1u8);
-  let mut x = xx.pow(&q_plus_3_over_8);
+  let mut x = xx.pow(&(q + &F.elem(&3u8))).div(&1u8);
   if x.mul(&x).sub(&xx).n != BigUint::from(0u8) { // if x is not the solution, multiply I
     x = x.mul(&I);
   }

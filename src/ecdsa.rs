@@ -73,7 +73,7 @@ impl<'a, const HASHER_OUT_SIZE: usize> Ecdsa<'a, HASHER_OUT_SIZE> {
       let k_inv = k.inv();  // mod n
       let r_fe = k.f.elem(&r);  // mod n
       let z_fe = k.f.elem(&z);  // mod n
-      let s = k_inv.mul(&(priv_key.mul(&r_fe).add(&z_fe)));  // mod n
+      let s = k_inv.mul(&(priv_key.mul(&r_fe) + &z_fe));  // mod n
       // if s is 0, k is bad. repear the process from the beginning
       if s.n == BigUint::zero() {
         continue;
