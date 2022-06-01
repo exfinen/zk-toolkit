@@ -6,7 +6,6 @@ use crate::random_number::RandomNumber;
 use crate::hasher::Hasher;
 use num_bigint::{BigUint};
 use rand::RngCore;
-use std::rc::Rc;
 use num_traits::identities::Zero;
 use crate::sha256::Sha256;
 
@@ -14,7 +13,7 @@ pub struct Ecdsa<'a, const HASHER_OUT_SIZE: usize> {
   pub curve: &'a dyn Curve,
   pub ops: &'a dyn AddOps,
   pub hasher: &'a dyn Hasher<HASHER_OUT_SIZE>,
-  pub f_n: Rc<Field>,
+  pub f_n: Field,
 }
 
 #[derive(Debug, Clone)]
@@ -73,8 +72,8 @@ impl<'a, const HASHER_OUT_SIZE: usize> Ecdsa<'a, HASHER_OUT_SIZE> {
       }
       // s = k^-1(z + r * dA) mod n // if s == 0, generate k again
       let k_inv = k.inv().unwrap();  // mod n
-      let r_fe = k.new_elem(r);  // mod n
-      let z_fe = k.new_elem(z);  // mod n
+      let r_fe = k.f.elem(&r);  // mod n
+      let z_fe = k.f.elem(&z);  // mod n
       let s = k_inv.mul(&(priv_key.mul(&r_fe).add(&z_fe)));  // mod n
       // if s is 0, k is bad. repear the process from the beginning
       if s.n == BigUint::zero() {
@@ -194,14 +193,14 @@ mod tests {
     let sig = ecdsa.sign(&priv_key, &message).unwrap();
 
     let sig_r_too_large = Signature {
-      r: sig.clone().s.new_elem(weier.n()),
+      r: sig.clone().s.f.elem(&weier.n()),
       s: sig.clone().s,
     };
     let is_verified = ecdsa.verify(&sig_r_too_large, &pub_key, &message);
     assert_eq!(is_verified, false);
 
     let sig_r_too_small = Signature {
-      r: sig.r.new_elem(BigUint::zero()),
+      r: sig.r.f.elem(&BigUint::zero()),
       s: sig.s,
     };
     let is_verified = ecdsa.verify(&sig_r_too_small, &pub_key, &message);
@@ -227,14 +226,14 @@ mod tests {
 
     let sig_s_too_large = Signature {
       r: sig.clone().r,
-      s: sig.clone().s.new_elem(weier.n()),
+      s: sig.clone().s.f.elem(&weier.n()),
     };
     let is_verified = ecdsa.verify(&sig_s_too_large, &pub_key, &message);
     assert_eq!(is_verified, false);
 
     let sig_s_too_small = Signature {
       r: sig.r,
-      s: sig.s.new_elem(BigUint::zero()),
+      s: sig.s.f.elem(&BigUint::zero()),
     };
     let is_verified = ecdsa.verify(&sig_s_too_small, &pub_key, &message);
     assert_eq!(is_verified, false);

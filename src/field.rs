@@ -29,6 +29,8 @@ macro_rules! impl_to_biguint_for {
 impl_to_biguint_for!(u8);
 impl_to_biguint_for!(u16);
 impl_to_biguint_for!(u32);
+impl_to_biguint_for!(u64);
+impl_to_biguint_for!(u128);
 
 impl Field {
   pub fn new(order: BigUint) -> Self {

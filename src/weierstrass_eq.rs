@@ -4,11 +4,10 @@ use crate::ec_point::EcPoint;
 use crate::curve::Curve;
 use num_bigint::BigUint;
 use num_traits::identities::{Zero, One};
-use std::rc::Rc;
 
 // y^2 = x^3 + Ax + B
 pub struct WeierstrassEq {
-  pub f: Rc<Field>,
+  pub f: Field,
   pub a: FieldElem,
   pub b: FieldElem,
   pub g: EcPoint,
@@ -19,7 +18,7 @@ pub struct WeierstrassEq {
 
 impl WeierstrassEq {
   pub fn new(
-    f: Rc<Field>, 
+    f: Field, 
     a: BigUint, 
     b: BigUint, 
     gx: BigUint, 

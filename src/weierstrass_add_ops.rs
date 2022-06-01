@@ -137,7 +137,7 @@ impl JacobianPoint {
       Ok(JacobianPoint {
         x: pt.x.clone(),
         y: pt.y,
-        z: pt.x.new_elem(BigUint::one()),
+        z: pt.x.f.elem(&BigUint::one()),
       })
     }
   }
@@ -259,7 +259,6 @@ mod tests {
   use super::*;
   use num_bigint::BigUint;
   use crate::weierstrass_eq::WeierstrassEq;
-  use std::rc::Rc;
   use crate::field_elem::FieldElem;
   use crate::field::Field;
 
@@ -333,7 +332,7 @@ mod tests {
   }
 
   impl<'a> Xy<'a> {
-    fn to_ec_point(&'a self, f: Rc<Field>) -> EcPoint {
+    fn to_ec_point(&'a self, f: Field) -> EcPoint {
       let gx = BigUint::parse_bytes(self.x, 16).unwrap();
       let gy = BigUint::parse_bytes(self.y, 16).unwrap();
       EcPoint::new(

@@ -20,7 +20,7 @@ impl Eq for FieldElem {}
 impl FieldElem {
   pub fn new(f: Field, n: BigUint) -> Self {
     if n.ge(&f.order) {
-      let n = n.rem(*f.order);
+      let n = n.rem(&(*f.order));
       FieldElem { f: f.clone(), n }
     } else {
       FieldElem { f: f.clone(), n }
@@ -31,7 +31,7 @@ impl FieldElem {
     let mut n = self.n.clone();
     n += &other.n;
     if n >= *self.f.order {
-      n -= *self.f.order;
+      n -= &(*self.f.order);
     }
     FieldElem { f: self.f.clone(), n }
   }
@@ -39,7 +39,7 @@ impl FieldElem {
   pub fn sub(&self, other: &FieldElem) -> FieldElem {
     if self.n < other.n {
       let diff = other.n.clone() - &self.n;
-      let n = *self.f.order - diff;
+      let n = &(*self.f.order) - diff;
       FieldElem { f: self.f.clone(), n }
     } else {
       let mut n = self.n.clone();
@@ -51,9 +51,9 @@ impl FieldElem {
   pub fn mul(&self, other: &FieldElem) -> FieldElem {
     let mut n = self.n.clone();
     n *= &other.n;
-    n %= *self.f.order;
+    n %= &(*self.f.order);
     if n < BigUint::zero() {
-      n += *self.f.order;
+      n += &(*self.f.order);
     }
     FieldElem { f: self.f.clone(), n }
   }
@@ -68,7 +68,7 @@ impl FieldElem {
     let num_multiply = other_u32 - 1;
     for _ in 0..num_multiply {
       n *= &self.n;
-      n %= *self.f.order;
+      n %= &(*self.f.order);
     }
     FieldElem { f: self.f.clone(), n }
   }
@@ -76,7 +76,7 @@ impl FieldElem {
   pub fn sq(&self) -> FieldElem {
     let mut n = self.n.clone();
     n *= &self.n;
-    n %= *self.f.order;
+    n %= &(*self.f.order);
     FieldElem { f: self.f.clone(), n }
   }
 
@@ -145,7 +145,7 @@ impl FieldElem {
     if self.n == BigUint::zero() {
       FieldElem { f: self.f.clone(), n: self.n.clone() }
     } else {
-      let mut n = *self.f.order;
+      let mut n = (*self.f.order).clone();
       n -= &self.n;
       FieldElem { f: self.f.clone(), n }
     }
