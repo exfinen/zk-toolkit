@@ -61,7 +61,7 @@ impl AddOps for AffineAddOps {
       // since p1 and p2 are the same point, replace r and s w/ p1.x
       // to get the x-coordinate of the point where (1) intersects the curve
       // x3 = m^2 − 2*p1.x
-      let p3x = m.sq().minus(&p1.x.times(&f.elem(&2u8)));
+      let p3x = m.sq() - &p1.x.times(&f.elem(&2u8));
 
       // then get the y-coordinate by substituting x in (1) w/ x3 to get y3
       // y3 = m(x3 − p1.x) + p1.y 
@@ -237,10 +237,10 @@ impl AddOps for JacobianAddOps {
       // let z3 = (((jp1.z.add(&jp2.z)).sq()).minus(&z1z1).minus(&z2z2)).times(&h);
 
       // formula w/ unnecessary computation removed
-      let h = jp2.x.minus(&jp1.x);
+      let h = jp2.x - &jp1.x;
       let i = (h.times(&field.elem(&2u8))).sq();
       let j = h.times(&i);
-      let r = (jp2.y.minus(&jp1.y)).times(&field.elem(&2u8));
+      let r = (jp2.y - &jp1.y).times(&2u8);
       let v = jp1.x.times(&i);
       let x3 = (r.sq()).minus(&j).minus(&v.times(&field.elem(&2u8)));
       let y3 = r.times(&v.minus(&x3)).minus(&jp1.y.times(&j).times(&field.elem(&2u8)));
