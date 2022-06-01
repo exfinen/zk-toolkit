@@ -35,6 +35,14 @@ impl ops::Sub<&dyn ToBigUint> for FieldElem {
   }
 }
 
+impl ops::Mul<&dyn ToBigUint> for FieldElem {
+  type Output = Self;
+
+  fn mul(self, rhs: &dyn ToBigUint) -> Self::Output {
+    self.times(&rhs.to_biguint())
+  }
+}
+
 impl FieldElem {
   pub fn new(f: Field, n: BigUint) -> Self {
     if n.ge(&f.order) {
@@ -317,7 +325,7 @@ mod tests {
     let f = Field::new(BigUint::from(11u32));
     let a = FieldElem::new(f.clone(), BigUint::from(2u32));
     let b = FieldElem::new(f.clone(), BigUint::from(5u32));
-    let c = a.times(&b);
+    let c = a * &b;
     assert_eq!(c.n, BigUint::from(10u32));
   }
 
@@ -326,7 +334,7 @@ mod tests {
     let f = Field::new(BigUint::from(11u32));
     let a = FieldElem::new(f.clone(), BigUint::from(1u32));
     let b = FieldElem::new(f.clone(), BigUint::from(11u32));
-    let c = a.times(&b);
+    let c = a * &b;
     assert_eq!(c.n, BigUint::from(0u32));
   }
 
@@ -335,7 +343,7 @@ mod tests {
     let f = Field::new(BigUint::from(11u32));
     let a = FieldElem::new(f.clone(), BigUint::from(3u32));
     let b = FieldElem::new(f.clone(), BigUint::from(9u32));
-    let c = a.times(&b);
+    let c = a * &b;
     assert_eq!(c.n, BigUint::from(5u32));
   }
 
@@ -343,7 +351,7 @@ mod tests {
   fn mul_u32_below_order_result() {
     let f = Field::new(BigUint::from(11u8));
     let a = FieldElem::new(f.clone(), BigUint::from(2u8));
-    let b = a.times(&5u8);
+    let b = a * &5u8;
     assert_eq!(b.n, BigUint::from(10u8));
   }
 
