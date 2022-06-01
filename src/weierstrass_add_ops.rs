@@ -36,8 +36,8 @@ impl AddOps for AffineAddOps {
       //
       // dy/dx is the slope m of the tangent line at the point 
       // m = (3x^2 + A) / 2y
-      let m1 = p1.x.sq().mul(&f.elem(&3u8));
-      let m2 = p1.y.mul(&f.elem(&2u8));
+      let m1 = p1.x.sq().times(&f.elem(&3u8));
+      let m2 = p1.y.times(&f.elem(&2u8));
       let m = m1.div(&m2);
 
       // equation of intersecting line is
@@ -61,14 +61,14 @@ impl AddOps for AffineAddOps {
       // since p1 and p2 are the same point, replace r and s w/ p1.x
       // to get the x-coordinate of the point where (1) intersects the curve
       // x3 = m^2 − 2*p1.x
-      let p3x = m.sq().sub(&p1.x.mul(&f.elem(&2u8)));
+      let p3x = m.sq().minus(&p1.x.times(&f.elem(&2u8)));
 
       // then get the y-coordinate by substituting x in (1) w/ x3 to get y3
       // y3 = m(x3 − p1.x) + p1.y 
       // 
       // reflecting y3 across the x-axis results in the addition result y-coordinate 
       // result.y = -1 * y3 = m(p1.x - x3) - p1.y
-      let p3y_neg = m.mul(&p1.x.sub(&p3x)).sub(&p1.y);
+      let p3y_neg = m.times(&p1.x.minus(&p3x)).minus(&p1.y);
       EcPoint::new(p3x, p3y_neg).unwrap()
 
     } else {  // when line through p1 and p2 is non-vertical line
@@ -76,7 +76,7 @@ impl AddOps for AffineAddOps {
       // p2.y - p1.y = m(p2.x - p1.x)
       // m(p2.x - p1.x) = p2.y - p1.y
       // m = (p2.y - p1.y) / (p2.x - p1.x)
-      let m = (p2.y.sub(&p1.y)).div(&p2.x.sub(&p1.x));
+      let m = (p2.y.minus(&p1.y)).div(&p2.x.minus(&p1.x));
 
       // then the equation of the line is:
       // y = m(x − p1.x) + p1.y  (1)
@@ -105,12 +105,12 @@ impl AddOps for AffineAddOps {
       //
       // here t is the x coordinate of the p3 we're trying to find:
       // p3.x = m^2 - p1.x - p2.x
-      let p3x = m.sq().sub(&p1.x).sub(&p2.x);
+      let p3x = m.sq().minus(&p1.x).minus(&p2.x);
 
       // using (1), find the y-coordinate of the 3rd intersecting point and p3x obtained above
       // y = m(x − p1.x) + p1.y
       // p3.y = m(p3.x − p1.x) + p1.y
-      let p3y = m.mul(&p3x.sub(&p1.x)) + &p1.y;
+      let p3y = m.times(&p3x.minus(&p1.x)) + &p1.y;
       
       // then (p3.x, -p3.y) is the result of adding p1 and p2
       let p3y_neg = p3y.neg();
@@ -148,7 +148,7 @@ impl JacobianPoint {
       Err("z is not expected to be zero".to_string())
     } else {
       let z2 = self.z.sq();
-      let z3 = z2.mul(&self.z);
+      let z3 = z2.times(&self.z);
       let x = self.x.div(&z2);
       let y = self.y.div(&z3);
       Ok(EcPoint { x, y, is_inf: false })
@@ -189,23 +189,23 @@ impl AddOps for JacobianAddOps {
       // let a = jp.x.sq();
       // let b = jp.y.sq();
       // let c = b.sq();
-      // let d = (((jp.x.add(&b)).sq()).sub(&a).sub(&c)).mul_u32(2);
+      // let d = (((jp.x.add(&b)).sq()).minus(&a).minus(&c)).mul_u32(2);
       // let e = a.mul_u32(3);
       // let f = e.sq();
-      // let x3 = f.sub(&d.mul_u32(2));
-      // let y3 = e.mul(&d.sub(&x3)).sub(&c.mul_u32(8));
-      // let z3 = jp.y.mul_u32(2).mul(&jp.z);
+      // let x3 = f.minus(&d.mul_u32(2));
+      // let y3 = e.times(&d.minus(&x3)).minus(&c.mul_u32(8));
+      // let z3 = jp.y.mul_u32(2).times(&jp.z);
 
       // formula w/ unnecessary computation removed
       let a = jp.x.sq();
       let b = jp.y.sq();
       let c = b.sq();
-      let d = (((jp.x + &b).sq()).sub(&a).sub(&c)).mul(&field.elem(&2u8));
-      let e = a.mul(&field.elem(&3u8));
+      let d = (((jp.x + &b).sq()).minus(&a).minus(&c)).times(&field.elem(&2u8));
+      let e = a.times(&field.elem(&3u8));
       let f = e.sq();
-      let x3 = f.sub(&d.mul(&field.elem(&2u8)));
-      let y3 = e.mul(&d.sub(&x3)).sub(&c.mul(&field.elem(&8u8)));
-      let z3 = jp.y.mul(&field.elem(&2u8));
+      let x3 = f.minus(&d.times(&field.elem(&2u8)));
+      let y3 = e.times(&d.minus(&x3)).minus(&c.times(&field.elem(&8u8)));
+      let z3 = jp.y.times(&field.elem(&2u8));
 
       let jp2 = JacobianPoint {
         x: x3,
@@ -223,28 +223,28 @@ impl AddOps for JacobianAddOps {
       // formula described in: https://hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-3.html#addition-add-2007-bl
       // let z1z1 = jp1.z.sq();
       // let z2z2 = jp2.z.sq();
-      // let u1 = jp1.x.mul(&z2z2);
-      // let u2 = jp2.x.mul(&z1z1);
-      // let s1 = jp1.y.mul(&jp2.z).mul(&z2z2);
-      // let s2 = jp2.y.mul(&jp1.z).mul(&z1z1);
-      // let h = u2.sub(&u1);
+      // let u1 = jp1.x.times(&z2z2);
+      // let u2 = jp2.x.times(&z1z1);
+      // let s1 = jp1.y.times(&jp2.z).times(&z2z2);
+      // let s2 = jp2.y.times(&jp1.z).times(&z1z1);
+      // let h = u2.minus(&u1);
       // let i = (h.mul_u32(2)).sq();
-      // let j = h.mul(&i);
-      // let r = (s2.sub(&s1)).mul_u32(2);
-      // let v = u1.mul(&i);
-      // let x3 = (r.sq()).sub(&j).sub(&v.mul_u32(2));
-      // let y3 = r.mul(&v.sub(&x3)).sub(&s1.mul(&j).mul_u32(2));
-      // let z3 = (((jp1.z.add(&jp2.z)).sq()).sub(&z1z1).sub(&z2z2)).mul(&h);
+      // let j = h.times(&i);
+      // let r = (s2.minus(&s1)).mul_u32(2);
+      // let v = u1.times(&i);
+      // let x3 = (r.sq()).minus(&j).minus(&v.mul_u32(2));
+      // let y3 = r.times(&v.minus(&x3)).minus(&s1.times(&j).mul_u32(2));
+      // let z3 = (((jp1.z.add(&jp2.z)).sq()).minus(&z1z1).minus(&z2z2)).times(&h);
 
       // formula w/ unnecessary computation removed
-      let h = jp2.x.sub(&jp1.x);
-      let i = (h.mul(&field.elem(&2u8))).sq();
-      let j = h.mul(&i);
-      let r = (jp2.y.sub(&jp1.y)).mul(&field.elem(&2u8));
-      let v = jp1.x.mul(&i);
-      let x3 = (r.sq()).sub(&j).sub(&v.mul(&field.elem(&2u8)));
-      let y3 = r.mul(&v.sub(&x3)).sub(&jp1.y.mul(&j).mul(&field.elem(&2u8)));
-      let z3 = h.mul(&field.elem(&2u8));
+      let h = jp2.x.minus(&jp1.x);
+      let i = (h.times(&field.elem(&2u8))).sq();
+      let j = h.times(&i);
+      let r = (jp2.y.minus(&jp1.y)).times(&field.elem(&2u8));
+      let v = jp1.x.times(&i);
+      let x3 = (r.sq()).minus(&j).minus(&v.times(&field.elem(&2u8)));
+      let y3 = r.times(&v.minus(&x3)).minus(&jp1.y.times(&j).times(&field.elem(&2u8)));
+      let z3 = h.times(&field.elem(&2u8));
 
       let jp3 = JacobianPoint {
         x: x3,

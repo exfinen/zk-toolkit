@@ -37,19 +37,19 @@ pub fn gen_priv_key(k: [u8; 32]) -> KeyPair {
   let q = F.elem(&q);
 
   // base point is (x, 4/5) w/ positive x
-  let bp_y = F.elem(&5u8).mul(&F.elem(&4u32));
+  let bp_y = F.elem(&5u8).times(&F.elem(&4u32));
 
   // d = -121665 / 121666
   let d = F.elem(&121665u32).neg().div(&121666u32);
   
   // xx = x^2 = (y^2 - 1) / (1 + d*y^2)
-  let xx = bp_y.mul(&bp_y).sub(&1u8).div(&1u8) + &d.mul(&bp_y.sq());
+  let xx = bp_y.times(&bp_y).minus(&1u8).div(&1u8) + &d.times(&bp_y.sq());
 
-  let I = F.elem(&2u8).pow(&q.sub(&1u8).div(&4u8));
+  let I = F.elem(&2u8).pow(&q.minus(&1u8).div(&4u8));
 
   let mut x = xx.pow(&(q + &F.elem(&3u8))).div(&1u8);
-  if x.mul(&x).sub(&xx).n != BigUint::from(0u8) { // if x is not the solution, multiply I
-    x = x.mul(&I);
+  if x.times(&x).minus(&xx).n != BigUint::from(0u8) { // if x is not the solution, multiply I
+    x = x.times(&I);
   }
   // x should be positive
   // if least significant bit of x is 1, convert it to positive by

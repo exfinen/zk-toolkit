@@ -70,9 +70,9 @@ impl Curve for WeierstrassEq {
     if pt.is_inf {
       false
     } else {
-      let x3 = pt.x.mul(&pt.x).mul(&pt.x);
-      let ax = self.a.mul(&pt.x);
-      let y2 = pt.y.mul(&pt.y);
+      let x3 = pt.x.times(&pt.x).times(&pt.x);
+      let ax = self.a.times(&pt.x);
+      let y2 = pt.y.times(&pt.y);
 
       // check if y^2 = x^3 + Ax + B
       y2 == x3 + &ax + &self.b

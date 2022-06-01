@@ -73,7 +73,7 @@ impl<'a, const HASHER_OUT_SIZE: usize> Ecdsa<'a, HASHER_OUT_SIZE> {
       let k_inv = k.inv();  // mod n
       let r_fe = k.f.elem(&r);  // mod n
       let z_fe = k.f.elem(&z);  // mod n
-      let s = k_inv.mul(&(priv_key.mul(&r_fe) + &z_fe));  // mod n
+      let s = k_inv.times(&(priv_key.times(&r_fe) + &z_fe));  // mod n
       // if s is 0, k is bad. repear the process from the beginning
       if s.n == BigUint::zero() {
         continue;
@@ -113,8 +113,8 @@ impl<'a, const HASHER_OUT_SIZE: usize> Ecdsa<'a, HASHER_OUT_SIZE> {
       let z = BigUint::from_bytes_be(&self.hasher.get_digest(message));
       let z_fe = FieldElem::new(self.f_n.clone(), BigUint::from(z));  // mod n
       let w = sig.s.inv();  // mod n
-      let u1 = z_fe.mul(&w);  // mod n
-      let u2 = sig.r.mul(&w);  // mod n
+      let u1 = z_fe.times(&w);  // mod n
+      let u2 = sig.r.times(&w);  // mod n
 
       // (x, y) = u1 * G + u2 * PubKey
       let p1 = self.ops.scalar_mul(&self.curve.g(), &u1.n);
