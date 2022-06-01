@@ -58,11 +58,6 @@ impl FieldElem {
     FieldElem { f: self.f.clone(), n }
   }
 
-  pub fn mul_u32(&self, other_u32: u32) -> FieldElem {
-    let other_fe = FieldElem::new(self.f.clone(), BigUint::from(other_u32));
-    self.mul(&other_fe)
-  }
-
   pub fn pow_u32(&self, other_u32: u32) -> FieldElem {
     let mut n = self.n.clone();
     let num_multiply = other_u32 - 1;
@@ -303,10 +298,10 @@ mod tests {
 
   #[test]
   fn mul_u32_below_order_result() {
-    let f = Field::new(BigUint::from(11u32));
-    let a = FieldElem::new(f.clone(), BigUint::from(2u32));
-    let b = a.mul_u32(5);
-    assert_eq!(b.n, BigUint::from(10u32));
+    let f = Field::new(BigUint::from(11u8));
+    let a = FieldElem::new(f.clone(), BigUint::from(2u8));
+    let b = a.mul(&f.elem(&5u8));
+    assert_eq!(b.n, BigUint::from(10u8));
   }
 
   struct InvTestCase {

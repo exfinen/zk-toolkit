@@ -28,6 +28,7 @@ impl AddOps for AffineAddOps {
       if p1.y.n == BigUint::zero() || p2.y.n == BigUint::zero() {
         return EcPoint::inf();
       }
+      let f = &p1.x.f;
       // differentiate y^2 = x^3 + Ax + B w/ implicit differentiation
       // d/dx(y^2) = d/dx(x^3 + Ax + B)
       // 2y dy/dx = 3x^2 + A
@@ -35,8 +36,8 @@ impl AddOps for AffineAddOps {
       //
       // dy/dx is the slope m of the tangent line at the point 
       // m = (3x^2 + A) / 2y
-      let m1 = p1.x.sq().mul_u32(3u32);
-      let m2 = p1.y.mul_u32(2u32);
+      let m1 = p1.x.sq().mul(&f.elem(&3u8));
+      let m2 = p1.y.mul(&f.elem(&2u8));
       let m = m1.div(&m2).unwrap();
 
       // equation of intersecting line is
@@ -60,7 +61,7 @@ impl AddOps for AffineAddOps {
       // since p1 and p2 are the same point, replace r and s w/ p1.x
       // to get the x-coordinate of the point where (1) intersects the curve
       // x3 = m^2 − 2*p1.x
-      let p3x = m.sq().sub(&p1.x.mul_u32(2u32));
+      let p3x = m.sq().sub(&p1.x.mul(&f.elem(&2u8)));
 
       // then get the y-coordinate by substituting x in (1) w/ x3 to get y3
       // y3 = m(x3 − p1.x) + p1.y 
@@ -180,6 +181,7 @@ impl AddOps for JacobianAddOps {
       if p1.y.n == BigUint::zero() || p2.y.n == BigUint::zero() {
         return EcPoint::inf();
       }
+      let field = &p1.y.f;
 
       // formula described in: http://hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#doubling-dbl-2009-l
       let jp = JacobianPoint::from_ec_point(p1).unwrap(); 
@@ -198,12 +200,12 @@ impl AddOps for JacobianAddOps {
       let a = jp.x.sq();
       let b = jp.y.sq();
       let c = b.sq();
-      let d = (((jp.x.add(&b)).sq()).sub(&a).sub(&c)).mul_u32(2);
-      let e = a.mul_u32(3);
+      let d = (((jp.x.add(&b)).sq()).sub(&a).sub(&c)).mul(&field.elem(&2u8));
+      let e = a.mul(&field.elem(&3u8));
       let f = e.sq();
-      let x3 = f.sub(&d.mul_u32(2));
-      let y3 = e.mul(&d.sub(&x3)).sub(&c.mul_u32(8));
-      let z3 = jp.y.mul_u32(2);
+      let x3 = f.sub(&d.mul(&field.elem(&2u8)));
+      let y3 = e.mul(&d.sub(&x3)).sub(&c.mul(&field.elem(&8u8)));
+      let z3 = jp.y.mul(&field.elem(&2u8));
 
       let jp2 = JacobianPoint {
         x: x3,
@@ -213,6 +215,7 @@ impl AddOps for JacobianAddOps {
       jp2.to_ec_point().unwrap()
 
     } else {  // when line through p1 and p2 is non-vertical line
+      let field = &p1.y.f;
 
       let jp1 = JacobianPoint::from_ec_point(p1).unwrap(); 
       let jp2 = JacobianPoint::from_ec_point(p2).unwrap();
@@ -235,13 +238,13 @@ impl AddOps for JacobianAddOps {
 
       // formula w/ unnecessary computation removed
       let h = jp2.x.sub(&jp1.x);
-      let i = (h.mul_u32(2)).sq();
+      let i = (h.mul(&field.elem(&2u8))).sq();
       let j = h.mul(&i);
-      let r = (jp2.y.sub(&jp1.y)).mul_u32(2);
+      let r = (jp2.y.sub(&jp1.y)).mul(&field.elem(&2u8));
       let v = jp1.x.mul(&i);
-      let x3 = (r.sq()).sub(&j).sub(&v.mul_u32(2));
-      let y3 = r.mul(&v.sub(&x3)).sub(&jp1.y.mul(&j).mul_u32(2));
-      let z3 = h.mul_u32(2);
+      let x3 = (r.sq()).sub(&j).sub(&v.mul(&field.elem(&2u8)));
+      let y3 = r.mul(&v.sub(&x3)).sub(&jp1.y.mul(&j).mul(&field.elem(&2u8)));
+      let z3 = h.mul(&field.elem(&2u8));
 
       let jp3 = JacobianPoint {
         x: x3,
