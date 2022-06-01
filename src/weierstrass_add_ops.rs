@@ -68,7 +68,7 @@ impl AddOps for AffineAddOps {
       // 
       // reflecting y3 across the x-axis results in the addition result y-coordinate 
       // result.y = -1 * y3 = m(p1.x - x3) - p1.y
-      let p3y_neg = m.times(&p1.x.minus(&p3x)).minus(&p1.y);
+      let p3y_neg = m.times(&(p1.x.clone() - &p3x)) - &p1.y;
       EcPoint::new(p3x, p3y_neg).unwrap()
 
     } else {  // when line through p1 and p2 is non-vertical line
@@ -76,7 +76,7 @@ impl AddOps for AffineAddOps {
       // p2.y - p1.y = m(p2.x - p1.x)
       // m(p2.x - p1.x) = p2.y - p1.y
       // m = (p2.y - p1.y) / (p2.x - p1.x)
-      let m = (p2.y.minus(&p1.y)).div(&p2.x.minus(&p1.x));
+      let m = (p2.y.clone() - &p1.y).div(&(p2.x.clone() - &p1.x));
 
       // then the equation of the line is:
       // y = m(x − p1.x) + p1.y  (1)
@@ -105,12 +105,12 @@ impl AddOps for AffineAddOps {
       //
       // here t is the x coordinate of the p3 we're trying to find:
       // p3.x = m^2 - p1.x - p2.x
-      let p3x = m.sq().minus(&p1.x).minus(&p2.x);
+      let p3x = m.sq() - &p1.x - &p2.x;
 
       // using (1), find the y-coordinate of the 3rd intersecting point and p3x obtained above
       // y = m(x − p1.x) + p1.y
       // p3.y = m(p3.x − p1.x) + p1.y
-      let p3y = m.times(&p3x.minus(&p1.x)) + &p1.y;
+      let p3y = m.times(&(p3x.clone() - &p1.x)) + &p1.y;
       
       // then (p3.x, -p3.y) is the result of adding p1 and p2
       let p3y_neg = p3y.neg();
@@ -184,28 +184,18 @@ impl AddOps for JacobianAddOps {
       let field = &p1.y.f;
 
       // formula described in: http://hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#doubling-dbl-2009-l
+      // w/ unnecessary computation removed
       let jp = JacobianPoint::from_ec_point(p1).unwrap(); 
 
-      // let a = jp.x.sq();
-      // let b = jp.y.sq();
-      // let c = b.sq();
-      // let d = (((jp.x.add(&b)).sq()).minus(&a).minus(&c)).mul_u32(2);
-      // let e = a.mul_u32(3);
-      // let f = e.sq();
-      // let x3 = f.minus(&d.mul_u32(2));
-      // let y3 = e.times(&d.minus(&x3)).minus(&c.mul_u32(8));
-      // let z3 = jp.y.mul_u32(2).times(&jp.z);
-
-      // formula w/ unnecessary computation removed
       let a = jp.x.sq();
       let b = jp.y.sq();
       let c = b.sq();
-      let d = (((jp.x + &b).sq()).minus(&a).minus(&c)).times(&field.elem(&2u8));
-      let e = a.times(&field.elem(&3u8));
+      let d = ((jp.x + &b).sq() - &a - &c).times(&2u8);
+      let e = a.times(&3u8);
       let f = e.sq();
-      let x3 = f.minus(&d.times(&field.elem(&2u8)));
-      let y3 = e.times(&d.minus(&x3)).minus(&c.times(&field.elem(&8u8)));
-      let z3 = jp.y.times(&field.elem(&2u8));
+      let x3 = f - (&d.times(&2u8));
+      let y3 = e.times(&(d - &x3)) - &c.times(&8u8);
+      let z3 = jp.y.times(&2u8);
 
       let jp2 = JacobianPoint {
         x: x3,
@@ -221,30 +211,15 @@ impl AddOps for JacobianAddOps {
       let jp2 = JacobianPoint::from_ec_point(p2).unwrap();
       
       // formula described in: https://hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-3.html#addition-add-2007-bl
-      // let z1z1 = jp1.z.sq();
-      // let z2z2 = jp2.z.sq();
-      // let u1 = jp1.x.times(&z2z2);
-      // let u2 = jp2.x.times(&z1z1);
-      // let s1 = jp1.y.times(&jp2.z).times(&z2z2);
-      // let s2 = jp2.y.times(&jp1.z).times(&z1z1);
-      // let h = u2 - &u1;
-      // let i = (h.mul_u32(2)).sq();
-      // let j = h.times(&i);
-      // let r = (s2 - &s1).mul_u32(2);
-      // let v = u1.times(&i);
-      // let x3 = (r.sq() - &j - &v.mul_u32(2);
-      // let y3 = r.times(&v - &x3) - &s1.times(&j).mul_u32(2);
-      // let z3 = (((jp1.z.add(&jp2.z)).sq()) - &z1z1 - &z2z2).times(&h);
-
-      // formula w/ unnecessary computation removed
+      // w/ unnecessary computation removed
       let h = jp2.x - &jp1.x;
-      let i = (h.times(&field.elem(&2u8))).sq();
+      let i = (h.times(&2u8)).sq();
       let j = h.times(&i);
       let r = (jp2.y - &jp1.y).times(&2u8);
       let v = jp1.x.times(&i);
-      let x3 = (r.sq() - &j).minus(&v.times(&field.elem(&2u8)));
-      let y3 = r.times(&v.minus(&x3)).minus(&jp1.y.times(&j).times(&field.elem(&2u8)));
-      let z3 = h.times(&field.elem(&2u8));
+      let x3 = (r.sq() - &j) - &v.times(&2u8);
+      let y3 = r.times(&(v - &x3)) - &jp1.y.times(&j).times(&2u8);
+      let z3 = h.times(&2u8);
 
       let jp3 = JacobianPoint {
         x: x3,
