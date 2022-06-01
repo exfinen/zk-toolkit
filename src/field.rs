@@ -88,7 +88,7 @@ impl FieldElem {
   }
 
   // based on extended Euclidean algorithm
-  pub fn inv(&self) -> Result<FieldElem, String> {
+  pub fn safe_inv(&self) -> Result<FieldElem, String> {
     if self.n == BigUint::zero() {
       return Err("Cannot find inverse of zero".to_string());
     }
@@ -143,9 +143,17 @@ impl FieldElem {
     Ok(FieldElem { f: self.f.clone(), n: new_v.to_biguint().unwrap() })
   }
 
-  pub fn div(&self, other: &impl ToBigUint) -> Result<FieldElem, String> {
-    let inv = self.f.elem(&other.to_biguint()).inv()?;
+  pub fn inv(&self) -> FieldElem {
+    self.safe_inv().unwrap()
+  }
+
+  pub fn safe_div(&self, other: &impl ToBigUint) -> Result<FieldElem, String> {
+    let inv = self.f.elem(&other.to_biguint()).safe_inv()?;
     Ok(self.mul(&inv))
+  }
+
+  pub fn div(&self, other: &impl ToBigUint) -> FieldElem {
+    self.safe_div(other).unwrap()
   }
 
   pub fn neg(&self) -> FieldElem {
@@ -204,37 +212,6 @@ impl Field {
 
   pub fn elem(&self, n: &impl ToBigUint) -> FieldElem {
     FieldElem::new(self.clone(), n.to_biguint())
-  }
-
-  pub fn zero(&self) -> FieldElem {
-    FieldElem::new(self.clone(), 0u8.to_biguint())
-  }
-  pub fn one(&self) -> FieldElem {
-    FieldElem::new(self.clone(), 1u8.to_biguint())
-  }
-  pub fn two(&self) -> FieldElem {
-    FieldElem::new(self.clone(), 2u8.to_biguint())
-  }
-  pub fn three(&self) -> FieldElem {
-    FieldElem::new(self.clone(), 3u8.to_biguint())
-  }
-  pub fn four(&self) -> FieldElem {
-    FieldElem::new(self.clone(), 4u8.to_biguint())
-  }
-  pub fn five(&self) -> FieldElem {
-    FieldElem::new(self.clone(), 5u8.to_biguint())
-  }
-  pub fn six(&self) -> FieldElem {
-    FieldElem::new(self.clone(), 6u8.to_biguint())
-  }
-  pub fn seven(&self) -> FieldElem {
-    FieldElem::new(self.clone(), 7u8.to_biguint())
-  }
-  pub fn eight(&self) -> FieldElem {
-    FieldElem::new(self.clone(), 8u8.to_biguint())
-  }
-  pub fn nine(&self) -> FieldElem {
-    FieldElem::new(self.clone(), 9u8.to_biguint())
   }
 }
 
@@ -530,7 +507,7 @@ mod tests {
     for x in test_cases {
       let f = Field::new(BigUint::from(x.order));
       let a = FieldElem::new(f.clone(), BigUint::from(x.n));
-      let inv = a.inv()?;
+      let inv = a.safe_inv()?;
       assert_eq!(inv.n, BigUint::from(x.exp));
     }
     Ok(())
@@ -541,7 +518,7 @@ mod tests {
     let f = Field::new(BigUint::from(11u32));
     let a = FieldElem::new(f.clone(), BigUint::from(4u32));
     let b = FieldElem::new(f.clone(), BigUint::from(2u32));
-    let c = a.div(&b).unwrap();
+    let c = a.safe_div(&b).unwrap();
     assert_eq!(c.n, BigUint::from(2u32));
   }
 
@@ -552,7 +529,7 @@ mod tests {
     let a = FieldElem::new(f.clone(), BigUint::from(1112121212121u64));
 
     let exp = BigUint::parse_bytes(b"52624297956533532283067125375510330718705195823487497799082320305224600546911", 10).unwrap();
-    let inv = a.inv()?;
+    let inv = a.safe_inv()?;
     assert_eq!(exp, inv.n);
     Ok(())
   }

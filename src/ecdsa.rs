@@ -70,7 +70,7 @@ impl<'a, const HASHER_OUT_SIZE: usize> Ecdsa<'a, HASHER_OUT_SIZE> {
         continue;
       }
       // s = k^-1(z + r * dA) mod n // if s == 0, generate k again
-      let k_inv = k.inv().unwrap();  // mod n
+      let k_inv = k.inv();  // mod n
       let r_fe = k.f.elem(&r);  // mod n
       let z_fe = k.f.elem(&z);  // mod n
       let s = k_inv.mul(&(priv_key.mul(&r_fe).add(&z_fe)));  // mod n
@@ -112,7 +112,7 @@ impl<'a, const HASHER_OUT_SIZE: usize> Ecdsa<'a, HASHER_OUT_SIZE> {
       // z = e's uppermost Ln bits (Ln = order of n = 256 bits)
       let z = BigUint::from_bytes_be(&self.hasher.get_digest(message));
       let z_fe = FieldElem::new(self.f_n.clone(), BigUint::from(z));  // mod n
-      let w = sig.s.inv().unwrap();  // mod n
+      let w = sig.s.inv();  // mod n
       let u1 = z_fe.mul(&w);  // mod n
       let u2 = sig.r.mul(&w);  // mod n
 
