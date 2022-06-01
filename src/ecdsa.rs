@@ -40,7 +40,7 @@ impl<'a, const HASHER_OUT_SIZE: usize> Ecdsa<'a, HASHER_OUT_SIZE> {
       let mut rand = RandomNumber::new();
       rand.gen.fill_bytes(&mut buf);
       let x = FieldElem::new(self.f_n.clone(), BigUint::from_bytes_be(&buf));
-      if x.v != BigUint::zero() { 
+      if x.n != BigUint::zero() { 
         return x;
       }
     }
@@ -62,10 +62,10 @@ impl<'a, const HASHER_OUT_SIZE: usize> Ecdsa<'a, HASHER_OUT_SIZE> {
       let z = BigUint::from_bytes_be(&sha256.get_digest(message));
 
       // p = kG (k != 0)
-      let p: EcPoint = self.ops.scalar_mul(&self.curve.g(), &k.v);
+      let p: EcPoint = self.ops.scalar_mul(&self.curve.g(), &k.n);
 
       // r = p.x mod n
-      let r = p.x.v % &n;
+      let r = p.x.n % &n;
 
       // if r is 0, k is bad. repeat the process from the beggining
       if r == BigUint::zero() {
@@ -77,7 +77,7 @@ impl<'a, const HASHER_OUT_SIZE: usize> Ecdsa<'a, HASHER_OUT_SIZE> {
       let z_fe = k.new_elem(z);  // mod n
       let s = k_inv.mul(&(priv_key.mul(&r_fe).add(&z_fe)));  // mod n
       // if s is 0, k is bad. repear the process from the beginning
-      if s.v == BigUint::zero() {
+      if s.n == BigUint::zero() {
         continue;
       }
 
@@ -103,10 +103,10 @@ impl<'a, const HASHER_OUT_SIZE: usize> Ecdsa<'a, HASHER_OUT_SIZE> {
     }
     // check if r and s are in [1, n-1]
     else if 
-      sig.r.v == BigUint::zero()
-      || sig.s.v == BigUint::zero()
-      || n <= sig.r.v
-      || n <= sig.s.v {
+      sig.r.n == BigUint::zero()
+      || sig.s.n == BigUint::zero()
+      || n <= sig.r.n
+      || n <= sig.s.n {
       false
     } 
     else {
@@ -119,10 +119,10 @@ impl<'a, const HASHER_OUT_SIZE: usize> Ecdsa<'a, HASHER_OUT_SIZE> {
       let u2 = sig.r.mul(&w);  // mod n
 
       // (x, y) = u1 * G + u2 * PubKey
-      let p1 = self.ops.scalar_mul(&self.curve.g(), &u1.v);
-      let p2 = self.ops.scalar_mul(&pub_key, &u2.v);
+      let p1 = self.ops.scalar_mul(&self.curve.g(), &u1.n);
+      let p2 = self.ops.scalar_mul(&pub_key, &u2.n);
       let p3 = self.ops.add(&p1, &p2);
-      sig.r.v == (p3.x.v % &n)
+      sig.r.n == (p3.x.n % &n)
     }
   }
 }
@@ -147,7 +147,7 @@ mod tests {
     let priv_key = ecdsa.gen_random_number_order_n();
     let sig = ecdsa.sign(&priv_key, &message).unwrap();
 
-    let good_pub_key = ops.scalar_mul(&weier.g(), &priv_key.v);
+    let good_pub_key = ops.scalar_mul(&weier.g(), &priv_key.n);
     let bad_pub_key = EcPoint {
       x: good_pub_key.x.clone(),
       y: good_pub_key.x.clone(),
@@ -189,7 +189,7 @@ mod tests {
     let priv_key = ecdsa.gen_random_number_order_n();
 
     // create public key from the private key used for signing for verifying
-    let pub_key = ops.scalar_mul(&weier.g(), &priv_key.v);
+    let pub_key = ops.scalar_mul(&weier.g(), &priv_key.n);
 
     let sig = ecdsa.sign(&priv_key, &message).unwrap();
 
@@ -221,7 +221,7 @@ mod tests {
     let priv_key = ecdsa.gen_random_number_order_n();
 
     // create public key from the private key used for signing for verifying
-    let pub_key = ops.scalar_mul(&weier.g(), &priv_key.v);
+    let pub_key = ops.scalar_mul(&weier.g(), &priv_key.n);
 
     let sig = ecdsa.sign(&priv_key, &message).unwrap();
 
@@ -254,7 +254,7 @@ mod tests {
     let sig = ecdsa.sign(&priv_key, &message).unwrap();
 
     // create public key from the private key used for signing for verifying
-    let pub_key = ops.scalar_mul(&weier.g(), &priv_key.v);
+    let pub_key = ops.scalar_mul(&weier.g(), &priv_key.n);
     let is_verified = ecdsa.verify(&sig, &pub_key, &message);
     assert_eq!(is_verified, true);
   }
@@ -274,7 +274,7 @@ mod tests {
 
     // change private key and create public key from it
     let priv_key = ecdsa.gen_random_number_order_n();
-    let pub_key = ops.scalar_mul(&weier.g(), &priv_key.v);
+    let pub_key = ops.scalar_mul(&weier.g(), &priv_key.n);
 
     let is_verified = ecdsa.verify(&sig, &pub_key, &message);
     assert_eq!(is_verified, false);
@@ -294,7 +294,7 @@ mod tests {
     let sig = ecdsa.sign(&priv_key, &message).unwrap();
 
     // create public key from the private key used for signing for verifying
-    let pub_key = ops.scalar_mul(&weier.g(), &priv_key.v);
+    let pub_key = ops.scalar_mul(&weier.g(), &priv_key.n);
 
     // change message and verify
     let message = vec![1u8, 2, 3, 4];

@@ -25,7 +25,7 @@ impl AddOps for AffineAddOps {
       EcPoint::inf()
     } else if p1.x == p2.x && p1.y == p2.y {  // if adding the same point
       // special case: if y == 0, the tangent line is vertical
-      if p1.y.v == BigUint::zero() || p2.y.v == BigUint::zero() {
+      if p1.y.n == BigUint::zero() || p2.y.n == BigUint::zero() {
         return EcPoint::inf();
       }
       // differentiate y^2 = x^3 + Ax + B w/ implicit differentiation
@@ -143,7 +143,7 @@ impl JacobianPoint {
   }
   
   pub fn to_ec_point(&self) -> Result<EcPoint, String> {
-    if self.z.v == BigUint::zero() {
+    if self.z.n == BigUint::zero() {
       Err("z is not expected to be zero".to_string())
     } else {
       let z2 = self.z.sq();
@@ -177,7 +177,7 @@ impl AddOps for JacobianAddOps {
       EcPoint::inf()
     } else if p1.x == p2.x && p1.y == p2.y {  // if adding the same point
       // special case: if y == 0, the tangent line is vertical
-      if p1.y.v == BigUint::zero() || p2.y.v == BigUint::zero() {
+      if p1.y.n == BigUint::zero() || p2.y.n == BigUint::zero() {
         return EcPoint::inf();
       }
 
@@ -276,8 +276,8 @@ mod tests {
       let g2 = ops.add(&e.g, &e.g);
       let exp_x = BigUint::parse_bytes(b"89565891926547004231252920425935692360644145829622209833684329913297188986597", 10).unwrap();
       let exp_y = BigUint::parse_bytes(b"12158399299693830322967808612713398636155367887041628176798871954788371653930", 10).unwrap();
-      assert_eq!(g2.x.v, exp_x);
-      assert_eq!(g2.y.v, exp_y);
+      assert_eq!(g2.x.n, exp_x);
+      assert_eq!(g2.y.n, exp_y);
     }
   }
 
