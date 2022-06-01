@@ -181,7 +181,6 @@ impl AddOps for JacobianAddOps {
       if p1.y.n == BigUint::zero() || p2.y.n == BigUint::zero() {
         return EcPoint::inf();
       }
-      let field = &p1.y.f;
 
       // formula described in: http://hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#doubling-dbl-2009-l
       // w/ unnecessary computation removed

@@ -48,6 +48,7 @@ impl<'a, const HASHER_OUT_SIZE: usize> Ecdsa<'a, HASHER_OUT_SIZE> {
     // n is 32-byte long in secp256k1
     // dA = private key in [1, n-1]
     let n = self.curve.n();
+    let f = Field::new(n.clone());
 
     let sha256 = Sha256();
 
@@ -71,8 +72,8 @@ impl<'a, const HASHER_OUT_SIZE: usize> Ecdsa<'a, HASHER_OUT_SIZE> {
       }
       // s = k^-1(z + r * dA) mod n // if s == 0, generate k again
       let k_inv = k.inv();  // mod n
-      let r_fe = k.f.elem(&r);  // mod n
-      let z_fe = k.f.elem(&z);  // mod n
+      let r_fe = f.elem(&r);  // mod n
+      let z_fe = f.elem(&z);  // mod n
       let s = k_inv.times(&(priv_key.times(&r_fe) + &z_fe));  // mod n
       // if s is 0, k is bad. repear the process from the beginning
       if s.n == BigUint::zero() {
