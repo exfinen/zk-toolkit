@@ -36,7 +36,8 @@ fn recover_x(y: &FieldElem, x_parity: Parity) -> FieldElem {
   // calculate the square root of xx assuming a^((q-1)/4) = 1 mod q
   let mut x = (&xx).pow(&((&*f.order + &3u8) / &8u8));
 
-  // if that that's match, calculate the square root of xx again assuming a^((q-1)/4) = -1 mod q
+  // if that that's match, calculate the square root of xx again 
+  // assuming a^((q-1)/4) = -1 mod q
   if &x.sq().n != &xx.n {
     let I = y.f.elem(&2u8).pow(&((&*f.order - &1u8) / &4u8));
     x = &x * &I;
@@ -80,19 +81,9 @@ pub fn gen_priv_key(k: &[u8; 32]) -> KeyPair {
   println!("Base point y={:?}", bp_y.n);
 
   // multiply a w/ base point to get A
-  // 255-bit encoding of F_q^255-19 is little encoding of {0,1,..., 2^255-20}
   // Edwards Addition Law
   // (x1,y1) + (x2,y2) = ((x1y2 + x2y1) / (1 + d x1x2 y1y2), (y1y2 + x1x2) / (1 - d x1x2 y1y2))
-  /*
-    y co-ordinate value:  b'5866666666666666666666666666666666666666666666666666666666666666'
-    n=1 [0100000000000000000000000000000000000000000000000000000000000000]
-    1.G -> Point (y): 5866666666666666666666666666666666666666666666666666666666666666 (46316835694926478169428394003475163141307993866256225615783033603165251855960)
-    x point: 15112221349535400772501151409588531511454012693041857206046113283949847762202
-    y point: 46316835694926478169428394003475163141307993866256225615783033603165251855960
-  */
   
-  // encode A
-
   KeyPair {
     prv_key,
     pub_key: [0u8; 32],
