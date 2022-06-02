@@ -29,11 +29,9 @@ fn recover_x(y: &FieldElem, x_parity: Parity) -> FieldElem {
 
   // d = -121665 / 121666
   let d = -f.elem(&121665u32) / &121666u32;
-  println!("d={}", d.n);
   
   // xx = x^2 = (y^2 - 1) / (1 + d*y^2)
   let xx = (&y.sq() - &1u8) / &(&(&d * &y.sq()) + &1u8);
-  println!("xx={}", xx.n);
 
   // calculate the square root of xx assuming a^((q-1)/4) = 1 mod q
   let mut x = (&xx).pow(&((&*f.order + &3u8) / &8u8));
