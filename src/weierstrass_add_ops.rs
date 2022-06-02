@@ -38,7 +38,7 @@ impl AddOps for AffineAddOps {
       // m = (3x^2 + A) / 2y
       let m1 = p1.x.sq() * &3u8;
       let m2 = p1.y.clone() * &2u8;
-      let m = m1.div(&m2);
+      let m = m1 / &m2;
 
       // equation of intersecting line is
       // y = m(x − p1.x) + p1.y (1)
@@ -76,7 +76,7 @@ impl AddOps for AffineAddOps {
       // p2.y - p1.y = m(p2.x - p1.x)
       // m(p2.x - p1.x) = p2.y - p1.y
       // m = (p2.y - p1.y) / (p2.x - p1.x)
-      let m = (p2.y.clone() - &p1.y).div(&(p2.x.clone() - &p1.x));
+      let m = (p2.y.clone() - &p1.y) / &(p2.x.clone() - &p1.x);
 
       // then the equation of the line is:
       // y = m(x − p1.x) + p1.y  (1)
@@ -149,8 +149,8 @@ impl JacobianPoint {
     } else {
       let z2 = self.z.sq();
       let z3 = z2.clone() * &self.z;
-      let x = self.x.div(&z2);
-      let y = self.y.div(&z3);
+      let x = self.x.clone() / &z2;
+      let y = self.y.clone() / &z3;
       Ok(EcPoint { x, y, is_inf: false })
     }
   }

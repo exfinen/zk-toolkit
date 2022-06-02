@@ -43,6 +43,14 @@ impl ops::Mul<&dyn ToBigUint> for FieldElem {
   }
 }
 
+impl ops::Div<&dyn ToBigUint> for FieldElem {
+  type Output = Self;
+
+  fn div(self, rhs: &dyn ToBigUint) -> Self::Output {
+    self.divide_by(&rhs.to_biguint())
+  }
+}
+
 impl FieldElem {
   pub fn new(f: Field, n: BigUint) -> Self {
     if n.ge(&f.order) {
@@ -177,7 +185,7 @@ impl FieldElem {
     Ok(self.times(&inv))
   }
 
-  pub fn div(&self, other: &impl ToBigUint) -> FieldElem {
+  pub fn divide_by(&self, other: &impl ToBigUint) -> FieldElem {
     self.safe_div(other).unwrap()
   }
 
