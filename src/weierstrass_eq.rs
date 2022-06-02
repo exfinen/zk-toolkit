@@ -28,8 +28,8 @@ impl WeierstrassEq {
     let a = FieldElem::new(&f, &a);
     let b = FieldElem::new(&f, &b);
     let g = EcPoint::new(
-      FieldElem::new(&f, &gx), 
-      FieldElem::new(&f, &gy),
+      &FieldElem::new(&f, &gx), 
+      &FieldElem::new(&f, &gy),
     ).unwrap();
     let zero = BigUint::zero();
     let one = BigUint::one();

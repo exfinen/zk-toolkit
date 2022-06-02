@@ -68,7 +68,7 @@ impl AddOps for AffineAddOps {
       // reflecting y3 across the x-axis results in the addition result y-coordinate 
       // result.y = -1 * y3 = m(p1.x - x3) - p1.y
       let p3y_neg = m * &(&p1.x - &p3x) - &p1.y;
-      EcPoint::new(p3x, p3y_neg).unwrap()
+      EcPoint::new(&p3x, &p3y_neg).unwrap()
 
     } else {  // when line through p1 and p2 is non-vertical line
       // slope m of the line that intersects the curve at p1 and p2:
@@ -112,9 +112,7 @@ impl AddOps for AffineAddOps {
       let p3y = m * &(&p3x - &p1.x) + &p1.y;
       
       // then (p3.x, -p3.y) is the result of adding p1 and p2
-      let p3y_neg = -p3y;
-      
-      EcPoint::new(p3x, p3y_neg).unwrap()
+      EcPoint::new(&p3x, &-p3y).unwrap()
     }
   }
 }
@@ -264,7 +262,7 @@ mod tests {
     let e = WeierstrassEq::secp256k1();
     for ops in get_ops_list() {
       let a = e.g.clone();
-      let b = EcPoint::new(a.x.clone(), -a.y.clone()).unwrap();
+      let b = EcPoint::new(&a.x, &-&a.y).unwrap();
       let exp = EcPoint::inf();
       let act = ops.add(&a, &b);
       assert_eq!(act, exp);
@@ -310,8 +308,8 @@ mod tests {
       let gx = BigUint::parse_bytes(self.x, 16).unwrap();
       let gy = BigUint::parse_bytes(self.y, 16).unwrap();
       EcPoint::new(
-        FieldElem::new(f, &gx), 
-        FieldElem::new(f, &gy),
+        &FieldElem::new(f, &gx), 
+        &FieldElem::new(f, &gy),
       ).unwrap()
     }
   }
@@ -409,8 +407,8 @@ mod tests {
         let x = BigUint::parse_bytes(t.x, 16).unwrap();
         let y = BigUint::parse_bytes(t.y, 16).unwrap();
         let p = EcPoint::new(
-          FieldElem::new(&e.f, &x), 
-          FieldElem::new(&e.f, &y),
+          &FieldElem::new(&e.f, &x), 
+          &FieldElem::new(&e.f, &y),
         ).unwrap();
 
         let beg = Instant::now();
