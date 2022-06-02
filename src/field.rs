@@ -157,7 +157,7 @@ impl FieldElem {
       if bit == true {
         sum *= &bit_value;
       }
-      bit_value = &bit_value * &bit_value;
+      bit_value = (&bit_value * &bit_value) % &*self.f.order;
       sum %= &(*self.f.order);
     }
 
