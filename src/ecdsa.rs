@@ -27,7 +27,7 @@ impl<'a, const HASHER_OUT_SIZE: usize> Ecdsa<'a, HASHER_OUT_SIZE> {
     ops: &'a dyn AddOps, 
     hasher: &'a dyn Hasher<HASHER_OUT_SIZE>,
   ) -> Self {
-    let f_n = Field::new(curve.n());
+    let f_n = Field::new(&curve.n());
     Ecdsa { curve, ops, hasher, f_n }
   }
 
@@ -37,7 +37,7 @@ impl<'a, const HASHER_OUT_SIZE: usize> Ecdsa<'a, HASHER_OUT_SIZE> {
       let mut buf = [0u8; 32];
       let mut rand = RandomNumber::new();
       rand.gen.fill_bytes(&mut buf);
-      let x = FieldElem::new(self.f_n.clone(), BigUint::from_bytes_be(&buf));
+      let x = FieldElem::new(&self.f_n, &BigUint::from_bytes_be(&buf));
       if x.n != BigUint::zero() { 
         return x;
       }
@@ -48,7 +48,7 @@ impl<'a, const HASHER_OUT_SIZE: usize> Ecdsa<'a, HASHER_OUT_SIZE> {
     // n is 32-byte long in secp256k1
     // dA = private key in [1, n-1]
     let n = self.curve.n();
-    let f = Field::new(n.clone());
+    let f = Field::new(&n);
 
     let sha256 = Sha256();
 
@@ -74,7 +74,7 @@ impl<'a, const HASHER_OUT_SIZE: usize> Ecdsa<'a, HASHER_OUT_SIZE> {
       let k_inv = k.inv();  // mod n
       let r_fe = f.elem(&r);  // mod n
       let z_fe = f.elem(&z);  // mod n
-      let s = k_inv * &(priv_key.clone() * &r_fe + &z_fe);  // mod n
+      let s = k_inv * &(priv_key * &r_fe + &z_fe);  // mod n
       // if s is 0, k is bad. repear the process from the beginning
       if s.n == BigUint::zero() {
         continue;
@@ -112,7 +112,7 @@ impl<'a, const HASHER_OUT_SIZE: usize> Ecdsa<'a, HASHER_OUT_SIZE> {
       // compute e = HASH(m)
       // z = e's uppermost Ln bits (Ln = order of n = 256 bits)
       let z = BigUint::from_bytes_be(&self.hasher.get_digest(message));
-      let z_fe = FieldElem::new(self.f_n.clone(), BigUint::from(z));  // mod n
+      let z_fe = FieldElem::new(&self.f_n, &z);  // mod n
       let w = sig.s.inv();  // mod n
       let u1 = z_fe * &w;  // mod n
       let u2 = sig.r.clone() * &w;  // mod n

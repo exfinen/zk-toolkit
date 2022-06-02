@@ -311,8 +311,8 @@ mod tests {
       let gx = BigUint::parse_bytes(self.x, 16).unwrap();
       let gy = BigUint::parse_bytes(self.y, 16).unwrap();
       EcPoint::new(
-        FieldElem::new(f.clone(), gx), 
-        FieldElem::new(f, gy),
+        FieldElem::new(&f, &gx), 
+        FieldElem::new(&f, &gy),
       ).unwrap()
     }
   }
@@ -410,8 +410,8 @@ mod tests {
         let x = BigUint::parse_bytes(t.x, 16).unwrap();
         let y = BigUint::parse_bytes(t.y, 16).unwrap();
         let p = EcPoint::new(
-          FieldElem::new(e.f.clone(), x), 
-          FieldElem::new(e.f.clone(), y),
+          FieldElem::new(&e.f, &x), 
+          FieldElem::new(&e.f, &y),
         ).unwrap();
 
         let beg = Instant::now();

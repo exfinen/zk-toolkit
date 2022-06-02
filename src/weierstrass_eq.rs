@@ -25,11 +25,11 @@ impl WeierstrassEq {
     gy: BigUint,
     n: BigUint,
   ) -> Result<Self, String> {
-    let a = FieldElem::new(f.clone(), a);
-    let b = FieldElem::new(f.clone(), b);
+    let a = FieldElem::new(&f, &a);
+    let b = FieldElem::new(&f, &b);
     let g = EcPoint::new(
-      FieldElem::new(f.clone(), gx), 
-      FieldElem::new(f.clone(), gy),
+      FieldElem::new(&f, &gx), 
+      FieldElem::new(&f, &gy),
     ).unwrap();
     let zero = BigUint::zero();
     let one = BigUint::one();
@@ -39,7 +39,7 @@ impl WeierstrassEq {
 
   pub fn secp256k1() -> WeierstrassEq {
     let p = BigUint::parse_bytes(b"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F", 16).unwrap();
-    let f = Field::new(p);
+    let f = Field::new(&p);
 
     let a = BigUint::from(0u32);
     let b = BigUint::from(7u32);

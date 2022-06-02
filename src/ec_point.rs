@@ -1,6 +1,4 @@
 use crate::field::{Field, FieldElem};
-use num_bigint::BigUint;
-use num_traits::identities::{Zero, One};
 
 #[derive(Debug, Clone)]
 pub struct EcPoint {
@@ -25,9 +23,10 @@ impl Eq for EcPoint {}
 
 impl EcPoint {
   pub fn inf() -> Self {
+    let f = Field::new(&1u8);
     EcPoint {
-      x: FieldElem::new(Field::new(BigUint::one()), BigUint::zero()),
-      y: FieldElem::new(Field::new(BigUint::one()), BigUint::zero()),
+      x: FieldElem::new(&f, &0u8),
+      y: FieldElem::new(&f, &0u8),
       is_inf: true,
     }
   }
