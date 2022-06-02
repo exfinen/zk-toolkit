@@ -75,14 +75,14 @@ pub fn gen_priv_key(k: [u8; 32]) -> KeyPair {
   }
 }
 
-pub fn gen_pub_key(priv_key: [u8; 32]) -> u32 {
+pub fn gen_pub_key(_priv_key: [u8; 32]) -> u32 {
   0u32
 }
 
-pub fn sign(msg: &[u8], priv_key: u32) -> [u8; 32] {
+pub fn sign(_msg: &[u8], _priv_key: u32) -> [u8; 32] {
   [0u8; 32]
 }
 
-pub fn verify(msg: &[u8], pub_key: u32, sig: [u8;32]) -> bool {
+pub fn verify(_msg: &[u8], _pub_key: u32, _sig: [u8;32]) -> bool {
   true
 }

@@ -28,7 +28,6 @@ impl AddOps for AffineAddOps {
       if p1.y.n == BigUint::zero() || p2.y.n == BigUint::zero() {
         return EcPoint::inf();
       }
-      let f = &p1.x.f;
       // differentiate y^2 = x^3 + Ax + B w/ implicit differentiation
       // d/dx(y^2) = d/dx(x^3 + Ax + B)
       // 2y dy/dx = 3x^2 + A
