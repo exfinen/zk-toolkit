@@ -86,11 +86,12 @@ impl<'a> ops::Div<&dyn ToBigUint> for &'a FieldElem {
 impl FieldElem {
   pub fn new(f: &Field, n: &impl ToBigUint) -> Self {
     let n = n.to_biguint();
+    let f = f.clone();
     if n.ge(&f.order) {
       let n = n.rem(&(*f.order));
-      FieldElem { f: f.clone(), n }
+      FieldElem { f, n }
     } else {
-      FieldElem { f: f.clone(), n }
+      FieldElem { f, n }
     }
   }
 
@@ -105,14 +106,15 @@ impl FieldElem {
 
   pub fn minus(&self, rhs: &impl ToBigUint) -> FieldElem {
     let rhs = rhs.to_biguint();
+    let f = self.f.clone();
     if self.n < rhs {
-      let diff = rhs.clone() - &self.n;
+      let diff = &rhs - &self.n;
       let n = &(*self.f.order) - diff;
-      FieldElem { f: self.f.clone(), n }
+      FieldElem { f, n }
     } else {
       let mut n = self.n.clone();
       n -= &rhs;
-      FieldElem { f: self.f.clone(), n }
+      FieldElem { f, n }
     }
   }
 
@@ -137,9 +139,9 @@ impl FieldElem {
 
     for bit in rhs_in_bits {
       if bit == true {
-        sum *= bit_value.clone();
+        sum *= &bit_value;
       }
-      bit_value = bit_value.clone() * bit_value.clone();
+      bit_value = &bit_value * &bit_value;
       sum %= &(*self.f.order);
     }
 
@@ -179,12 +181,12 @@ impl FieldElem {
       // = x0*a - q*x1*a + y0*b - q*y1*b
       // = (x0 - x1*q)*a + (y0 - y1*q)*b
       // = r
-      let q = r0.clone() / r1.clone();
-      let r2 = r0.clone() % r1.clone();
+      let q = &r0 / &r1;
+      let r2 = &r0 % &r1;
       // this produces the same result as above r2 using mod
-      //let r2 = x2.clone() * order.clone() + y2.clone() * v.clone();
-      let x2 = x0 - x1.clone() * q.clone();
-      let y2 = y0 - y1.clone() * q.clone();
+      //let r2 = x2 * order + y2 * v;
+      let x2 = &x0 - &x1 * &q;
+      let y2 = &y0 - &y1 * &q;
 
       // do next calculattion based on new and previous equations
       r0 = r1;
@@ -223,12 +225,13 @@ impl FieldElem {
   }
 
   pub fn neg(&self) -> FieldElem {
+    let f = self.f.clone();
     if self.n == BigUint::zero() {
-      FieldElem { f: self.f.clone(), n: self.n.clone() }
+      FieldElem { f, n: self.n.clone() }
     } else {
       let mut n = (*self.f.order).clone();
       n -= &self.n;
-      FieldElem { f: self.f.clone(), n }
+      FieldElem { f, n }
     }
   }
 }

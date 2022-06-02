@@ -115,7 +115,7 @@ impl<'a, const HASHER_OUT_SIZE: usize> Ecdsa<'a, HASHER_OUT_SIZE> {
       let z_fe = FieldElem::new(&self.f_n, &z);  // mod n
       let w = sig.s.inv();  // mod n
       let u1 = z_fe * &w;  // mod n
-      let u2 = sig.r.clone() * &w;  // mod n
+      let u2 = &sig.r * &w;  // mod n
 
       // (x, y) = u1 * G + u2 * PubKey
       let p1 = self.ops.scalar_mul(&self.curve.g(), &u1.n);

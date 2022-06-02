@@ -37,7 +37,7 @@ impl AddOps for AffineAddOps {
       // dy/dx is the slope m of the tangent line at the point 
       // m = (3x^2 + A) / 2y
       let m1 = p1.x.sq() * &3u8;
-      let m2 = p1.y.clone() * &2u8;
+      let m2 = &p1.y * &2u8;
       let m = m1 / &m2;
 
       // equation of intersecting line is
@@ -61,14 +61,14 @@ impl AddOps for AffineAddOps {
       // since p1 and p2 are the same point, replace r and s w/ p1.x
       // to get the x-coordinate of the point where (1) intersects the curve
       // x3 = m^2 − 2*p1.x
-      let p3x = m.sq() - &(p1.x.clone() * &2u8);
+      let p3x = m.sq() - &(&p1.x * &2u8);
 
       // then get the y-coordinate by substituting x in (1) w/ x3 to get y3
       // y3 = m(x3 − p1.x) + p1.y 
       // 
       // reflecting y3 across the x-axis results in the addition result y-coordinate 
       // result.y = -1 * y3 = m(p1.x - x3) - p1.y
-      let p3y_neg = m * &(p1.x.clone() - &p3x) - &p1.y;
+      let p3y_neg = m * &(&p1.x - &p3x) - &p1.y;
       EcPoint::new(p3x, p3y_neg).unwrap()
 
     } else {  // when line through p1 and p2 is non-vertical line
@@ -76,7 +76,7 @@ impl AddOps for AffineAddOps {
       // p2.y - p1.y = m(p2.x - p1.x)
       // m(p2.x - p1.x) = p2.y - p1.y
       // m = (p2.y - p1.y) / (p2.x - p1.x)
-      let m = (p2.y.clone() - &p1.y) / &(p2.x.clone() - &p1.x);
+      let m = (&p2.y - &p1.y) / &(&p2.x - &p1.x);
 
       // then the equation of the line is:
       // y = m(x − p1.x) + p1.y  (1)
@@ -110,7 +110,7 @@ impl AddOps for AffineAddOps {
       // using (1), find the y-coordinate of the 3rd intersecting point and p3x obtained above
       // y = m(x − p1.x) + p1.y
       // p3.y = m(p3.x − p1.x) + p1.y
-      let p3y = m * &(p3x.clone() - &p1.x) + &p1.y;
+      let p3y = m * &(&p3x - &p1.x) + &p1.y;
       
       // then (p3.x, -p3.y) is the result of adding p1 and p2
       let p3y_neg = p3y.neg();
@@ -148,9 +148,9 @@ impl JacobianPoint {
       Err("z is not expected to be zero".to_string())
     } else {
       let z2 = self.z.sq();
-      let z3 = z2.clone() * &self.z;
-      let x = self.x.clone() / &z2;
-      let y = self.y.clone() / &z3;
+      let z3 = &z2 * &self.z;
+      let x = &self.x / &z2;
+      let y = &self.y / &z3;
       Ok(EcPoint { x, y, is_inf: false })
     }
   }
@@ -192,8 +192,8 @@ impl AddOps for JacobianAddOps {
       let d = ((jp.x + &b).sq() - &a - &c) * &2u8;
       let e = a * &3u8;
       let f = e.sq();
-      let x3 = f - &(d.clone() * &2u8);
-      let y3 = e * &(d - &x3) - &(c * &8u8);
+      let x3 = f - &(&d * &2u8);
+      let y3 = e * &(&d - &x3) - &(c * &8u8);
       let z3 = jp.y * &2u8;
 
       let jp2 = JacobianPoint {
@@ -210,11 +210,11 @@ impl AddOps for JacobianAddOps {
       // formula described in: https://hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-3.html#addition-add-2007-bl
       // w/ unnecessary computation removed
       let h = jp2.x - &jp1.x;
-      let i = (h.clone() * &2u8).sq();
-      let j = h.clone() * &i;
+      let i = (&h * &2u8).sq();
+      let j = &h * &i;
       let r = (jp2.y - &jp1.y) * &2u8;
       let v = jp1.x * &i;
-      let x3 = (r.sq() - &j) - &(v.clone() * &2u8);
+      let x3 = (r.sq() - &j) - &(&v * &2u8);
       let y3 = r * &(v - &x3) - &(jp1.y * &(j * &2u8));
       let z3 = h * &2u8;
 
@@ -307,12 +307,12 @@ mod tests {
   }
 
   impl<'a> Xy<'a> {
-    fn to_ec_point(&'a self, f: Field) -> EcPoint {
+    fn to_ec_point(&'a self, f: &Field) -> EcPoint {
       let gx = BigUint::parse_bytes(self.x, 16).unwrap();
       let gy = BigUint::parse_bytes(self.y, 16).unwrap();
       EcPoint::new(
-        FieldElem::new(&f, &gx), 
-        FieldElem::new(&f, &gy),
+        FieldElem::new(f, &gx), 
+        FieldElem::new(f, &gy),
       ).unwrap()
     }
   }
@@ -348,7 +348,7 @@ mod tests {
     ];
     let mut gs = vec![e.g.clone()];  // gs[0] is used to match index and g's n and will not be actually used
     for p in ps {
-      gs.push(p.to_ec_point(e.f.clone()));
+      gs.push(p.to_ec_point(&e.f));
     }
     gs
   }
@@ -461,9 +461,9 @@ mod tests {
         assert_eq!(&res, &gs[tc.c]);
       }
 
-      let l1 = large_1.to_ec_point(e.f.clone());
-      let l2 = large_2.to_ec_point(e.f.clone());
-      let l3 = large_3.to_ec_point(e.f.clone());
+      let l1 = large_1.to_ec_point(&e.f);
+      let l2 = large_2.to_ec_point(&e.f);
+      let l3 = large_3.to_ec_point(&e.f);
 
       let l1_plus_l2 = ops.add(&l1, &l2);
       assert_eq!(l1_plus_l2, l3);
