@@ -112,7 +112,7 @@ impl AddOps for AffineAddOps {
       let p3y = m * &(&p3x - &p1.x) + &p1.y;
       
       // then (p3.x, -p3.y) is the result of adding p1 and p2
-      let p3y_neg = p3y.neg();
+      let p3y_neg = -p3y;
       
       EcPoint::new(p3x, p3y_neg).unwrap()
     }
@@ -264,7 +264,7 @@ mod tests {
     let e = WeierstrassEq::secp256k1();
     for ops in get_ops_list() {
       let a = e.g.clone();
-      let b = EcPoint::new(a.x.clone(), a.y.neg()).unwrap();
+      let b = EcPoint::new(a.x.clone(), -a.y.clone()).unwrap();
       let exp = EcPoint::inf();
       let act = ops.add(&a, &b);
       assert_eq!(act, exp);

@@ -83,6 +83,22 @@ impl<'a> ops::Div<&dyn ToBigUint> for &'a FieldElem {
   }
 }
 
+impl ops::Neg for FieldElem {
+  type Output = Self;
+
+  fn neg(self) -> Self::Output {
+    self.negate()
+  }
+}
+
+impl<'a> ops::Neg for &'a FieldElem {
+  type Output = FieldElem;
+
+  fn neg(self) -> Self::Output {
+    self.negate()
+  }
+}
+
 impl FieldElem {
   pub fn new(f: &Field, n: &impl ToBigUint) -> Self {
     let n = n.to_biguint();
@@ -224,7 +240,7 @@ impl FieldElem {
     self.safe_div(other).unwrap()
   }
 
-  pub fn neg(&self) -> FieldElem {
+  pub fn negate(&self) -> FieldElem {
     let f = self.f.clone();
     if self.n == BigUint::zero() {
       FieldElem { f, n: self.n.clone() }
@@ -607,9 +623,9 @@ mod tests {
   fn neg() {
     let f = Field::new(&11u32);
     let a = FieldElem::new(&f, &5u32);
-    assert_eq!(a.neg().n, BigUint::from(6u32));
+    assert_eq!(a.negate().n, BigUint::from(6u32));
 
-    let neg_a = a.clone() + &a.neg();
+    let neg_a = a.clone() + &a.negate();
     assert_eq!(neg_a.n, BigUint::from(0u32));
   }
 
