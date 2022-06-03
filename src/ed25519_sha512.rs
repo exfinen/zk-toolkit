@@ -52,7 +52,7 @@ impl AddOps for Ed25519Sha512 {
 
 
 impl Ed25519Sha512 {
-  fn new() -> Self {
+  pub fn new() -> Self {
     // order of base field is 2^255 - 19
     let q = BigUint::from(2u8).pow(255u32).sub(19u8);
     let f = Field::new(&q);
@@ -90,12 +90,6 @@ impl Ed25519Sha512 {
     x
   }
 
-  fn prune_prv_key_buf(buf: &mut [u8; 32]) {
-    buf[31] &= 0b0111_1111;  // clear most significant bit
-    buf[31] |= 0b0100_0000;  // set 2nd most significant bit
-    buf[0] &= 0b1111_1000;  // clear least significant 3 bits
-  }
-
   fn encode_point(&self, pt: &EcPoint) -> [u8; 32] {
     // get parity of x
     let x_parity = if (&pt.x.n & &self.one.n) == self.zero.n { Parity::Even } else { Parity::Odd };
@@ -131,15 +125,21 @@ impl Ed25519Sha512 {
     EcPoint::new(&x, &y)
   }
 
-  pub fn gen_key_pair(&self, k: &[u8; 32]) -> KeyPair {
+  fn prune_32_byte_buf(buf: &mut [u8; 32]) {
+    buf[31] &= 0b0111_1111;  // clear most significant bit
+    buf[31] |= 0b0100_0000;  // set 2nd most significant bit
+    buf[0] &= 0b1111_1000;  // clear least significant 3 bits
+  }
+
+  pub fn gen_pub_key(&self, prv_key: &[u8; 32]) -> [u8; 32] {
     let H = Sha512();
-    let digest = H.get_digest(k);
+    let digest = H.get_digest(prv_key);
 
     // private key is the last 32 bytes of the digest pruned
-    let mut prv_key = [0u8; 32];
-    prv_key[..].copy_from_slice(&digest[0..32]);
-    Self::prune_prv_key_buf(&mut prv_key);
-    let prv_key_biguint = BigUint::from_bytes_le(&prv_key);
+    let mut buf = [0u8; 32];
+    buf[..].copy_from_slice(&digest[0..32]);
+    Self::prune_32_byte_buf(&mut buf);
+    let s = BigUint::from_bytes_le(&buf);
 
     // base point is (+x, 4/5)
     let bp_y = self.f.elem(&4u8) / &5u8;
@@ -147,20 +147,16 @@ impl Ed25519Sha512 {
     let base_point = EcPoint::new(&bp_x, &bp_y);
     
     // multiply a w/ base point to get A
-    let pub_key_pt = self.scalar_mul(&base_point, &prv_key_biguint);
+    let pub_key_pt = self.scalar_mul(&base_point, &s);
     let pub_key = self.encode_point(&pub_key_pt);
-
-    KeyPair {
-      prv_key,
-      pub_key,
-    }
+    pub_key
   }
 
-  pub fn sign(_msg: &[u8], _priv_key: u32) -> [u8; 32] {
+  pub fn sign(&self, msg: &[u8], prv_key: &[u8; 32]) -> [u8; 32] {
     [0u8; 32]
   }
 
-  pub fn verify(_msg: &[u8], _pub_key: u32, _sig: [u8;32]) -> bool {
+  pub fn verify(&self, _msg: &[u8], _pub_key: u32, _sig: [u8;32]) -> bool {
     true
   }
 }
@@ -169,14 +165,26 @@ impl Ed25519Sha512 {
 mod tests {
   use super::*;
 
-  #[test]
-  fn test1() {
+  fn run_rfc8032_test(prv_key: &str, exp_pub_key: &str, msg: &[u8], exp_sig: &str) {
     let ed25519 = Ed25519Sha512::new();
 
-    let secret = [0u8; 32];
-    let keypair = ed25519.gen_key_pair(&secret);
+    let prv_key: [u8; 32] = hex::decode(prv_key).unwrap().try_into().unwrap();
+    let pub_key = ed25519.gen_pub_key(&prv_key);
 
-    let exp_pub_key = hex::decode("3b6a27bcceb6a42d62a3a8d02a6f0d73653215771de243a63ac048a18b59da29").unwrap();
-    assert_eq!(exp_pub_key, keypair.pub_key);
+    let exp_pub_key = hex::decode(exp_pub_key).unwrap();
+    assert_eq!(exp_pub_key, pub_key);
+
+    let sig = ed25519.sign(&msg, &prv_key);
+    let exp_sig = hex::decode(exp_sig).unwrap();
+    assert_eq!(sig, exp_sig);
+  }
+
+  #[test]
+  fn rfc8032_test1() {
+    let secret = "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60";
+    let exp_pub_key = "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a";
+    let msg = [72u8];
+    let exp_sig = "92a009a9f0d4cab8720e820b5f642540a2b27b5416503f8fb3762223ebdb69da085ac1e43e15996e458f3613d0f11d8c387b2eaeb4302aeeb00d291612bb0c00";
+    run_rfc8032_test(secret, exp_pub_key, &msg, exp_sig);
   }
 }
