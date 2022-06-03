@@ -31,7 +31,11 @@ impl EcPoint {
     }
   }
 
-  pub fn new(x: &FieldElem, y: &FieldElem) -> Result<Self, String> {
+  pub fn new(x: &FieldElem, y: &FieldElem) -> Self {
+    EcPoint { x: x.clone(), y: y.clone(), is_inf: false }
+  }
+
+  pub fn safe_new(x: &FieldElem, y: &FieldElem) -> Result<Self, String> {
     if x.f != y.f {
       return Err("Orders of field elements differ".to_string());
     }

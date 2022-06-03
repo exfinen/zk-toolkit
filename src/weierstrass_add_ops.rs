@@ -1,4 +1,4 @@
-use crate::curve::AddOps;
+use crate::elliptic_curve::AddOps;
 use crate::field::FieldElem;
 use crate::ec_point::EcPoint;
 use num_bigint::BigUint;
@@ -13,6 +13,10 @@ impl AffineAddOps {
 }
 
 impl AddOps for AffineAddOps {
+  fn get_zero_point(&self) -> EcPoint {
+      EcPoint::inf()
+  }
+
   // TODO check if all points are based on the same field
   fn add(&self, p1: &EcPoint, p2: &EcPoint) -> EcPoint {
     if p1.is_inf && p2.is_inf {  // inf + inf is inf
@@ -68,7 +72,7 @@ impl AddOps for AffineAddOps {
       // reflecting y3 across the x-axis results in the addition result y-coordinate 
       // result.y = -1 * y3 = m(p1.x - x3) - p1.y
       let p3y_neg = m * &(&p1.x - &p3x) - &p1.y;
-      EcPoint::new(&p3x, &p3y_neg).unwrap()
+      EcPoint::new(&p3x, &p3y_neg)
 
     } else {  // when line through p1 and p2 is non-vertical line
       // slope m of the line that intersects the curve at p1 and p2:
@@ -112,7 +116,7 @@ impl AddOps for AffineAddOps {
       let p3y = m * &(&p3x - &p1.x) + &p1.y;
       
       // then (p3.x, -p3.y) is the result of adding p1 and p2
-      EcPoint::new(&p3x, &-p3y).unwrap()
+      EcPoint::new(&p3x, &-p3y)
     }
   }
 }
@@ -162,6 +166,9 @@ impl JacobianAddOps {
 }
 
 impl AddOps for JacobianAddOps {
+  fn get_zero_point(&self) -> EcPoint {
+    EcPoint::inf()
+  }
 
   // TODO check if all points are based on the same field
   fn add(&self, p1: &EcPoint, p2: &EcPoint) -> EcPoint {
@@ -262,7 +269,7 @@ mod tests {
     let e = WeierstrassEq::secp256k1();
     for ops in get_ops_list() {
       let a = e.g.clone();
-      let b = EcPoint::new(&a.x, &-&a.y).unwrap();
+      let b = EcPoint::new(&a.x, &-&a.y);
       let exp = EcPoint::inf();
       let act = ops.add(&a, &b);
       assert_eq!(act, exp);
@@ -310,7 +317,7 @@ mod tests {
       EcPoint::new(
         &FieldElem::new(f, &gx), 
         &FieldElem::new(f, &gy),
-      ).unwrap()
+      )
     }
   }
 
@@ -409,7 +416,7 @@ mod tests {
         let p = EcPoint::new(
           &FieldElem::new(&e.f, &x), 
           &FieldElem::new(&e.f, &y),
-        ).unwrap();
+        );
 
         let beg = Instant::now();
         let gk = ops.scalar_mul(&e.g, &k);

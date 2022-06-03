@@ -4,6 +4,7 @@ use num_bigint::{BigUint, BigInt, ToBigInt};
 use num_traits::{Zero, One};
 use core::ops::Rem;
 use bitvec::prelude::*;
+use crate::to_biguint::ToBigUint;
 
 #[derive(Debug, Clone)]
 pub struct FieldElem {
@@ -257,10 +258,6 @@ pub struct Field {
   pub order: Rc<BigUint>,
 }
 
-pub trait ToBigUint {
-  fn to_biguint(&self) -> BigUint;
-}
-
 impl ToBigUint for BigUint {
   fn to_biguint(&self) -> BigUint {
     self.clone()
@@ -272,21 +269,6 @@ impl ToBigUint for FieldElem {
     self.n.clone()
   }
 }
-
-macro_rules! impl_to_biguint_for {
-  ($name: ty) => {
-    impl ToBigUint for $name {
-      fn to_biguint(&self) -> BigUint {
-        BigUint::from(*self)
-      }
-    }
-  };
-}
-impl_to_biguint_for!(u8);
-impl_to_biguint_for!(u16);
-impl_to_biguint_for!(u32);
-impl_to_biguint_for!(u64);
-impl_to_biguint_for!(u128);
 
 impl Field {
   pub fn new(order: &impl ToBigUint) -> Self {

@@ -1,7 +1,6 @@
-use crate::field::FieldElem;
-use crate::field::Field;
+use crate::field::{Field, FieldElem};
 use crate::ec_point::EcPoint;
-use crate::curve::Curve;
+use crate::elliptic_curve::EllipticCurve;
 use num_bigint::BigUint;
 use num_traits::identities::{Zero, One};
 
@@ -30,7 +29,7 @@ impl WeierstrassEq {
     let g = EcPoint::new(
       &FieldElem::new(&f, &gx), 
       &FieldElem::new(&f, &gy),
-    ).unwrap();
+    );
     let zero = BigUint::zero();
     let one = BigUint::one();
 
@@ -56,7 +55,7 @@ impl WeierstrassEq {
   }
 }
 
-impl Curve for WeierstrassEq {
+impl EllipticCurve for WeierstrassEq {
   fn g(&self) -> EcPoint {
     self.g.clone()
   }

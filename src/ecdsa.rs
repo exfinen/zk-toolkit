@@ -1,4 +1,4 @@
-use crate::curve::{Curve, AddOps};
+use crate::elliptic_curve::{EllipticCurve, AddOps};
 use crate::ec_point::EcPoint;
 use crate::field::{Field, FieldElem};
 use crate::random_number::RandomNumber;
@@ -9,7 +9,7 @@ use num_traits::identities::Zero;
 use crate::sha256::Sha256;
 
 pub struct Ecdsa<'a, const HASHER_OUT_SIZE: usize> {
-  pub curve: &'a dyn Curve,
+  pub curve: &'a dyn EllipticCurve,
   pub ops: &'a dyn AddOps,
   pub hasher: &'a dyn Hasher<HASHER_OUT_SIZE>,
   pub f_n: Field,
@@ -23,7 +23,7 @@ pub struct Signature {
 
 impl<'a, const HASHER_OUT_SIZE: usize> Ecdsa<'a, HASHER_OUT_SIZE> {
   pub fn new(
-    curve: &'a dyn Curve, 
+    curve: &'a dyn EllipticCurve, 
     ops: &'a dyn AddOps, 
     hasher: &'a dyn Hasher<HASHER_OUT_SIZE>,
   ) -> Self {
