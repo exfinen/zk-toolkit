@@ -44,6 +44,10 @@ impl<'a, const HASHER_OUT_SIZE: usize> Ecdsa<'a, HASHER_OUT_SIZE> {
     }
   }
 
+  pub fn gen_pub_key(&self, priv_key: &FieldElem) -> EcPoint {
+    self.ops.scalar_mul(&self.curve.g(), &priv_key.n)
+  }
+
   pub fn sign(&mut self, priv_key: &FieldElem, message: &[u8]) -> Result<Signature, String> {
     // n is 32-byte long in secp256k1
     // dA = private key in [1, n-1]
@@ -253,7 +257,7 @@ mod tests {
     let sig = ecdsa.sign(&priv_key, &message).unwrap();
 
     // create public key from the private key used for signing for verifying
-    let pub_key = ops.scalar_mul(&weier.g(), &priv_key.n);
+    let pub_key = ecdsa.gen_pub_key(&priv_key);
     let is_verified = ecdsa.verify(&sig, &pub_key, &message);
     assert_eq!(is_verified, true);
   }
