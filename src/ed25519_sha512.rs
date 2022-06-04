@@ -94,7 +94,7 @@ impl Ed25519Sha512 {
     // calculate the square root of xx assuming a^((q-1)/4) = 1 mod q
     let mut x = (&xx).pow(&((q + &3u8) / &8u8));
 
-    // if that that matches, calculate the square root of xx again 
+    // if that doesn't match, calculate the square root of xx again 
     // assuming a^((q-1)/4) = -1 mod q
     if &x.sq().n != &xx.n {
       let I = f.elem(&2u8).pow(&((q - &1u8) / &4u8));
