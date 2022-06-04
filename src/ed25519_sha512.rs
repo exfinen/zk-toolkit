@@ -110,7 +110,8 @@ impl Ed25519Sha512 {
     let bytes_le = n.to_bytes_le();
     assert!(bytes_le.len() <= 32);
 
-    // then write to 32-byte buffer w/ 0 padding
+    // then write to 32-byte buffer w/ 0 padding on higher index side
+    // e.g. 0xab in little-endian in 4 byte buffer is ab 00 00 00 
     let mut buf = [0u8; 32];
     buf[0..bytes_le.len()].copy_from_slice(&bytes_le);
     buf
