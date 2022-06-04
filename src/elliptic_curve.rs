@@ -14,14 +14,12 @@ pub trait AddOps {
     let mut pt_pow_n = pt.clone();
     let one = BigUint::one();
 
-    let mut nn = 1;
     while !n.is_zero() {
       if n.clone().bitand(&one).is_one() {
         res = self.add(&res, &pt_pow_n);
       }
       pt_pow_n = self.add(&pt_pow_n, &pt_pow_n);
       n.shr_assign(1usize);
-      nn += 1;
     }
     res
   }
