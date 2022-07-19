@@ -162,10 +162,10 @@ mod tests {
 
   #[test]
   fn sign_verify_inf_pub_key() {
-    let weier = WeierstrassEq::secp256k1();
+    let curve = WeierstrassEq::secp256k1();
     let ops = JacobianAddOps::new();
     let hasher = Sha256();
-    let mut ecdsa = Ecdsa::new(&weier, &ops, &hasher);
+    let mut ecdsa = Ecdsa::new(&curve, &ops, &hasher);
 
     let message = vec![1u8, 2, 3];
 
@@ -181,10 +181,10 @@ mod tests {
 
   #[test]
   fn sign_verify_sig_r_out_of_range() {
-    let weier = WeierstrassEq::secp256k1();
+    let curve = WeierstrassEq::secp256k1();
     let ops = JacobianAddOps::new();
     let hasher = Sha256();
-    let mut ecdsa = Ecdsa::new(&weier, &ops, &hasher);
+    let mut ecdsa = Ecdsa::new(&curve, &ops, &hasher);
 
     let message = vec![1u8, 2, 3];
 
@@ -192,12 +192,12 @@ mod tests {
     let priv_key = ecdsa.gen_random_number_order_n();
 
     // create public key from the private key used for signing for verifying
-    let pub_key = ops.scalar_mul(&weier.g(), &priv_key.n);
+    let pub_key = ops.scalar_mul(&curve.g(), &priv_key.n);
 
     let sig = ecdsa.sign(&priv_key, &message).unwrap();
 
     let sig_r_too_large = Signature {
-      r: sig.clone().s.f.elem(&weier.n()),
+      r: sig.clone().s.f.elem(&curve.n()),
       s: sig.clone().s,
     };
     let is_verified = ecdsa.verify(&sig_r_too_large, &pub_key, &message);
@@ -213,10 +213,10 @@ mod tests {
 
   #[test]
   fn sign_verify_sig_s_out_of_range() {
-    let weier = WeierstrassEq::secp256k1();
+    let curve = WeierstrassEq::secp256k1();
     let ops = JacobianAddOps::new();
     let hasher = Sha256();
-    let mut ecdsa = Ecdsa::new(&weier, &ops, &hasher);
+    let mut ecdsa = Ecdsa::new(&curve, &ops, &hasher);
 
     let message = vec![1u8, 2, 3];
 
@@ -224,13 +224,13 @@ mod tests {
     let priv_key = ecdsa.gen_random_number_order_n();
 
     // create public key from the private key used for signing for verifying
-    let pub_key = ops.scalar_mul(&weier.g(), &priv_key.n);
+    let pub_key = ops.scalar_mul(&curve.g(), &priv_key.n);
 
     let sig = ecdsa.sign(&priv_key, &message).unwrap();
 
     let sig_s_too_large = Signature {
       r: sig.clone().r,
-      s: sig.clone().s.f.elem(&weier.n()),
+      s: sig.clone().s.f.elem(&curve.n()),
     };
     let is_verified = ecdsa.verify(&sig_s_too_large, &pub_key, &message);
     assert_eq!(is_verified, false);
@@ -245,10 +245,10 @@ mod tests {
 
   #[test]
   fn sign_verify_all_good() {
-    let weier = WeierstrassEq::secp256k1();
+    let curve = WeierstrassEq::secp256k1();
     let ops = JacobianAddOps::new();
     let hasher = Sha256();
-    let mut ecdsa = Ecdsa::new(&weier, &ops, &hasher);
+    let mut ecdsa = Ecdsa::new(&curve, &ops, &hasher);
 
     let message = vec![1u8, 2, 3];
 
@@ -264,10 +264,10 @@ mod tests {
 
   #[test]
   fn sign_verify_bad_priv_key() {
-    let weier = WeierstrassEq::secp256k1();
+    let curve = WeierstrassEq::secp256k1();
     let ops = JacobianAddOps::new();
     let hasher = Sha256();
-    let mut ecdsa = Ecdsa::new(&weier, &ops, &hasher);
+    let mut ecdsa = Ecdsa::new(&curve, &ops, &hasher);
 
     let message = vec![1u8, 2, 3];
 
@@ -277,7 +277,7 @@ mod tests {
 
     // change private key and create public key from it
     let priv_key = ecdsa.gen_random_number_order_n();
-    let pub_key = ops.scalar_mul(&weier.g(), &priv_key.n);
+    let pub_key = ops.scalar_mul(&curve.g(), &priv_key.n);
 
     let is_verified = ecdsa.verify(&sig, &pub_key, &message);
     assert_eq!(is_verified, false);
@@ -285,10 +285,10 @@ mod tests {
 
   #[test]
   fn sign_verify_different_message() {
-    let weier = WeierstrassEq::secp256k1();
+    let curve = WeierstrassEq::secp256k1();
     let ops = JacobianAddOps::new();
     let hasher = Sha256();
-    let mut ecdsa = Ecdsa::new(&weier, &ops, &hasher);
+    let mut ecdsa = Ecdsa::new(&curve, &ops, &hasher);
 
     let message = vec![1u8, 2, 3];
 
@@ -297,7 +297,7 @@ mod tests {
     let sig = ecdsa.sign(&priv_key, &message).unwrap();
 
     // create public key from the private key used for signing for verifying
-    let pub_key = ops.scalar_mul(&weier.g(), &priv_key.n);
+    let pub_key = ops.scalar_mul(&curve.g(), &priv_key.n);
 
     // change message and verify
     let message = vec![1u8, 2, 3, 4];
