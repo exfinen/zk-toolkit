@@ -39,11 +39,17 @@ mod tests {
     let bp = BulletProofs::new(&curve, &ops);
 
     let n = 4;
-    let g = curve.g();
+    let base_point = curve.g();
     
-    for i in 0..n {
-      let r = bp.f.rand_elem();
-    }
+    let a = (0..n).map(|_| bp.f.rand_elem());
+    let b = (0..n).map(|_| bp.f.rand_elem());
+
+    let g = a.map(|a_i| ops.scalar_mul(&base_point, &a_i.n));
+    let h = b.map(|b_i| ops.scalar_mul(&base_point, &b_i.n));
+
+    // P = g^a h^b and c = <a,b>
+
+    let u = ops.scalar_mul(&base_point, &bp.f.rand_elem().n);
     bp.prove();
   }
 }
