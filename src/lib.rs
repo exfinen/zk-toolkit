@@ -12,3 +12,4 @@ pub mod weierstrass_add_ops;
 pub mod hasher;
 pub mod hmac;
 pub mod ed25519_sha512;
+pub mod bullet_proofs;

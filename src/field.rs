@@ -5,6 +5,7 @@ use num_traits::{Zero, One};
 use core::ops::Rem;
 use bitvec::prelude::*;
 use crate::to_biguint::ToBigUint;
+use random_number::RandomNumber;
 
 #[derive(Debug, Clone)]
 pub struct FieldElem {
@@ -279,6 +280,20 @@ impl Field {
 
   pub fn elem(&self, n: &impl ToBigUint) -> FieldElem {
     FieldElem::new(self, n)
+  }
+
+  // returns FieldElem in range [1, field_order-1]
+  pub fn rand_elem(&self) -> FieldElem {
+    let buf_size = (self.order.bits() as f64 / 8f64).ceil() as usize;
+    let mut buf = vec![0u8; buf_size];
+    loop {
+      let mut rand = RandomNumber::new();
+      rand.gen.fill_bytes(&mut buf);
+      let x = FieldElem::new(&self, &BigUint::from_bytes_be(&buf));
+      if x.n != BigUint::zero() { 
+        return x;
+      }
+    }
   }
 }
 
