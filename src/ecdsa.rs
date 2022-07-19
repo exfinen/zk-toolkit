@@ -139,10 +139,10 @@ mod tests {
   #[test]
   // TODO create separate tests for not-on-curve and pub_key-not-order-n cases
   fn sign_verify_bad_pub_key() {
-    let weier = WeierstrassEq::secp256k1();
+    let curve = WeierstrassEq::secp256k1();
     let ops = JacobianAddOps::new();
     let hasher = Sha256();
-    let mut ecdsa = Ecdsa::new(&weier, &ops, &hasher);
+    let mut ecdsa = Ecdsa::new(&curve, &ops, &hasher);
 
     let message = vec![1u8, 2, 3];
 
@@ -150,7 +150,7 @@ mod tests {
     let priv_key = ecdsa.gen_random_number_order_n();
     let sig = ecdsa.sign(&priv_key, &message).unwrap();
 
-    let good_pub_key = ops.scalar_mul(&weier.g(), &priv_key.n);
+    let good_pub_key = ops.scalar_mul(&curve.g(), &priv_key.n);
     let bad_pub_key = EcPoint {
       x: good_pub_key.x.clone(),
       y: good_pub_key.x.clone(),
