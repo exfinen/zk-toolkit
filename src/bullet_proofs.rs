@@ -1,10 +1,10 @@
 use crate::elliptic_curve::{EllipticCurve, AddOps};
-use crate::field::{Field, FieldElem};
+use crate::field::{Field};
 
 pub struct BulletProofs<'a> {
   pub curve: &'a dyn EllipticCurve,
   pub ops: &'a dyn AddOps,
-  pub f_n: Field,
+  pub f: Field,
 }
 
 impl<'a> BulletProofs<'a> {
@@ -12,8 +12,8 @@ impl<'a> BulletProofs<'a> {
     curve: &'a dyn EllipticCurve, 
     ops: &'a dyn AddOps, 
   ) -> Self {
-    let f_n = Field::new(&curve.n());
-    BulletProofs { curve, ops, f_n }
+    let f = Field::new(&curve.n());
+    BulletProofs { curve, ops, f }
   }
 
   pub fn vector_mul(&self) {
@@ -41,6 +41,9 @@ mod tests {
     let n = 4;
     let g = curve.g();
     
+    for i in 0..n {
+      let r = bp.f.rand_elem();
+    }
     bp.prove();
   }
 }

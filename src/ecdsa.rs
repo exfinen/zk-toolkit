@@ -10,7 +10,7 @@ pub struct Ecdsa<'a, const HASHER_OUT_SIZE: usize> {
   pub curve: &'a dyn EllipticCurve,
   pub ops: &'a dyn AddOps,
   pub hasher: &'a dyn Hasher<HASHER_OUT_SIZE>,
-  pub f_n: Field,
+  pub f: Field,
 }
 
 #[derive(Debug, Clone)]
@@ -25,8 +25,8 @@ impl<'a, const HASHER_OUT_SIZE: usize> Ecdsa<'a, HASHER_OUT_SIZE> {
     ops: &'a dyn AddOps, 
     hasher: &'a dyn Hasher<HASHER_OUT_SIZE>,
   ) -> Self {
-    let f_n = Field::new(&curve.n());
-    Ecdsa { curve, ops, hasher, f_n }
+    let f = Field::new(&curve.n());
+    Ecdsa { curve, ops, hasher, f }
   }
 
   pub fn gen_pub_key(&self, priv_key: &FieldElem) -> EcPoint {
@@ -43,7 +43,7 @@ impl<'a, const HASHER_OUT_SIZE: usize> Ecdsa<'a, HASHER_OUT_SIZE> {
 
     loop {
       // generate temporary non-zero random number k (mod n) 
-      let k = self.f_n.rand_elem();  // mod n
+      let k = self.f.rand_elem();  // mod n
       
       // e = HASH(message)
       // z = e's uppermost Ln bits (Ln = order of n = 256 bits)
@@ -101,7 +101,7 @@ impl<'a, const HASHER_OUT_SIZE: usize> Ecdsa<'a, HASHER_OUT_SIZE> {
       // compute e = HASH(m)
       // z = e's uppermost Ln bits (Ln = order of n = 256 bits)
       let z = BigUint::from_bytes_be(&self.hasher.get_digest(message));
-      let z_fe = FieldElem::new(&self.f_n, &z);  // mod n
+      let z_fe = FieldElem::new(&self.f, &z);  // mod n
       let w = sig.s.inv();  // mod n
       let u1 = z_fe * &w;  // mod n
       let u2 = &sig.r * &w;  // mod n
@@ -132,7 +132,7 @@ mod tests {
     let message = vec![1u8, 2, 3];
 
     // sign with newly generated private key
-    let priv_key = ecdsa.f_n.rand_elem();
+    let priv_key = ecdsa.f.rand_elem();
     let sig = ecdsa.sign(&priv_key, &message).unwrap();
 
     let good_pub_key = ops.scalar_mul(&curve.g(), &priv_key.n);
@@ -155,7 +155,7 @@ mod tests {
     let message = vec![1u8, 2, 3];
 
     // sign with newly generated private key
-    let priv_key = ecdsa.f_n.rand_elem();
+    let priv_key = ecdsa.f.rand_elem();
     let sig = ecdsa.sign(&priv_key, &message).unwrap();
 
     // use inf public key for verifying
@@ -174,7 +174,7 @@ mod tests {
     let message = vec![1u8, 2, 3];
 
     // sign with newly generated private key
-    let priv_key = ecdsa.f_n.rand_elem();
+    let priv_key = ecdsa.f.rand_elem();
 
     // create public key from the private key used for signing for verifying
     let pub_key = ops.scalar_mul(&curve.g(), &priv_key.n);
@@ -206,7 +206,7 @@ mod tests {
     let message = vec![1u8, 2, 3];
 
     // sign with newly generated private key
-    let priv_key = ecdsa.f_n.rand_elem();
+    let priv_key = ecdsa.f.rand_elem();
 
     // create public key from the private key used for signing for verifying
     let pub_key = ops.scalar_mul(&curve.g(), &priv_key.n);
@@ -238,7 +238,7 @@ mod tests {
     let message = vec![1u8, 2, 3];
 
     // sign with newly generated private key
-    let priv_key = ecdsa.f_n.rand_elem();
+    let priv_key = ecdsa.f.rand_elem();
     let sig = ecdsa.sign(&priv_key, &message).unwrap();
 
     // create public key from the private key used for signing for verifying
@@ -257,11 +257,11 @@ mod tests {
     let message = vec![1u8, 2, 3];
 
     // sign with newly generated private key
-    let priv_key = ecdsa.f_n.rand_elem();
+    let priv_key = ecdsa.f.rand_elem();
     let sig = ecdsa.sign(&priv_key, &message).unwrap();
 
     // change private key and create public key from it
-    let priv_key = ecdsa.f_n.rand_elem();
+    let priv_key = ecdsa.f.rand_elem();
     let pub_key = ops.scalar_mul(&curve.g(), &priv_key.n);
 
     let is_verified = ecdsa.verify(&sig, &pub_key, &message);
@@ -278,7 +278,7 @@ mod tests {
     let message = vec![1u8, 2, 3];
 
     // sign with newly generated private key
-    let priv_key = ecdsa.f_n.rand_elem();
+    let priv_key = ecdsa.f.rand_elem();
     let sig = ecdsa.sign(&priv_key, &message).unwrap();
 
     // create public key from the private key used for signing for verifying
