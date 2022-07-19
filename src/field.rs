@@ -4,8 +4,9 @@ use num_bigint::{BigUint, BigInt, ToBigInt};
 use num_traits::{Zero, One};
 use core::ops::Rem;
 use bitvec::prelude::*;
+use rand::RngCore;
 use crate::to_biguint::ToBigUint;
-use random_number::RandomNumber;
+use crate::random_number::RandomNumber;
 
 #[derive(Debug, Clone)]
 pub struct FieldElem {

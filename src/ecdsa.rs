@@ -1,10 +1,8 @@
 use crate::elliptic_curve::{EllipticCurve, AddOps};
 use crate::ec_point::EcPoint;
 use crate::field::{Field, FieldElem};
-use crate::random_number::RandomNumber;
 use crate::hasher::Hasher;
 use num_bigint::{BigUint};
-use rand::RngCore;
 use num_traits::identities::Zero;
 use crate::sha256::Sha256;
 
@@ -45,7 +43,7 @@ impl<'a, const HASHER_OUT_SIZE: usize> Ecdsa<'a, HASHER_OUT_SIZE> {
 
     loop {
       // generate temporary non-zero random number k (mod n) 
-      let k = self.gen_random_number_order_n();  // mod n
+      let k = self.f_n.rand_elem();  // mod n
       
       // e = HASH(message)
       // z = e's uppermost Ln bits (Ln = order of n = 256 bits)
