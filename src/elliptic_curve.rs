@@ -8,6 +8,20 @@ pub trait AddOps {
 
   fn add(&self, p1: &EcPoint, p2: &EcPoint) -> EcPoint;
 
+  fn vector_add(&self, ps: &[EcPoint]) -> EcPoint {
+    if ps.len() == 0 {
+      panic!("cannot get the sum of empty slice"); 
+    } else if ps.len() == 1 {
+      ps[0].clone()
+    } else {
+      let mut sum = ps[0].clone();
+      for p in &ps[1..] {
+        self.add(&sum, p);
+      }
+      sum
+    }
+  }
+
   fn scalar_mul(&self, pt: &EcPoint, multiplier: &BigUint) -> EcPoint {
     let mut n = multiplier.clone();
     let mut res = self.get_zero_point();
