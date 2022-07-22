@@ -13,3 +13,4 @@ pub mod hasher;
 pub mod hmac;
 pub mod ed25519_sha512;
 pub mod bullet_proofs;
+pub mod vector_ops;
