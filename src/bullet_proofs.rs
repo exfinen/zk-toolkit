@@ -26,7 +26,7 @@ impl<'a, const N: usize> BulletProofs<'a, N> {
   }
 
   fn ec_point(&self, ec_point: &'a EcPoint) -> EcPoint1<'a> {
-    EcPoint1((self.ops, ec_point))
+    EcPoint1((self.ops, ec_point.clone()))
   }
 
   fn field_elems(&self, field_elems: &'a [FieldElem]) -> FieldElems {
@@ -91,11 +91,12 @@ impl<'a, const N: usize> BulletProofs<'a, N> {
       // prover sends a,b to verifier
 
       // verifier computers c = a*b
+      // when n = 1, a and b has only 1 element
       let c = &a[0] * &b[0];
 
       // verifier accepts if P = g^a h^b u^c holds
-      let ga = self.ec_point(&g.0.1[0]) * &a[0];
-      let hb = self.ec_point(&h.0.1[0]) * &b[0];
+      let ga = g.at(0) * &a[0];  
+      let hb = h.at(0) * &b[0];
       let uc = self.ec_point(&u) * &c;
 
       let rhs = self.ops.vector_add(&vec![ga , hb, uc]);
@@ -104,15 +105,15 @@ impl<'a, const N: usize> BulletProofs<'a, N> {
     } else {
       // prover computes L,R whose length is n/2
       let nn = n / 2;
-      let cL = self.field_elems(&a[..nn]) * &b[nn..];
-      let cR = self.field_elems(&a[nn..]) * &b[..nn];
+      let cL = a.to(..nn) * &b[nn..];
+      let cR = a.from(nn..) * &b[..nn];
       let L = self.ops.vector_add(&vec![
-        self.ec_points(&g.0.1[nn..]) * &a[..nn],
+        g.from(nn..) * &a[..nn],
         self.ec_points(&h.0.1[..nn]) * &b[nn..],
         self.ops.scalar_mul(&u, &cL.n),
       ]);
       let R = self.ops.vector_add(&vec![
-        self.ec_points(&g.0.1[..nn]) * &a[nn..],
+        g.to(..nn) * &a[nn..],
         self.ec_points(&h.0.1[nn..]) * &b[..nn],
         self.ec_point(&u) * &cR,
       ]);
@@ -123,8 +124,8 @@ impl<'a, const N: usize> BulletProofs<'a, N> {
       let x = self.f.rand_elem();
 
       // both prover and verifier compute gg,hh,PP
-      let gg = (self.ec_points(&g.0.1[..nn]) * x.inv()) * (self.ec_points(&g.0.1[nn..]) * x.clone());
-      let hh = (self.ec_points(&h.0.1[..nn]) * x.clone()) * (self.ec_points(&h.0.1[nn..]) * x.inv());
+      let gg = (g.to(..nn) * (&x).inv()) * (g.from(nn..) * &x);
+      let hh = (h.to(..nn) * &x) * (h.from(nn..) * (&x).inv());
       
       let pp = self.ops.vector_add(&vec![
         self.ec_point(&L) * &x.sq(),
@@ -133,13 +134,11 @@ impl<'a, const N: usize> BulletProofs<'a, N> {
       ]);
 
       // prover computes aa, bb
-      let aa = (self.field_elems(&a[..nn]) * &x) + &(self.field_elems(&a[nn..]) * &x.inv());
-      let bb = (self.field_elems(&b[..nn]) * &x.inv()) + &(self.field_elems(&b[nn..]) * &x);
+      let aa = (a.to(..nn) * &x) + &(a.from(nn..) * &x.inv());
+      let bb = (b.to(..nn) * &x.inv()) + &(b.from(nn..) * &x);
       self.perform_improved_inner_product_argument(nn, gg, hh, u, pp, aa, bb)
     }
-
   }
-
 }
 
 #[cfg(test)]
