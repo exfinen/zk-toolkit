@@ -105,15 +105,15 @@ impl<'a, const N: usize> BulletProofs<'a, N> {
     } else {
       // prover computes L,R whose length is n/2
       let nn = n / 2;
-      let cL = a.to(..nn) * &b[nn..];
-      let cR = a.from(nn..) * &b[..nn];
+      let cL = a.slice(&(..nn)) * &b[nn..];
+      let cR = a.slice(&(nn..)) * &b[..nn];
       let L = self.ops.vector_add(&vec![
-        g.from(nn..) * &a[..nn],
+        g.slice(&(nn..)) * &a[..nn],
         self.ec_points(&h.0.1[..nn]) * &b[nn..],
         self.ops.scalar_mul(&u, &cL.n),
       ]);
       let R = self.ops.vector_add(&vec![
-        g.to(..nn) * &a[nn..],
+        g.slice(&(..nn)) * &a[nn..],
         self.ec_points(&h.0.1[nn..]) * &b[..nn],
         self.ec_point(&u) * &cR,
       ]);
@@ -124,8 +124,10 @@ impl<'a, const N: usize> BulletProofs<'a, N> {
       let x = self.f.rand_elem();
 
       // both prover and verifier compute gg,hh,PP
-      let gg = (g.to(..nn) * (&x).inv()) * (g.from(nn..) * &x);
-      let hh = (h.to(..nn) * &x) * (h.from(nn..) * (&x).inv());
+      let to_nn = ..nn;
+      let from_nn = nn..;
+      let gg = (g.slice(&to_nn) * (&x).inv()) * (g.slice(&from_nn) * &x);
+      let hh = (h.slice(&to_nn) * &x) * (h.slice(&from_nn) * (&x).inv());
       
       let pp = self.ops.vector_add(&vec![
         self.ec_point(&L) * &x.sq(),
@@ -134,8 +136,8 @@ impl<'a, const N: usize> BulletProofs<'a, N> {
       ]);
 
       // prover computes aa, bb
-      let aa = (a.to(..nn) * &x) + &(a.from(nn..) * &x.inv());
-      let bb = (b.to(..nn) * &x.inv()) + &(b.from(nn..) * &x);
+      let aa = (a.slice(&(..nn)) * &x) + &(a.slice(&(nn..)) * &x.inv());
+      let bb = (b.slice(&(..nn)) * &x.inv()) + &(b.slice(&(nn..)) * &x);
       self.perform_improved_inner_product_argument(nn, gg, hh, u, pp, aa, bb)
     }
   }

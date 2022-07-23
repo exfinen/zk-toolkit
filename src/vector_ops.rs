@@ -4,39 +4,41 @@ use crate::ec_point::EcPoint;
 use std::ops;
 use std::ops::{Range, RangeFrom, RangeTo, Deref};
 
-struct Helper();
+pub trait GenericRange {
+  fn start(&self) -> usize;
+  fn end(&self) -> Option<usize>;
+}
 
-impl<'a> Helper {
-  pub fn ec_points_slice(ec_points: &EcPoints<'a>, range: Range<usize>) -> EcPoints<'a> {
-    let (ops, xs) = &ec_points.0;
+impl GenericRange for Range<usize> {
+  fn start(&self) -> usize { self.start }
+  fn end(&self) -> Option<usize> { Some(self.end) }
+}
 
-    let mut nxs: Vec<EcPoint> = vec![];
-    for i in range {
-      nxs.push(xs[i].clone());
-    }
-    EcPoints((*ops, nxs))
-  }
+impl GenericRange for RangeFrom<usize> {
+  fn start(&self) -> usize { self.start }
+  fn end(&self) -> Option<usize> { None }
+}
 
-  pub fn field_elems_slice(field_elems: &FieldElems, range: Range<usize>) -> FieldElems {
-    let mut nxs: Vec<FieldElem> = vec![];
-    for i in range {
-      nxs.push(field_elems[i].clone());
-    }
-    FieldElems(nxs)
-  }
+impl GenericRange for RangeTo<usize> {
+  fn start(&self) -> usize { 0 }
+  fn end(&self) -> Option<usize> { Some(self.end) }
 }
 
 pub struct FieldElems(pub Vec<FieldElem>);
 
 impl<'a> FieldElems {
-  pub fn from(&self, range_from: RangeFrom<usize>) -> FieldElems {
-    let range = Range { start: range_from.start, end: self.0.len() };
-    Helper::field_elems_slice(self, range)
-  }
+  pub fn slice(&self, range: &'a dyn GenericRange) -> FieldElems {
+    let end = match range.end() {
+      Some(x) => x,
+      None => self.0.len(),
+    };
+    let range = Range { start: range.start(), end };
 
-  pub fn to(&self, range_to: RangeTo<usize>) -> FieldElems {
-    let range = Range { start: 0, end: range_to.end };
-    Helper::field_elems_slice(self, range)
+    let mut nxs: Vec<FieldElem> = vec![];
+    for i in range {
+      nxs.push(self.0[i].clone());
+    }
+    FieldElems(nxs)
   }
 }
 
@@ -100,14 +102,20 @@ impl<'a> ops::Mul<&'a FieldElem> for EcPoint1<'a> {
 pub struct EcPoints<'a>(pub (&'a dyn AddOps, Vec<EcPoint>));
 
 impl<'a> EcPoints<'a> {
-  pub fn from(&self, range_from: RangeFrom<usize>) -> EcPoints<'a> {
-    let range = Range { start: range_from.start, end: self.0.1.len() };
-    Helper::ec_points_slice(self, range)
-  }
+  pub fn slice(&self, range: &'a dyn GenericRange) -> EcPoints<'a> {
+    let end = match range.end() {
+      Some(x) => x,
+      None => self.0.1.len(),
+    };
+    let range = Range { start: range.start(), end };
 
-  pub fn to(&self, range_to: RangeTo<usize>) -> EcPoints<'a> {
-    let range = Range { start: 0, end: range_to.end };
-    Helper::ec_points_slice(self, range)
+    let (ops, xs) = &self.0;
+
+    let mut nxs: Vec<EcPoint> = vec![];
+    for i in range {
+      nxs.push(xs[i].clone());
+    }
+    EcPoints((*ops, nxs))
   }
 
   pub fn at(&self, i: usize) -> EcPoint1<'a> {
