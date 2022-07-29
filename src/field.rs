@@ -279,8 +279,22 @@ impl Field {
     }
   } 
 
-  pub fn elem(&self, n: &impl ToBigUint) -> FieldElem {
-    FieldElem::new(self, n)
+  pub fn elem(&self, x: &impl ToBigUint) -> FieldElem {
+    FieldElem::new(self, x)
+  }
+
+  pub fn repeated_elem(&self, x: &impl ToBigUint, count: usize) -> Vec<FieldElem> {
+    (0..count).map(|_| FieldElem::new(self, x)).collect()
+  }
+
+  pub fn first_n_powers_of_x(&self, x: &impl ToBigUint, n: usize) -> Vec<FieldElem> {
+    let vec: Vec<FieldElem> = vec![];
+    let mut curr = self.elem(&1u8);
+    for i in (0..n) {
+      vec.push(curr);
+      curr = curr * x;
+    }
+    vec
   }
 
   // returns FieldElem in range [1, field_order-1]
@@ -296,6 +310,11 @@ impl Field {
       }
     }
   }
+
+  pub fn rand_elems(&self, n: usize) -> Vec<FieldElem> {
+    (0..n).map(|_| self.rand_elem()).collect()
+  }
+
 }
 
 impl PartialEq for Field {

@@ -8,6 +8,8 @@ pub trait AddOps {
 
   fn add(&self, p1: &EcPoint, p2: &EcPoint) -> EcPoint;
 
+  fn inv(&self, p: &EcPoint) -> EcPoint;
+
   fn vector_add(&self, ps: &[EcPoint]) -> EcPoint {
     if ps.len() == 0 {
       panic!("cannot get the sum of empty slice"); 

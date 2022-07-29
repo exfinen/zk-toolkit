@@ -50,6 +50,10 @@ impl AddOps for Ed25519Sha512 {
     let y = (&y1y2 + &x1x2) / &(self.f.elem(&1u8) - &(&self.d * &x1x2y1y2));
     EcPoint::new(&x, &y)
   }
+
+  fn inv(&self, p: &EcPoint) -> EcPoint {
+    panic!("not implemented");
+  }
 }
 
 

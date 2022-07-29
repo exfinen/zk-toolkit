@@ -19,3 +19,4 @@ impl_to_biguint_for!(u16);
 impl_to_biguint_for!(u32);
 impl_to_biguint_for!(u64);
 impl_to_biguint_for!(u128);
+impl_to_biguint_for!(usize);

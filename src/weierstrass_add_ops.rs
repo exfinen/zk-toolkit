@@ -119,6 +119,11 @@ impl AddOps for AffineAddOps {
       EcPoint::new(&p3x, &-p3y)
     }
   }
+
+  fn inv(&self, p: &EcPoint) -> EcPoint {
+    EcPoint::new(&p.x, &p.y.inv())
+  }
+
 }
 
 #[derive(Debug, Clone)]
@@ -230,6 +235,11 @@ impl AddOps for JacobianAddOps {
       jp3.to_ec_point().unwrap()
     }
   }
+
+  fn inv(&self, p: &EcPoint) -> EcPoint {
+    EcPoint::new(&p.x, &p.y.inv())
+  }
+
 }
 
 
