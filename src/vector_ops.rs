@@ -145,6 +145,16 @@ impl<'a> ops::Add<&EcPoint1<'a>> for EcPoint1<'a> {
   }
 }
 
+// TODO almost the same as Add<&EcPoint1<'a>> for EcPoint1<'a>
+impl<'a> ops::Add<&EcPoint> for EcPoint1<'a> {
+  type Output = EcPoint;
+
+  fn add(self, rhs: &EcPoint) -> Self::Output {
+    let (ops, lhs) = self.0;
+    ops.add(&lhs, &rhs)
+  }
+}
+
 pub struct EcPoints<'a>(pub (&'a dyn AddOps, Vec<EcPoint>));
 
 impl<'a> EcPoints<'a> {
@@ -167,6 +177,15 @@ impl<'a> EcPoints<'a> {
   pub fn at(&self, i: usize) -> EcPoint1<'a> {
     let (ops, xs) = &self.0;
     EcPoint1((*ops, xs[i].clone()))
+  }
+
+  pub fn sum(&self) -> EcPoint1<'a> {
+    let (ops, xs) = &self.0;
+    assert!(xs.len() > 0);
+    let sum: &EcPoint = xs.iter().reduce(|x: &EcPoint, y: &EcPoint| {
+      &ops.add(x, y)
+    }).unwrap();
+    EcPoint1((*ops, sum.clone()))
   }
 }
 

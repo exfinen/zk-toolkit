@@ -225,14 +225,15 @@ impl<'a, const N: usize> BulletProofs<'a, N> {
     let r = (y_to_n * &((aR - &z_n) + &(sR * &x))) + &(two_to_n * &z.sq());  // (59)
     let t_hat: FieldElem = l * &r[..];  // (60) should find a better way than switching by multiplicand type
     let tx = (t2 * &x.sq()) + &(t1 * &x) + &(z.sq() * &gamma);  // (61)
-    let mu = alpha + &(rho * &x);  // (62)
+    let mu: FieldElem = alpha + &(rho * &x);  // (62)
 
     // prover sends tx,mu,t_hat,l,r to verifier
 
-    let hp = (0..self.n()).map(|i| {  // (64)
+    let hp: Vec<EcPoint> = (0..self.n()).map(|i| {  // (64)
       let exp = y.pow(&self.f.elem(&i).inv());
       hh.at(i) * &exp 
-    });
+    }).collect();
+    let hp = self.ec_points(&hp);
 
     // (65)
     let lhs_65: EcPoint = self.ec_point(&(g * &t_hat)) + &self.ec_point(&(h * &tx));
@@ -253,13 +254,25 @@ impl<'a, const N: usize> BulletProofs<'a, N> {
     }
 
     // (66)
-    let lhs_66: EcPoint = self.ops.vector_add(&[
+    let hp_exp = (y_to_n * &z) + &(two_to_n * &z.sq());
+    let lhs_66_P: EcPoint = self.ops.vector_add(&[  // (66)
       A,
       S * &x,
-      
+      (gg * &z.inv()).sum().0.1,  // TODO add function to extract EcPoint
+      hp * &hp_exp[..],
     ]);
+    let rhs_66_term1: EcPoint1 = self.ec_point(&(h * &mu)); 
+    let rhs_66_term2: EcPoint1 = self.ec_point(&(gg * &l[..]));
+    let rhs_66_term3: EcPoint1 = self.ec_point(&(hp * &r[..]));
+    let rhs_66: EcPoint = rhs_66_term1 + &(rhs_66_term2 + &rhs_66_term3);   
+    if lhs_66_P != rhs_66 {  // (67)
+      return false;
+    }
 
-    false
+    let rhs_68 = (l * &r).sum();
+
+    // (68)
+    t_hat == rhs_68
   }
 
 }
