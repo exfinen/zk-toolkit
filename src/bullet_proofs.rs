@@ -20,13 +20,13 @@ impl<'a, const N: usize> BulletProofs<'a, N> {
     BulletProofs { curve, ops, f }
   }
 
-  fn ec_points(&self, ec_points: &'a [EcPoint]) -> EcPoints<'a> {
+  pub fn ec_points(&self, ec_points: &'a [EcPoint]) -> EcPoints<'a> {
     assert!(ec_points.len() > 0);
     let xs = ec_points.iter().map(|x| EcPoint1((self.ops, x.clone()))).collect::<_>();
     EcPoints((self.ops, xs))
   }
 
-  fn ec_point(&self, ec_point: &'a EcPoint) -> EcPoint1<'a> {
+  pub fn ec_point(&self, ec_point: &'a EcPoint) -> EcPoint1<'a> {
     EcPoint1((self.ops, ec_point.clone()))
   }
 
