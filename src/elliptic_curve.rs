@@ -10,7 +10,7 @@ pub trait AddOps {
 
   fn inv(&self, p: &EcPoint) -> EcPoint;
 
-  fn vector_add(&self, ps: &[EcPoint]) -> EcPoint {
+  fn vector_add(&self, ps: &[&EcPoint]) -> EcPoint {
     if ps.len() == 0 {
       panic!("cannot get the sum of empty slice"); 
     } else if ps.len() == 1 {

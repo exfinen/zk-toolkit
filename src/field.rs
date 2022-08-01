@@ -7,12 +7,25 @@ use bitvec::prelude::*;
 use rand::RngCore;
 use crate::to_biguint::ToBigUint;
 use crate::random_number::RandomNumber;
+use std::ops::{Range, Index, RangeFrom, RangeTo, Deref};
+
+///////////////
+// FieldElem
 
 #[derive(Debug, Clone)]
 pub struct FieldElem {
   pub f: Field,
   pub n: BigUint,
 }
+
+impl Deref for FieldElem {
+  type Target = BigUint;
+
+  fn deref(&self) -> &Self::Target {
+    &self.n
+  }
+}
+
 
 impl PartialEq for FieldElem {
   fn eq(&self, other: &Self) -> bool {
@@ -283,18 +296,19 @@ impl Field {
     FieldElem::new(self, x)
   }
 
-  pub fn repeated_elem(&self, x: &impl ToBigUint, count: usize) -> Vec<FieldElem> {
-    (0..count).map(|_| FieldElem::new(self, x)).collect()
+  pub fn repeated_elem(&self, x: &impl ToBigUint, count: usize) -> FieldElems {
+    let xs = (0..count).map(|_| FieldElem::new(self, x)).collect::<Vec<FieldElem>>();
+    FieldElems(xs)
   }
 
-  pub fn first_n_powers_of_x(&self, x: &impl ToBigUint, n: usize) -> Vec<FieldElem> {
-    let vec: Vec<FieldElem> = vec![];
+  pub fn first_n_powers_of_x(&self, x: &impl ToBigUint, n: usize) -> FieldElems {
+    let mut vec: Vec<FieldElem> = vec![];
     let mut curr = self.elem(&1u8);
-    for i in (0..n) {
-      vec.push(curr);
+    for _ in 0..n {
+      vec.push(curr.clone());
       curr = curr * x;
     }
-    vec
+    FieldElems(vec)
   }
 
   // returns FieldElem in range [1, field_order-1]
@@ -311,8 +325,9 @@ impl Field {
     }
   }
 
-  pub fn rand_elems(&self, n: usize) -> Vec<FieldElem> {
-    (0..n).map(|_| self.rand_elem()).collect()
+  pub fn rand_elems(&self, n: usize) -> FieldElems {
+    let xs = (0..n).map(|_| self.rand_elem()).collect::<Vec<FieldElem>>();
+    FieldElems(xs)
   }
 
 }
@@ -324,6 +339,124 @@ impl PartialEq for Field {
 }
 
 impl Eq for Field {}
+
+/////////////////
+// FieldElems
+
+pub struct FieldElems(pub Vec<FieldElem>);
+
+impl<'a> Index<usize> for FieldElems {
+  type Output = FieldElem;
+
+  fn index(&self, index: usize) -> &Self::Output {
+    let x = &self.0[index];
+    x
+  }
+}
+
+impl<'a> FieldElems {
+  pub fn new(xs: &'a [FieldElem]) -> Self {
+    FieldElems(xs.to_vec())
+  }
+
+  pub fn sum(&self) -> FieldElem {
+    assert!(self.0.len() > 0);
+    let xs = &self.0;
+    xs.iter().fold(xs[0].f.elem(&0u8), |acc, x| {
+      acc + x
+    })
+  }
+
+  pub fn from(&self, range: RangeFrom<usize>) -> FieldElems {
+    let xs = &self.0[range.start..self.0.len()];
+    FieldElems(xs.to_vec())
+  }
+
+  pub fn to(&self, range: RangeTo<usize>) -> FieldElems {
+    let xs = &self.0[0..range.end];
+    FieldElems(xs.to_vec())
+  }
+}
+
+impl PartialEq for FieldElems {
+  fn eq(&self, other: &Self) -> bool {
+    if self.len() != other.len() {
+      false
+    } else {
+      self.iter().zip(other.iter()).fold(true, |acc, (l, r)| {
+        acc && l.f == r.f && l.n == r.n
+      })
+    }
+  }
+}
+
+impl Eq for FieldElems {}
+
+impl Deref for FieldElems {
+  type Target = [FieldElem];
+
+  fn deref(&self) -> &Self::Target {
+    &self.0[..]
+  }
+}
+
+impl<'a> ops::Add<&'a[FieldElem]> for &FieldElems {
+  type Output = FieldElems;
+
+  fn add(self, rhs: &'a[FieldElem]) -> Self::Output {
+    assert!(self.len() > 0 && self.len() == rhs.len());
+
+    let xs: Vec<FieldElem> = self.iter().zip(rhs.iter()).map(|(a, b)| {
+      a + b 
+    }).collect();
+    FieldElems(xs)
+  }
+}
+
+impl<'a> ops::Sub<&FieldElems> for &FieldElems {
+  type Output = FieldElems;
+
+  fn sub(self, rhs: &FieldElems) -> Self::Output {
+    assert!(self.len() > 0 && self.len() == rhs.len());
+
+    let xs: Vec<FieldElem> = self.iter().zip(rhs.iter()).map(|(l, r)| {
+      l - r 
+    }).collect();
+    FieldElems(xs)
+  }
+}
+
+// returns Hadamard product
+impl<'a> ops::Mul<&FieldElems> for &FieldElems {
+  type Output = FieldElems;
+
+  fn mul(self, rhs: &FieldElems) -> Self::Output {
+    assert!(self.len() > 0 && self.len() == rhs.len());
+
+    let xs = self.iter().zip(rhs.iter()).map(|(l, r)| {
+      l * r
+    }).collect();
+    FieldElems(xs)
+  }
+}
+
+// multiply rhs (scalar) to each element
+impl<'a> ops::Mul<&FieldElem> for &FieldElems {
+  type Output = FieldElems;
+
+  fn mul(self, rhs: &FieldElem) -> Self::Output {
+    assert!(self.len() > 0);
+
+    let xs: Vec<FieldElem> = self.iter().map(|fe| {
+      fe * rhs  
+    }).collect();
+
+    FieldElems(xs)
+  }
+}
+
+/////////////
+// tests
 
 #[cfg(test)]
 mod tests {
