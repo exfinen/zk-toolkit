@@ -1,5 +1,6 @@
-use num_bigint::BigUint;
 use crate::ec_point::EcPoint;
+use crate::field::Field;
+use num_bigint::BigUint;
 use num_traits::identities::{Zero, One};
 use std::ops::{BitAnd, ShrAssign};
 
@@ -45,4 +46,5 @@ pub trait EllipticCurve {
   fn g(&self) -> EcPoint;
   fn n(&self) -> BigUint;
   fn is_on_curve(&self, pt: &EcPoint) -> bool;
+  fn f(&self) -> &Field;
 }

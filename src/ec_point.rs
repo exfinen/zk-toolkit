@@ -1,4 +1,5 @@
 use crate::field::{Field, FieldElem};
+use crate::vector_ops::EcPoint1;
 
 #[derive(Debug, Clone)]
 pub struct EcPoint {
@@ -20,6 +21,12 @@ impl PartialEq for EcPoint {
 }
 
 impl Eq for EcPoint {}
+
+impl<'a> From<EcPoint1<'a>> for EcPoint {
+  fn from(x: EcPoint1<'a>) -> EcPoint {
+    x.0.1  
+  }
+}
 
 impl EcPoint {
   pub fn inf() -> Self {

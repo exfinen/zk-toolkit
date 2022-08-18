@@ -56,7 +56,6 @@ impl AddOps for Ed25519Sha512 {
   }
 }
 
-
 impl Ed25519Sha512 {
   pub fn new() -> Self {
     let H = Sha512();

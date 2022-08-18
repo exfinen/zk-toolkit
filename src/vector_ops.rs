@@ -98,6 +98,7 @@ impl<'a> EcPoints<'a> {
     let x: EcPoint = tail.iter().fold(head, |acc, pt| ops.add(&acc, pt));
     EcPoint1((ops, x))
   }
+
 }
 
 // returns Hadamard product
@@ -173,7 +174,7 @@ impl<'a> ops::Sub<&EcPoints<'a>> for &EcPoints<'a> {
   type Output = EcPoints<'a>;
 
   fn sub(self, rhs: &EcPoints<'a>) -> Self::Output {
-    assert!(self.len() > 0 && self.len() == self.len());
+    assert!(self.len() > 0 && self.len() == rhs.len());
     let (ops, lhs) = &self.0;
 
     let xs = lhs.iter().zip(rhs.iter()).map(|(g_i, h_i)| {

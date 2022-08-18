@@ -26,7 +26,6 @@ impl Deref for FieldElem {
   }
 }
 
-
 impl PartialEq for FieldElem {
   fn eq(&self, other: &Self) -> bool {
     self.f == other.f && self.n == other.n
@@ -187,6 +186,34 @@ impl FieldElem {
     FieldElem { f: self.f.clone(), n }
   }
 
+  pub fn cube(&self) -> FieldElem {
+    let mut n = self.n.clone();
+    n *= &self.n;
+    n %= &(*self.f.order);
+    n *= &self.n;
+    n %= &(*self.f.order);
+    FieldElem { f: self.f.clone(), n }
+  }
+
+  pub fn pow_seq(&self, n: usize) -> FieldElems {
+    let mut xs = vec![];
+    let mut x = self.f.elem(&1u8);
+
+    for _ in 0..n {
+      xs.push(x.clone());
+      x = x * &self.n;
+    }
+    return FieldElems::new(&xs);
+  }
+
+  pub fn repeat(&self, n: usize) -> FieldElems {
+    let mut xs = vec![];
+    for _ in 0..n {
+      xs.push(self.clone());
+    }
+    return FieldElems::new(&xs);
+  }
+
   // based on extended Euclidean algorithm
   pub fn safe_inv(&self) -> Result<FieldElem, String> {
     if self.n == BigUint::zero() {
@@ -312,21 +339,21 @@ impl Field {
   }
 
   // returns FieldElem in range [1, field_order-1]
-  pub fn rand_elem(&self) -> FieldElem {
+  pub fn rand_elem(&self, exclude_zero: bool) -> FieldElem {
     let buf_size = (self.order.bits() as f64 / 8f64).ceil() as usize;
     let mut buf = vec![0u8; buf_size];
     loop {
       let mut rand = RandomNumber::new();
       rand.gen.fill_bytes(&mut buf);
       let x = FieldElem::new(&self, &BigUint::from_bytes_be(&buf));
-      if x.n != BigUint::zero() { 
+      if !exclude_zero || x.n != BigUint::zero() { 
         return x;
       }
     }
   }
 
-  pub fn rand_elems(&self, n: usize) -> FieldElems {
-    let xs = (0..n).map(|_| self.rand_elem()).collect::<Vec<FieldElem>>();
+  pub fn rand_elems(&self, n: usize, exclude_zero: bool) -> FieldElems {
+    let xs = (0..n).map(|_| self.rand_elem(exclude_zero)).collect::<Vec<FieldElem>>();
     FieldElems(xs)
   }
 
@@ -461,6 +488,7 @@ impl<'a> ops::Mul<&FieldElem> for &FieldElems {
 #[cfg(test)]
 mod tests {
   use super::*;
+  use num_traits::ToPrimitive;
 
   #[test]
   fn new_below_order() {
@@ -777,6 +805,61 @@ mod tests {
 
     let neg_a = a.clone() + &a.negate();
     assert_eq!(neg_a.n, BigUint::from(0u32));
+  }
+
+  #[test]
+  fn cube() {
+    {
+      // when value is less than field order
+      let f = Field::new(&100u32);
+      let a = FieldElem::new(&f, &3u32);
+      let b = a.cube();
+      assert_eq!(b.n.to_u8().unwrap(), 27);
+    }
+    {
+      // when value is larger than field order
+      let f = Field::new(&11u32);
+      let a = FieldElem::new(&f, &3u32);
+      let b = a.cube();
+      assert_eq!(b.n.to_u8().unwrap(), 5);
+    }
+  }
+
+  #[test]
+  fn pow_seq() {
+    {
+      // when value is less than field order
+      let f = Field::new(&100u32);
+      let a = FieldElem::new(&f, &3u32);
+      let xs = a.pow_seq(4);
+      assert_eq!(xs.len(), 4);
+      assert_eq!(xs[0].n.to_u8().unwrap(), 1);
+      assert_eq!(xs[1].n.to_u8().unwrap(), 3);
+      assert_eq!(xs[2].n.to_u8().unwrap(), 9);
+      assert_eq!(xs[3].n.to_u8().unwrap(), 27);
+    }
+    {
+      // when value is larger than field order
+      let f = Field::new(&11u32);
+      let a = FieldElem::new(&f, &3u32);
+      let xs = a.pow_seq(4);
+      assert_eq!(xs.len(), 4);
+      assert_eq!(xs[0].n.to_u8().unwrap(), 1);
+      assert_eq!(xs[1].n.to_u8().unwrap(), 3);
+      assert_eq!(xs[2].n.to_u8().unwrap(), 9);
+      assert_eq!(xs[3].n.to_u8().unwrap(), 5);
+    }
+  }
+
+  #[test]
+  fn repeat() {
+    let f = Field::new(&11u32);
+    let a = FieldElem::new(&f, &5u32);
+    let xs = a.repeat(3);
+    assert_eq!(xs.len(), 3);
+    assert_eq!(xs[0].n.to_u8().unwrap(), 5);
+    assert_eq!(xs[1].n.to_u8().unwrap(), 5);
+    assert_eq!(xs[2].n.to_u8().unwrap(), 5);
   }
 
   #[test]

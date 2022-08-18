@@ -43,7 +43,7 @@ impl<'a, const HASHER_OUT_SIZE: usize> Ecdsa<'a, HASHER_OUT_SIZE> {
 
     loop {
       // generate temporary non-zero random number k (mod n) 
-      let k = self.f.rand_elem();  // mod n
+      let k = self.f.rand_elem(true);  // mod n
       
       // e = HASH(message)
       // z = e's uppermost Ln bits (Ln = order of n = 256 bits)
@@ -132,7 +132,7 @@ mod tests {
     let message = vec![1u8, 2, 3];
 
     // sign with newly generated private key
-    let priv_key = ecdsa.f.rand_elem();
+    let priv_key = ecdsa.f.rand_elem(true);
     let sig = ecdsa.sign(&priv_key, &message).unwrap();
 
     let good_pub_key = ops.scalar_mul(&curve.g(), &priv_key.n);
@@ -155,7 +155,7 @@ mod tests {
     let message = vec![1u8, 2, 3];
 
     // sign with newly generated private key
-    let priv_key = ecdsa.f.rand_elem();
+    let priv_key = ecdsa.f.rand_elem(true);
     let sig = ecdsa.sign(&priv_key, &message).unwrap();
 
     // use inf public key for verifying
@@ -174,7 +174,7 @@ mod tests {
     let message = vec![1u8, 2, 3];
 
     // sign with newly generated private key
-    let priv_key = ecdsa.f.rand_elem();
+    let priv_key = ecdsa.f.rand_elem(true);
 
     // create public key from the private key used for signing for verifying
     let pub_key = ops.scalar_mul(&curve.g(), &priv_key.n);
@@ -206,7 +206,7 @@ mod tests {
     let message = vec![1u8, 2, 3];
 
     // sign with newly generated private key
-    let priv_key = ecdsa.f.rand_elem();
+    let priv_key = ecdsa.f.rand_elem(true);
 
     // create public key from the private key used for signing for verifying
     let pub_key = ops.scalar_mul(&curve.g(), &priv_key.n);
@@ -238,7 +238,7 @@ mod tests {
     let message = vec![1u8, 2, 3];
 
     // sign with newly generated private key
-    let priv_key = ecdsa.f.rand_elem();
+    let priv_key = ecdsa.f.rand_elem(true);
     let sig = ecdsa.sign(&priv_key, &message).unwrap();
 
     // create public key from the private key used for signing for verifying
@@ -257,11 +257,11 @@ mod tests {
     let message = vec![1u8, 2, 3];
 
     // sign with newly generated private key
-    let priv_key = ecdsa.f.rand_elem();
+    let priv_key = ecdsa.f.rand_elem(true);
     let sig = ecdsa.sign(&priv_key, &message).unwrap();
 
     // change private key and create public key from it
-    let priv_key = ecdsa.f.rand_elem();
+    let priv_key = ecdsa.f.rand_elem(true);
     let pub_key = ops.scalar_mul(&curve.g(), &priv_key.n);
 
     let is_verified = ecdsa.verify(&sig, &pub_key, &message);
@@ -278,7 +278,7 @@ mod tests {
     let message = vec![1u8, 2, 3];
 
     // sign with newly generated private key
-    let priv_key = ecdsa.f.rand_elem();
+    let priv_key = ecdsa.f.rand_elem(true);
     let sig = ecdsa.sign(&priv_key, &message).unwrap();
 
     // create public key from the private key used for signing for verifying

@@ -56,6 +56,10 @@ impl WeierstrassEq {
 }
 
 impl EllipticCurve for WeierstrassEq {
+  fn f(&self) -> &Field {
+    &self.f
+  }
+
   fn g(&self) -> EcPoint {
     self.g.clone()
   }

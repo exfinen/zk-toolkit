@@ -1,5 +1,5 @@
 use crate::elliptic_curve::{EllipticCurve, AddOps};
-use crate::field::{Field, FieldElem, FieldElems};
+use crate::field::{FieldElem, FieldElems};
 use crate::ec_point::EcPoint;
 use crate::vector_ops::{EcPoints, EcPoint1};
 
@@ -8,7 +8,6 @@ use crate::vector_ops::{EcPoints, EcPoint1};
 pub struct BulletProofs<'a, const N: usize> {
   pub curve: &'a dyn EllipticCurve,
   pub ops: &'a dyn AddOps,
-  pub f: Field,
 }
 
 impl<'a, const N: usize> BulletProofs<'a, N> {
@@ -16,8 +15,7 @@ impl<'a, const N: usize> BulletProofs<'a, N> {
     curve: &'a dyn EllipticCurve, 
     ops: &'a dyn AddOps, 
   ) -> Self {
-    let f = Field::new(&curve.n());
-    BulletProofs { curve, ops, f }
+    BulletProofs { curve, ops }
   }
 
   pub fn ec_points(&self, ec_points: &'a [EcPoint]) -> EcPoints<'a> {
@@ -26,8 +24,23 @@ impl<'a, const N: usize> BulletProofs<'a, N> {
     EcPoints((self.ops, xs))
   }
 
-  pub fn ec_point(&self, ec_point: &'a EcPoint) -> EcPoint1<'a> {
+  pub fn ec_point(&self, ec_point: 'a EcPoint) -> EcPoint1<'a> {
     EcPoint1((self.ops, ec_point.clone()))
+  }
+
+  pub fn rand_point(&self) -> EcPoint1<'a> {
+    let pt = self.curve.g();
+    let fe = self.curve.f().rand_elem(true);
+    let g = self.ec_point(&pt);
+    self.scalar_mul(&g, &fe) 
+  }
+
+  pub fn rand_points(&self, n: usize) -> EcPoints<'a> {
+    let xs = vec![];
+    for _ in 0..n {
+      xs.push(self.rand_point().into());
+    }
+    self.ec_points(&xs)
   }
 
   fn n(&self) -> usize {
@@ -71,7 +84,7 @@ impl<'a, const N: usize> BulletProofs<'a, N> {
   // then prover convinces verifier that the prover knows a and b s.t.
   // P = g^a h^b and c = <a,b>
   //
-  pub fn perform_simplest_inner_product_argument(&self, 
+  pub fn simplest_inner_product_argument(&self, 
     g: &EcPoints, h: &EcPoints, 
     c_exp: &FieldElem, p_exp: &EcPoint,
     a: &FieldElems, b: &FieldElems,
@@ -84,7 +97,7 @@ impl<'a, const N: usize> BulletProofs<'a, N> {
 
   // for a given P, prover proves that it has vectors a, b s.t. 
   // P = g^a h^b u^<a,b>
-  pub fn perform_improved_inner_product_argument(&self,
+  pub fn improved_inner_product_argument(&self,
     n: usize,
     g: &EcPoints<'a>, h: &EcPoints<'a>,
     u: &EcPoint1<'a>, p: &EcPoint1<'a>,  
@@ -123,7 +136,7 @@ impl<'a, const N: usize> BulletProofs<'a, N> {
       // prover passes L,R to verifier
 
       // verifier chooses x in Z^*_p and sends to prover
-      let x = self.f.rand_elem();
+      let x = self.curve.f().rand_elem(true);
 
       // both prover and verifier compute gg,hh,PP
       let gg = &(&g.to(..nn) * &x.inv()) * &(&g.from(nn..) * &x);
@@ -138,48 +151,42 @@ impl<'a, const N: usize> BulletProofs<'a, N> {
       // prover computes aa, bb
       let aa = &(&a.to(..nn) * &x) + &(&a.from(nn..) * &x.inv());
       let bb = &(&b.to(..nn) * &x.inv()) + &(&b.from(nn..) * &x);
-      self.perform_improved_inner_product_argument(
+      self.improved_inner_product_argument(
         nn, &gg, &hh, u, &pp, &aa, &bb)
     }
   }
 
-  pub fn perform_inner_product_range_proof(
+  pub fn range_proof(
     &self,
-    v: &FieldElem,
+    n: usize,
+    V: &EcPoint1<'a>,
+    upsilon: &FieldElem,
+    aL: &FieldElems,
+    gamma: &FieldElem,
     g: &EcPoint1<'a>,
     h: &EcPoint1<'a>,
     gg: &EcPoints<'a>,
     hh: &EcPoints<'a>,
-    gamma: &FieldElem,
   ) -> bool {
-    // aL = (a_1, a_2, .., a_n) in {0,1}^n contains bits of v so that <aL, 2^n> = v
-    //
-    // prover commits to aL using commitment A in G
-    // 
-    // prover convinces verifier that v is in [0, 2^n-1] 
-    // by providing it knows opening of A (aL) and v, gamma in Zp s.t. 
-    // - V = h^gamma g^v 
-    // - <aL, s^n> = v
-    // - aL o aR = 0^n
-    // - aR = aL - 1^n
+    let f = self.curve.f();
 
-    // prover compute A,S
-    let aL = FieldElems::new(&vec![0u8, 1, 1, 0].iter().map(|x| self.f.elem(x)).collect::<Vec<FieldElem>>());
-    let one = self.f.elem(&1u8);
-    let aR = FieldElems::new(&aL.iter().map(|x| x - &one).collect::<Vec<FieldElem>>());
-    let alpha = self.f.rand_elem();
+    // on input upsilon, gamma prover computes
+    let one = self.curve.f().elem(&1u8);
+    let two = self.curve.f().elem(&2u8);
+    let one_n = one.pow_seq(n);
+    let two_n = two.pow_seq(n);
 
-    // commitment A to aL,aR
+    let aR = aL - &one_n;
+    let alpha = f.rand_elem(true);
     let A = self.vector_add(&vec![
       &(h * &alpha),
-      &(gg * &aL).sum(),
+      &(gg * aL).sum(),
       &(hh * &aR).sum(),
     ]);
 
-    // commitment S to sL,sR
-    let sL = self.f.rand_elems(self.n());
-    let sR = self.f.rand_elems(self.n());
-    let rho = self.f.rand_elem();
+    let sL = f.rand_elems(n, true);
+    let sR = f.rand_elems(n, true);
+    let rho = f.rand_elem(true);
     let S = self.vector_add(&vec![
       &(h * &rho),
       &(gg * &sL).sum(),
@@ -188,89 +195,84 @@ impl<'a, const N: usize> BulletProofs<'a, N> {
 
     // prover sends A,S to verifier
   
-    let y = self.f.rand_elem();
-    let z = self.f.rand_elem();
+    let y = f.rand_elem(true);
+    let z = f.rand_elem(true);
 
     // verifier sends y,z to prover
 
     // prover computes
-    let t1 = self.f.rand_elem();
-    let t2 = self.f.rand_elem();
+    let t1 = f.rand_elem(true);
+    let t2 = f.rand_elem(true);
 
-    // prover calculate commitments to t1,t2
+    // define t(x) = <l(x),r(x)> = t0 + t1 * x + t2 * x^2
+    let y_n = &y.pow_seq(n);
+    let zs = &z.repeat(n);
+    let l0 = aL - &(&one_n * &z);
+    let l1 = &sL;
+    let r0 = y_n * &(&(&aR + &(&one_n * &z)) + &(&two_n * &z.sq()));
+    let r1 = y_n * &sR;
+
+    let t0 = (&l0 * &r0).sum();
+    let t1 = (l1 * &r0).sum() + &(&l0 * &r1).sum();
+    let t2 = (l1 * &r1).sum();
+
+    // prover computes
+    let tau1 = f.rand_elem(true);
+    let tau2 = f.rand_elem(true);
     let T1 = self.vector_add(&vec![
       &(g * &t1),
-      &(h * &t1),
+      &(h * &tau1),
     ]);
     let T2 = self.vector_add(&vec![
       &(g * &t2),
-      &(h * &t2),
+      &(h * &tau2),
     ]);
 
     // prover sends T1,T2 to verifier
 
     // verifier selects random x and sends to prover
-    let x = self.f.rand_elem();
+    let x = f.rand_elem(true);
 
     // prover computes
-    let ones = self.f.repeated_elem(&1u8, self.n());
-    let l = &(&aL - &ones) + &(&sL * &x);  // (58)
-    let y_to_n = self.f.first_n_powers_of_x(&y, self.n());
-    let z_n = self.f.repeated_elem(&z, self.n());
-    let two_to_n = self.f.first_n_powers_of_x(&2u8, self.n());
-    let r = &(&y_to_n * &(&(&aR - &z_n) + &(&sR * &x))) + &(&two_to_n * &z.sq());  // (59)
-    let t_hat = &(&l * &r).sum();  // (60) should find a better way than switching by multiplicand type
-    let tx = &(&t2 * &x.sq()) + &(&t1 * &x) + &(&z.sq() * gamma);  // (61)
-    let mu = &alpha + &(rho * &x);  // (62)
 
-    // prover sends tx,mu,t_hat,l,r to verifier
+    let t_hat = &t0 + &(&t1 * &x) + &(&t2 * &x.sq());
+    let tau_x = &tau2 * &x.sq() + &((&tau1 * &x) + &(&z.sq() * gamma));
+    let mu = &alpha + &(&rho * &x);
 
-    let hp_inner = (0..self.n()).map(|i| {  // (64)
-      let exp = y.pow(&self.f.elem(&i).inv());
-      &hh[i] * &exp
-    }).collect::<Vec<EcPoint1<'a>>>();
-    let hp = EcPoints((self.ops, hp_inner));
+    // prover sends l, r, t_hat, mu to verifier
+
+    // (64)
+    let hhp = hh * &y.inv().pow_seq(n);
 
     // (65)
-    let lhs_65 = &(g * &t_hat) + &(h * &tx);
-    let V = &(h * &gamma) + &(g * &v);
-    let z_minus_z2 = &z - &z.sq();
-    let z3 = &z * &z.sq();
-    let delta_y_z_term1 = y_to_n.sum() * &z_minus_z2;
-    let delta_y_z_term2 = two_to_n.sum() * &z3;
-    let delta_y_z = delta_y_z_term1 - &delta_y_z_term2;
-    let rhs_65 = self.vector_add(&[
-      &(&V * &z.sq()),
-      &(g * &delta_y_z),
-      &(&T1 * &x),
-      &(&T2 * &x.sq()),
-    ]);
+    let delta_yz = (&z - &z.sq()) * &(&(&one_n * y_n).sum() - &(&z.cube() * &(&one_n * &two_n).sum()));
+    let lhs_65 = &(g * &t_hat) + &(h * &tau_x);
+    let rhs_65 = &(V * &z.sq()) + &(&(g * &delta_yz) + &(&(&T1 * &x) + &(&T2 * &x.sq())));
     if lhs_65 != rhs_65 {
-      return false
-    }
-
-    // (66)
-    let hp_exp = &(&y_to_n * &z) + &(&two_to_n * &z.sq());
-    let lhs_66_P = self.vector_add(&[  // (66)
-      &A,
-      &(&S * &x),
-      &(gg * &z.inv()).sum(),
-      &(&hp * &hp_exp).sum(),
-    ]);
-    let rhs_66_term1 = &(h * &mu); 
-    let rhs_66_term2 = (gg * &l).sum();
-    let rhs_66_term3 = (&hp * &r).sum();
-    let rhs_66 = rhs_66_term1 + &(&rhs_66_term2 + &rhs_66_term3);   
-    if lhs_66_P != rhs_66 {  // (67)
       return false;
     }
 
-    let rhs_68 = &(&l * &r).sum();
+    // (66), (67)
+    let l = &(aL - &(&one_n * &z)) + &(&sL * &x);
+    let r = &(y_n * &(&aR + &(&one_n * &z))) + &(&(&sR * &x) + &(&two_n * &z.sq()));
+
+    let P = self.vector_add(&vec![
+      &A,
+      &(&S * &x),
+      &(gg * &(&one_n * &z.negate())).sum(),   // TODO check this
+      &(&hhp * &(&(y_n * &z) + &(&two_n * &z.sq()))).sum(),
+    ]);
+
+    let rhs_66_67 = &(&(h * &mu) + &(gg * &l).sum()) + &(&hhp * &r).sum();
+    if P != rhs_66_67 {
+      return false;
+    }
 
     // (68)
+    let rhs_68 = (&l * &r).sum();
+
     t_hat == rhs_68
   }
-
 }
 
 #[cfg(test)]
@@ -283,9 +285,35 @@ mod tests {
   fn test_perform_inner_product_range_proof() {
     let curve = WeierstrassEq::secp256k1();
     let ops = JacobianAddOps::new();
+    let f = curve.f();
+    let bp: BulletProofs<2> = BulletProofs::new(&curve, &ops);
 
-    let bp: BulletProofs<4> = BulletProofs::new(&curve, &ops);
-    //bp.perform_inner_product_range_proof();
+    let aL = FieldElems::new(&vec![
+      f.elem(&1u8), 
+      f.elem(&0u8), 
+      f.elem(&0u8), 
+      f.elem(&1u8),
+    ]);
+    let n = aL.len();
+    let upsilon = curve.f().elem(&9u8);
+    let gamma = bp.curve.f().rand_elem(true);
+    let g = bp.rand_point();
+    let h = bp.rand_point();
+    let gg = bp.rand_points(n);
+    let hh = bp.rand_points(n);
+    let V = &(&h * &gamma) + &(&g * &upsilon);
+
+    bp.range_proof(
+      n,
+      &V,
+      &upsilon,
+      &aL,
+      &gamma,
+      &g,
+      &h,
+      &gg,
+      &hh, 
+    );
   }
 
   #[test]
@@ -298,8 +326,8 @@ mod tests {
     let base_point = curve.g();
     
     let n = bp.n();
-    let a = FieldElems::new(&(0..n).map(|_| bp.f.rand_elem()).collect::<Vec<FieldElem>>());
-    let b = FieldElems::new(&(0..n).map(|_| bp.f.rand_elem()).collect::<Vec<FieldElem>>());
+    let a = FieldElems::new(&(0..n).map(|_| bp.curve.f().rand_elem(true)).collect::<Vec<FieldElem>>());
+    let b = FieldElems::new(&(0..n).map(|_| bp.curve.f().rand_elem(true)).collect::<Vec<FieldElem>>());
 
     let g_inner = a.iter().map(|a_i| ops.scalar_mul(&base_point, &a_i.n)).collect::<Vec<EcPoint>>();
     let g = bp.ec_points(&g_inner);
@@ -309,7 +337,7 @@ mod tests {
     let c = (&a * &b).sum();
     let p = bp.vector_mul_add(&g, &h, &a, &b); 
 
-    assert!(bp.perform_simplest_inner_product_argument(&g, &h, &c, &p, &a, &b));
+    assert!(bp.simplest_inner_product_argument(&g, &h, &c, &p, &a, &b));
   }
 
 }
