@@ -51,7 +51,7 @@ impl AddOps for Ed25519Sha512 {
     EcPoint::new(&x, &y)
   }
 
-  fn inv(&self, p: &EcPoint) -> EcPoint {
+  fn inv(&self, _p: &EcPoint) -> EcPoint {
     panic!("not implemented");
   }
 }

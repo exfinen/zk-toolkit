@@ -7,7 +7,7 @@ use bitvec::prelude::*;
 use rand::RngCore;
 use crate::to_biguint::ToBigUint;
 use crate::random_number::RandomNumber;
-use std::ops::{Range, Index, RangeFrom, RangeTo, Deref};
+use std::ops::{Index, RangeFrom, RangeTo, Deref};
 
 ///////////////
 // FieldElem

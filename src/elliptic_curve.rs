@@ -17,7 +17,7 @@ pub trait AddOps {
     } else if ps.len() == 1 {
       ps[0].clone()
     } else {
-      let mut sum = ps[0].clone();
+      let sum = ps[0].clone();
       for p in &ps[1..] {
         self.add(&sum, p);
       }

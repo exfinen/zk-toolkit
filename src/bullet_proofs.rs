@@ -24,35 +24,35 @@ impl<'a, const N: usize> BulletProofs<'a, N> {
     EcPoints((self.ops, xs))
   }
 
-  pub fn ec_point(&self, ec_point: 'a EcPoint) -> EcPoint1<'a> {
+  pub fn ec_point(&self, ec_point: &'a EcPoint) -> EcPoint1<'a> {
     EcPoint1((self.ops, ec_point.clone()))
   }
 
-  pub fn rand_point(&self) -> EcPoint1<'a> {
+  pub fn rand_point(&self) -> EcPoint {
     let pt = self.curve.g();
     let fe = self.curve.f().rand_elem(true);
     let g = self.ec_point(&pt);
-    self.scalar_mul(&g, &fe) 
+    self.scalar_mul(&g, &fe).into() 
   }
 
-  pub fn rand_points(&self, n: usize) -> EcPoints<'a> {
-    let xs = vec![];
+  pub fn rand_points(&self, n: usize) -> Vec<EcPoint> {
+    let mut xs = vec![];
     for _ in 0..n {
       xs.push(self.rand_point().into());
     }
-    self.ec_points(&xs)
+    xs
   }
 
-  fn n(&self) -> usize {
+  pub fn n(&self) -> usize {
     N  
   }
 
-  fn field_elem_mul(&self, xs: &[FieldElem], ys: &[FieldElem]) -> FieldElems {
+  pub fn field_elem_mul(&self, xs: &[FieldElem], ys: &[FieldElem]) -> FieldElems {
     let zs = xs.iter().zip(ys.iter()).map(|(x, y)| x * y).collect::<Vec<FieldElem>>();
     FieldElems(zs)
   }
 
-  fn vector_add(&self, xs: &[&EcPoint1<'a>]) -> EcPoint1<'a> {
+  pub fn vector_add(&self, xs: &[&EcPoint1<'a>]) -> EcPoint1<'a> {
     assert!(xs.len() > 0);
     let head = xs[0];
     let (ops, _) = xs[0].0;
@@ -63,7 +63,7 @@ impl<'a, const N: usize> BulletProofs<'a, N> {
     EcPoint1((ops, x))
   }
 
-  fn vector_mul_add(&self, 
+  pub fn vector_mul_add(&self, 
     g: &EcPoints, h: &EcPoints, 
     a: &FieldElems, b: &FieldElems
   ) -> EcPoint {
@@ -72,31 +72,15 @@ impl<'a, const N: usize> BulletProofs<'a, N> {
     self.ops.add(&ga, &hb)
   }
 
-  fn scalar_mul(&self, pt: &EcPoint1<'a>, fe: &FieldElem) -> EcPoint1<'a> {
+  pub fn scalar_mul(&self, pt: &EcPoint1<'a>, fe: &FieldElem) -> EcPoint1<'a> {
     let (ops, _) = pt.0;
     let x = self.ops.scalar_mul(&pt, &fe);
     EcPoint1((ops, x))
   }
 
-  // prover and verifier know:
-  // g, h, c, P
-  //
-  // then prover convinces verifier that the prover knows a and b s.t.
-  // P = g^a h^b and c = <a,b>
-  //
-  pub fn simplest_inner_product_argument(&self, 
-    g: &EcPoints, h: &EcPoints, 
-    c_exp: &FieldElem, p_exp: &EcPoint,
-    a: &FieldElems, b: &FieldElems,
-  ) -> bool {
-    let p_act = self.vector_mul_add(g, h, a, b);
-    let c_act = (&FieldElems::new(a) * b).sum(); // self.inner_product_of(a, b);
-
-    p_exp == &p_act && c_exp == &c_act
-  }
-
   // for a given P, prover proves that it has vectors a, b s.t. 
   // P = g^a h^b u^<a,b>
+  #[allow(non_snake_case)]
   pub fn improved_inner_product_argument(&self,
     n: usize,
     g: &EcPoints<'a>, h: &EcPoints<'a>,
@@ -156,11 +140,11 @@ impl<'a, const N: usize> BulletProofs<'a, N> {
     }
   }
 
+  #[allow(non_snake_case)]
   pub fn range_proof(
     &self,
     n: usize,
     V: &EcPoint1<'a>,
-    upsilon: &FieldElem,
     aL: &FieldElems,
     gamma: &FieldElem,
     g: &EcPoint1<'a>,
@@ -195,21 +179,15 @@ impl<'a, const N: usize> BulletProofs<'a, N> {
 
     // prover sends A,S to verifier
   
+    // verifier sends y,z to prover
     let y = f.rand_elem(true);
     let z = f.rand_elem(true);
 
-    // verifier sends y,z to prover
-
-    // prover computes
-    let t1 = f.rand_elem(true);
-    let t2 = f.rand_elem(true);
-
     // define t(x) = <l(x),r(x)> = t0 + t1 * x + t2 * x^2
     let y_n = &y.pow_seq(n);
-    let zs = &z.repeat(n);
     let l0 = aL - &(&one_n * &z);
     let l1 = &sL;
-    let r0 = y_n * &(&(&aR + &(&one_n * &z)) + &(&two_n * &z.sq()));
+    let r0 = &(y_n * &(&aR + &(&one_n * &z))) + &(&two_n * &z.sq());
     let r1 = y_n * &sR;
 
     let t0 = (&l0 * &r0).sum();
@@ -245,16 +223,24 @@ impl<'a, const N: usize> BulletProofs<'a, N> {
     let hhp = hh * &y.inv().pow_seq(n);
 
     // (65)
-    let delta_yz = (&z - &z.sq()) * &(&(&one_n * y_n).sum() - &(&z.cube() * &(&one_n * &two_n).sum()));
+    let delta_yz = &((&z - &z.sq()) * &(&one_n * y_n).sum()) - &(&z.cube() * &(&one_n * &two_n).sum());
+
     let lhs_65 = &(g * &t_hat) + &(h * &tau_x);
-    let rhs_65 = &(V * &z.sq()) + &(&(g * &delta_yz) + &(&(&T1 * &x) + &(&T2 * &x.sq())));
+    let rhs_65 = self.vector_add(&vec![
+      &(V * &z.sq()),
+      &(g * &delta_yz),
+      &(&T1 * &x),
+      &(&T2 * &x.sq()),
+    ]);
+    println!("CHECK 1");
     if lhs_65 != rhs_65 {
       return false;
     }
+    println!("CHECK 1 PASSED");
 
     // (66), (67)
     let l = &(aL - &(&one_n * &z)) + &(&sL * &x);
-    let r = &(y_n * &(&aR + &(&one_n * &z))) + &(&(&sR * &x) + &(&two_n * &z.sq()));
+    let r = &(y_n * &(&(&aR + &(&one_n * &z)) + &(&sR * &x))) + &(&two_n * &z.sq());
 
     let P = self.vector_add(&vec![
       &A,
@@ -264,13 +250,16 @@ impl<'a, const N: usize> BulletProofs<'a, N> {
     ]);
 
     let rhs_66_67 = &(&(h * &mu) + &(gg * &l).sum()) + &(&hhp * &r).sum();
+    println!("CHECK 2");
     if P != rhs_66_67 {
       return false;
     }
+    println!("CHECK 2 PASSED");
 
     // (68)
     let rhs_68 = (&l * &r).sum();
 
+    println!("CHECK 3");
     t_hat == rhs_68
   }
 }
@@ -282,7 +271,8 @@ mod tests {
   use crate::weierstrass_add_ops::JacobianAddOps;
 
   #[test]
-  fn test_perform_inner_product_range_proof() {
+  #[allow(non_snake_case)]
+  fn test_range_proof() {
     let curve = WeierstrassEq::secp256k1();
     let ops = JacobianAddOps::new();
     let f = curve.f();
@@ -298,15 +288,18 @@ mod tests {
     let upsilon = curve.f().elem(&9u8);
     let gamma = bp.curve.f().rand_elem(true);
     let g = bp.rand_point();
+    let g = bp.ec_point(&g);
     let h = bp.rand_point();
+    let h = bp.ec_point(&h);
     let gg = bp.rand_points(n);
+    let gg = bp.ec_points(&gg);
     let hh = bp.rand_points(n);
+    let hh = bp.ec_points(&hh);
     let V = &(&h * &gamma) + &(&g * &upsilon);
 
-    bp.range_proof(
+    let res = bp.range_proof(
       n,
       &V,
-      &upsilon,
       &aL,
       &gamma,
       &g,
@@ -314,30 +307,6 @@ mod tests {
       &gg,
       &hh, 
     );
+    assert!(res == true);
   }
-
-  #[test]
-  fn test_perform_simplest_inner_product_argument() {
-    let curve = WeierstrassEq::secp256k1();
-    let ops = JacobianAddOps::new();
-
-    let bp: BulletProofs<4> = BulletProofs::new(&curve, &ops);
-
-    let base_point = curve.g();
-    
-    let n = bp.n();
-    let a = FieldElems::new(&(0..n).map(|_| bp.curve.f().rand_elem(true)).collect::<Vec<FieldElem>>());
-    let b = FieldElems::new(&(0..n).map(|_| bp.curve.f().rand_elem(true)).collect::<Vec<FieldElem>>());
-
-    let g_inner = a.iter().map(|a_i| ops.scalar_mul(&base_point, &a_i.n)).collect::<Vec<EcPoint>>();
-    let g = bp.ec_points(&g_inner);
-    let h_inner = b.iter().map(|b_i| ops.scalar_mul(&base_point, &b_i.n)).collect::<Vec<EcPoint>>();
-    let h = bp.ec_points(&h_inner);
-
-    let c = (&a * &b).sum();
-    let p = bp.vector_mul_add(&g, &h, &a, &b); 
-
-    assert!(bp.simplest_inner_product_argument(&g, &h, &c, &p, &a, &b));
-  }
-
 }
