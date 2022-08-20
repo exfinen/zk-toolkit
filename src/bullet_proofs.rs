@@ -152,25 +152,25 @@ impl<'a, const N: usize> BulletProofs<'a, N> {
     gg: &EcPoints<'a>,
     hh: &EcPoints<'a>,
   ) -> bool {
-    let f = self.curve.f();
+    let co = self.curve.n();
 
     // on input upsilon, gamma prover computes
-    let one = self.curve.f().elem(&1u8);
-    let two = self.curve.f().elem(&2u8);
+    let one = co.elem(&1u8);
+    let two = co.elem(&2u8);
     let one_n = one.pow_seq(n);
     let two_n = two.pow_seq(n);
 
     let aR = aL - &one_n;
-    let alpha = f.rand_elem(true);
+    let alpha = co.rand_elem(true);
     let A = self.vector_add(&vec![
       &(h * &alpha),
       &(gg * aL).sum(),
       &(hh * &aR).sum(),
     ]);
 
-    let sL = f.rand_elems(n, true);
-    let sR = f.rand_elems(n, true);
-    let rho = f.rand_elem(true);
+    let sL = co.rand_elems(n, true);
+    let sR = co.rand_elems(n, true);
+    let rho = co.rand_elem(true);
     let S = self.vector_add(&vec![
       &(h * &rho),
       &(gg * &sL).sum(),
@@ -180,8 +180,8 @@ impl<'a, const N: usize> BulletProofs<'a, N> {
     // prover sends A,S to verifier
   
     // verifier sends y,z to prover
-    let y = f.rand_elem(true);
-    let z = f.rand_elem(true);
+    let y = co.rand_elem(true);
+    let z = co.rand_elem(true);
 
     // define t(x) = <l(x),r(x)> = t0 + t1 * x + t2 * x^2
     let y_n = &y.pow_seq(n);
@@ -195,8 +195,8 @@ impl<'a, const N: usize> BulletProofs<'a, N> {
     let t2 = (l1 * &r1).sum();
 
     // prover computes
-    let tau1 = f.rand_elem(true);
-    let tau2 = f.rand_elem(true);
+    let tau1 = co.rand_elem(true);
+    let tau2 = co.rand_elem(true);
     let T1 = self.vector_add(&vec![
       &(g * &t1),
       &(h * &tau1),
@@ -209,7 +209,7 @@ impl<'a, const N: usize> BulletProofs<'a, N> {
     // prover sends T1,T2 to verifier
 
     // verifier selects random x and sends to prover
-    let x = f.rand_elem(true);
+    let x = co.rand_elem(true);
 
     // prover computes
 
@@ -275,17 +275,17 @@ mod tests {
   fn test_gg_ones_times_z() {
     let curve = WeierstrassEq::secp256k1();
     let ops = JacobianAddOps::new();
-    let f = curve.f();
+    let co = curve.n();
     let bp: BulletProofs<2> = BulletProofs::new(&curve, &ops);
 
     let n = 2;
-    let z = f.rand_elem(true);
+    let z = co.rand_elem(true);
     let gg = bp.rand_points(n);
     let gg = bp.ec_points(&gg);
 
     let r1 = &gg * &z;
 
-    let one = f.elem(&1u8);
+    let one = co.elem(&1u8);
     let ones = one.repeat(n);
     let r2 = &gg * &(&ones * &z);
 
@@ -296,12 +296,12 @@ mod tests {
   fn test_offset_by_negation() {
     let curve = WeierstrassEq::secp256k1();
     let ops = JacobianAddOps::new();
-    let f = curve.f();
+    let co = curve.n();
     let bp: BulletProofs<2> = BulletProofs::new(&curve, &ops);
 
     {
-        let z = f.elem(&100u8);
-        let basis = f.elem(&12345u16);
+        let z = co.elem(&100u8);
+        let basis = co.elem(&12345u16);
 
         let r1 = &basis - &z;
         let r2 = &basis + &z.negate();
@@ -309,8 +309,8 @@ mod tests {
         assert_eq!(r1, r2);
     }
     {
-        let z = f.elem(&100u8);
-        let basis = f.elem(&12345u16);
+        let z = co.elem(&100u8);
+        let basis = co.elem(&12345u16);
         let g = curve.g();
         let g = bp.ec_point(&g);
 
@@ -326,11 +326,11 @@ mod tests {
   fn test_base_point_field_elem_mul() {
     let curve = WeierstrassEq::secp256k1();
     let ops = JacobianAddOps::new();
-    let f = curve.f();
+    let co = curve.n();
     let bp: BulletProofs<2> = BulletProofs::new(&curve, &ops);
 
-    let alpha = &f.rand_elem(true);
-    let rho = &f.rand_elem(true);
+    let alpha = &co.rand_elem(true);
+    let rho = &co.rand_elem(true);
     let h = bp.rand_point();
     let h = &bp.ec_point(&h);
 
@@ -343,17 +343,17 @@ mod tests {
   #[allow(non_snake_case)]
   fn test_field_elems_mul_field_elem() {
     let curve = WeierstrassEq::secp256k1();
-    let f = curve.f();
+    let co = curve.n();
 
-    let x = f.elem(&5u8);
+    let x = co.elem(&5u8);
     let sL = FieldElems(vec![
-      f.elem(&2u8),
-      f.elem(&3u8),
+      co.elem(&2u8),
+      co.elem(&3u8),
     ]);
 
     let exp = FieldElems(vec![
-      f.elem(&10u8),
-      f.elem(&15u8),
+      co.elem(&10u8),
+      co.elem(&15u8),
     ]);
     let act = sL * x;
     assert!(act == exp);
@@ -364,7 +364,7 @@ mod tests {
   fn test_tmp() {
     let curve = WeierstrassEq::secp256k1();
     let ops = JacobianAddOps::new();
-    let f = curve.f();
+    let co = curve.n();
     let bp: BulletProofs<2> = BulletProofs::new(&curve, &ops);
 
     let n = 2;
@@ -374,15 +374,15 @@ mod tests {
     ];
     let gg = &bp.ec_points(&gg);
 
-    let x = &f.elem(&2u8);
+    let x = &co.elem(&2u8);
     let xx = vec![ x.clone(), x.clone() ];
     let xx = &FieldElems(xx);
     let sL = vec![
-      f.elem(&3u8),
-      f.elem(&7u8),
+      co.elem(&3u8),
+      co.elem(&7u8),
     ];
     let sL = &FieldElems(sL);
-    let sL = &f.rand_elems(n, true);
+    let sL = &co.rand_elems(n, true);
     println!("sL[0]={0}", sL[0].to_str_radix(16));
     println!("sL[1]={0}", sL[1].to_str_radix(16));
     
@@ -398,27 +398,27 @@ mod tests {
   fn test_range_proof_66_67_excl_h_prime_experiment() {
     let curve = WeierstrassEq::secp256k1();
     let ops = JacobianAddOps::new();
-    let f = curve.f();
+    let co = curve.n();
     let bp: BulletProofs<2> = BulletProofs::new(&curve, &ops);
 
     let n = 2;
-    let one = f.elem(&1u8);
+    let one = co.elem(&1u8);
     let ones = &one.repeat(n);
-    let z = &f.rand_elem(true);
+    let z = &co.rand_elem(true);
 
-    let alpha = &f.rand_elem(true);
-    let rho = &f.rand_elem(true);
-    let x = &f.rand_elem(true);
+    let alpha = &co.rand_elem(true);
+    let rho = &co.rand_elem(true);
+    let x = &co.rand_elem(true);
     let mu = &(alpha + (rho * x)); 
 
     let gg = bp.rand_points(n);
     let gg = &bp.ec_points(&gg);
 
     let aL = &FieldElems(vec![
-      f.elem(&1u8),
-      f.elem(&1u8),
+      co.elem(&1u8),
+      co.elem(&1u8),
     ]);
-    let sL = &f.rand_elems(n, true);
+    let sL = &co.rand_elems(n, true);
 
     let sLx = sL * x;
     let ll = &(/*- (ones * z)*/ sLx);
@@ -437,17 +437,17 @@ mod tests {
   fn test_range_proof_66_67_excl_h_prime() {
     let curve = WeierstrassEq::secp256k1();
     let ops = JacobianAddOps::new();
-    let f = curve.f();
+    let co = curve.n();
     let bp: BulletProofs<2> = BulletProofs::new(&curve, &ops);
 
     let n = 2;
-    let one = f.elem(&1u8);
+    let one = co.elem(&1u8);
     let ones = &one.repeat(n);
-    let z = &f.rand_elem(true);
+    let z = &co.rand_elem(true);
 
-    let alpha = &f.rand_elem(true);
-    let rho = &f.rand_elem(true);
-    let x = &f.rand_elem(true);
+    let alpha = &co.rand_elem(true);
+    let rho = &co.rand_elem(true);
+    let x = &co.rand_elem(true);
     let mu = &(alpha + (rho * x)); 
 
     let gg = bp.rand_points(n);
@@ -456,10 +456,10 @@ mod tests {
     let h = &bp.ec_point(&h);
 
     let aL = &FieldElems(vec![
-      f.elem(&1u8),
-      f.elem(&1u8),
+      co.elem(&1u8),
+      co.elem(&1u8),
     ]);
-    let sL = &f.rand_elems(n, true);
+    let sL = &co.rand_elems(n, true);
 
     let ll = &(aL - (ones * z) + (sL * x));
 
@@ -477,14 +477,14 @@ mod tests {
   fn test_range_proof() {
     let curve = WeierstrassEq::secp256k1();
     let ops = JacobianAddOps::new();
-    let f = curve.f();
+    let co = curve.n();
     let bp: BulletProofs<2> = BulletProofs::new(&curve, &ops);
 
     let aL = FieldElems::new(&vec![
-      f.elem(&1u8), 
-      f.elem(&0u8), 
-      f.elem(&0u8), 
-      f.elem(&1u8),
+      co.elem(&1u8), 
+      co.elem(&0u8), 
+      co.elem(&0u8), 
+      co.elem(&1u8),
     ]);
     let n = aL.len();
     let upsilon = curve.f().elem(&9u8);

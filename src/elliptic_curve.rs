@@ -44,7 +44,7 @@ pub trait AddOps {
 
 pub trait EllipticCurve {
   fn g(&self) -> EcPoint;
-  fn n(&self) -> BigUint;
+  fn n(&self) -> &Field;  // TODO create Group struct
   fn is_on_curve(&self, pt: &EcPoint) -> bool;
   fn f(&self) -> &Field;
 }

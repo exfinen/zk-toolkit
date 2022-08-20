@@ -10,7 +10,7 @@ pub struct WeierstrassEq {
   pub a: FieldElem,
   pub b: FieldElem,
   pub g: EcPoint,
-  pub n: BigUint,
+  pub n: Field,
   pub zero: BigUint,
   pub one: BigUint,
 }
@@ -22,7 +22,7 @@ impl WeierstrassEq {
     b: BigUint, 
     gx: BigUint, 
     gy: BigUint,
-    n: BigUint,
+    n: Field,
   ) -> Result<Self, String> {
     let a = FieldElem::new(&f, &a);
     let b = FieldElem::new(&f, &b);
@@ -48,8 +48,9 @@ impl WeierstrassEq {
     let gy = BigUint::parse_bytes(b"483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8", 16).unwrap();
 
     // order of base point
-    let n = BigUint::parse_bytes(b"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", 16).unwrap();
-
+    let order = BigUint::parse_bytes(b"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", 16).unwrap();
+    let n = Field::new(&order);
+    
     // curve
     WeierstrassEq::new(f, a, b, gx, gy, n).unwrap()
   }
@@ -64,8 +65,8 @@ impl EllipticCurve for WeierstrassEq {
     self.g.clone()
   }
   
-  fn n(&self) -> BigUint {
-    self.n.clone()
+  fn n(&self) -> &Field {
+    &self.n
   }
 
   fn is_on_curve(&self, pt: &EcPoint) -> bool {
