@@ -11,6 +11,7 @@ To build a zk library from scratch keeping the implementation as easily understa
 - SHA256 and SHA512 hashers
 - Generic HMAC
 - Ed25519 public key generation, signing and signature verification
+- Bulletproofs (inner product argument range proof)
 
 ## What's NOT implemented so far
 - Big number
