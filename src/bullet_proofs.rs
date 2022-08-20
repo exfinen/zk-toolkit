@@ -32,7 +32,7 @@ impl<'a, const N: usize> BulletProofs<'a, N> {
     let pt = self.curve.g();
     let fe = self.curve.f().rand_elem(true);
     let g = self.ec_point(&pt);
-    self.scalar_mul(&g, &fe).into() 
+    self.ops.scalar_mul(&g, &fe)
   }
 
   pub fn rand_points(&self, n: usize) -> Vec<EcPoint> {
@@ -41,35 +41,6 @@ impl<'a, const N: usize> BulletProofs<'a, N> {
       xs.push(self.rand_point().into());
     }
     xs
-  }
-
-  pub fn n(&self) -> usize {
-    N  
-  }
-
-  pub fn field_elem_mul(&self, xs: &[FieldElem], ys: &[FieldElem]) -> FieldElems {
-    let zs = xs.iter().zip(ys.iter()).map(|(x, y)| x * y).collect::<Vec<FieldElem>>();
-    FieldElems(zs)
-  }
-
-  pub fn vector_add(&self, xs: &[EcPoint1<'a>]) -> EcPoint1<'a> {
-    assert!(xs.len() > 0);
-    let head = &xs[0];
-    let (ops, _) = xs[0].0;
-    let tail = &xs[1..];
-    let x = tail.iter().fold(head.0.1.clone(), |acc, x| {
-      self.ops.add(&acc, x)
-    });
-    EcPoint1((ops, x))
-  }
-
-  pub fn vector_mul_add(&self, 
-    g: &EcPoints, h: &EcPoints, 
-    a: &FieldElems, b: &FieldElems
-  ) -> EcPoint {
-    let ga = (g * a).sum();
-    let hb = (h * b).sum();
-    self.ops.add(&ga, &hb)
   }
 
   pub fn scalar_mul(&self, pt: &EcPoint1<'a>, fe: &FieldElem) -> EcPoint1<'a> {
@@ -140,20 +111,12 @@ impl<'a, const N: usize> BulletProofs<'a, N> {
 
     let aR = &(aL - one_n);
     let alpha = &co.rand_elem(true);
-    let A = self.vector_add(&vec![
-      h * alpha,
-      (gg * aL).sum(),
-      (hh * aR).sum(),
-    ]);
+    let A = h * alpha + (gg * aL).sum() + (hh * aR).sum();
 
     let sL = &co.rand_elems(n, true);
     let sR = &co.rand_elems(n, true);
     let rho = &co.rand_elem(true);
-    let S = self.vector_add(&vec![
-      h * rho,
-      (gg * sL).sum(),
-      (hh * sR).sum(),
-    ]);
+    let S = h * rho + (gg * sL).sum() + (hh * sR).sum();
 
     let y = &co.rand_elem(true);
     let z = &co.rand_elem(true);
@@ -170,14 +133,8 @@ impl<'a, const N: usize> BulletProofs<'a, N> {
 
     let tau1 = &co.rand_elem(true);
     let tau2 = &co.rand_elem(true);
-    let T1 = &self.vector_add(&vec![
-      g * t1,
-      h * tau1,
-    ]);
-    let T2 = &self.vector_add(&vec![
-      g * t2,
-      h * tau2,
-    ]);
+    let T1 = g * t1 + h * tau1;
+    let T2 = g * t2 + h * tau2;
 
     let x = &co.rand_elem(true);
 
@@ -192,12 +149,7 @@ impl<'a, const N: usize> BulletProofs<'a, N> {
     let delta_yz = &((z - z.sq()) * (one_n * y_n).sum()) - (z.cube() * (one_n * two_n).sum());
 
     let lhs_65 = (g * t_hat) + (h * tau_x);
-    let rhs_65 = self.vector_add(&vec![
-      V * z.sq(),
-      g * delta_yz,
-      T1 * x,
-      T2 * x.sq(),
-    ]);
+    let rhs_65 = V * z.sq() + g * delta_yz + T1 * x + T2 * x.sq();
     if lhs_65 != rhs_65 {
       return false;
     }
@@ -206,12 +158,11 @@ impl<'a, const N: usize> BulletProofs<'a, N> {
     let l = &((aL - (one_n * z)) + (sL * x));
     let r = &((y_n * ((aR + (one_n * z)) + (sR * x))) + (two_n * z.sq()));
 
-    let P = self.vector_add(&vec![
-      A,
-      S * x,
-      (gg * (one_n * z.negate())).sum(),
-      (hhp * ((y_n * z) + (two_n * z.sq()))).sum(),
-    ]);
+    let P = 
+      A 
+      + S * x
+      + (gg * (one_n * z.negate())).sum()
+      + (hhp * ((y_n * z) + (two_n * z.sq()))).sum();
 
     if use_inner_product_argument {
       let u = &self.rand_point();
