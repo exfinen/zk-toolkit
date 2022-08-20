@@ -361,27 +361,36 @@ mod tests {
 
   #[test]
   #[allow(non_snake_case)]
-  fn test_range_proof_66_67_excl_h_prime_experiment2() {
+  fn test_tmp() {
     let curve = WeierstrassEq::secp256k1();
     let ops = JacobianAddOps::new();
     let f = curve.f();
     let bp: BulletProofs<2> = BulletProofs::new(&curve, &ops);
 
     let n = 2;
-    let gg = bp.rand_points(n);
+    let gg = vec![
+      curve.g(),
+      curve.g(),
+    ];
     let gg = &bp.ec_points(&gg);
 
     let x = &f.elem(&2u8);
+    let xx = vec![ x.clone(), x.clone() ];
+    let xx = &FieldElems(xx);
+    let sL = vec![
+      f.elem(&3u8),
+      f.elem(&7u8),
+    ];
+    let sL = &FieldElems(sL);
     let sL = &f.rand_elems(n, true);
+    println!("sL[0]={0}", sL[0].to_str_radix(16));
+    println!("sL[1]={0}", sL[1].to_str_radix(16));
+    
+    let sLx = &(sL * x);
+    println!("ll[0]={0}", sLx[0].to_str_radix(16));
+    println!("ll[1]={0}", sLx[1].to_str_radix(16));
 
-    let ll = &(sL * x);
-
-    let ggll = (gg * ll).sum();
-
-    let S = (gg * sL).sum();
-    let P = S * x;
-
-    assert!(P == ggll);
+    assert!(gg * sLx == (gg * sL) * x);
   }
 
   #[test]
@@ -418,7 +427,7 @@ mod tests {
 
     let A = (gg * aL).sum();
     let S = (gg * sL).sum();
-    let P = (S * x); // + (gg * z.negate()).sum();
+    let P = S * x; // + (gg * z.negate()).sum();
 
     assert!(P == hmu_ggl);
   }

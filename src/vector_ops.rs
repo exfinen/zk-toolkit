@@ -187,6 +187,29 @@ macro_rules! impl_ec_points_times_field_elem {
 }
 impl_ec_points_times_field_elem!(&FieldElem, &EcPoints<'a>);
 impl_ec_points_times_field_elem!(FieldElem, &EcPoints<'a>);
+impl_ec_points_times_field_elem!(&FieldElem, EcPoints<'a>);
+
+macro_rules! impl_ec_points_plus_ec_points {
+  ($rhs: ty, $target: ty) => {
+    impl<'a> ops::Add<$rhs> for $target {
+      type Output = EcPoints<'a>;
+
+      fn add(self, rhs: $rhs) -> Self::Output {
+        assert!(self.len() > 0 && self.len() == rhs.len());
+        let (ops, lhs) = &self.0;
+
+        let mut xs = vec![];
+        for i in 0..self.len() {
+          let x = ops.add(&lhs[i], &rhs[i]);
+          let x = EcPoint1((*ops, x));
+          xs.push(x);
+        }
+        EcPoints((*ops, xs))
+      }
+    }
+  };
+}
+impl_ec_points_plus_ec_points!(EcPoints<'a>, EcPoints<'a>);
 
 macro_rules! impl_ec_points_minus_ec_points {
   ($rhs: ty, $target: ty) => {
