@@ -343,7 +343,9 @@ mod tests {
 
   #[test]
   #[allow(non_snake_case)]
-  fn test_tmp() {
+  fn test_mul_field_elem_above_order() {
+    use num_bigint::BigUint;
+
     let curve = WeierstrassEq::secp256k1();
     let ops = JacobianAddOps::new();
     let co = curve.n();
@@ -356,21 +358,11 @@ mod tests {
     ];
     let gg = &bp.ec_points(&gg);
 
-    let x = &co.elem(&2u8);
-    let xx = vec![ x.clone(), x.clone() ];
-    let xx = &FieldElems(xx);
-    let sL = vec![
-      co.elem(&3u8),
-      co.elem(&7u8),
-    ];
-    let sL = &FieldElems(sL);
+    let order_minus_1 = co.order.as_ref() - BigUint::from(1u8);
+    let x = co.elem(&order_minus_1);
     let sL = &co.rand_elems(n, true);
-    println!("sL[0]={0}", sL[0].to_str_radix(16));
-    println!("sL[1]={0}", sL[1].to_str_radix(16));
     
-    let sLx = &(sL * x);
-    println!("ll[0]={0}", sLx[0].to_str_radix(16));
-    println!("ll[1]={0}", sLx[1].to_str_radix(16));
+    let sLx = &(sL * &x);
 
     assert!(gg * sLx == (gg * sL) * x);
   }
