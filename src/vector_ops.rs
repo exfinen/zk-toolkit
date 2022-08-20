@@ -57,6 +57,8 @@ macro_rules! impl_ec_point1_plus_ec_point1 {
     }
   };
 }
+impl_ec_point1_plus_ec_point1!(EcPoint1<'a>, &EcPoint1<'a>);
+impl_ec_point1_plus_ec_point1!(&EcPoint1<'a>, EcPoint1<'a>);
 impl_ec_point1_plus_ec_point1!(EcPoint1<'a>, EcPoint1<'a>);
 
 

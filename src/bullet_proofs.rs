@@ -78,65 +78,43 @@ impl<'a, const N: usize> BulletProofs<'a, N> {
     EcPoint1((ops, x))
   }
 
-  // for a given P, prover proves that it has vectors a, b s.t. 
   // P = g^a h^b u^<a,b>
   #[allow(non_snake_case)]
-  pub fn improved_inner_product_argument(&self,
+  pub fn inner_product_argument(&self,
     n: usize,
-    g: &EcPoints<'a>, h: &EcPoints<'a>,
-    u: &EcPoint1<'a>, p: &EcPoint1<'a>,  
-    a: &FieldElems, b: &FieldElems, 
+    gg: &EcPoints<'a>,
+    hh: &EcPoints<'a>,
+    u: &EcPoint1<'a>,
+    P: &EcPoint1<'a>,  
+    a: &FieldElems,
+    b: &FieldElems, 
   ) -> bool {
     if n == 1 {
-      // prover sends a,b to verifier
+        let c = (a * b).sum();
+        let rhs = (gg * a).sum() + (hh * b).sum() + u * c;
+        P == &rhs
+    }
+    else {
+      let np = n / 2;
 
-      // verifier computers c = a*b
-      let c = &a[0] * &b[0];
+      let cL = (a.to(..np) * b.from(np..)).sum();
+      let cR = (a.from(np..) * b.to(..np)).sum();
 
-      // verifier accepts if P = g^a h^b u^c holds
-      let ga = &g[0] * &a[0];
-      let hb = &h[0] * &b[0];
-      let uc = u * c;
+      let L = (gg.from(np..) * a.to(..np)).sum() + (hh.to(..np) * b.from(np..)).sum() + u * cL;
+      let R = (gg.to(..np) * a.from(np..)).sum() + (hh.from(np..) * b.to(..np)).sum() + u * cR;
 
-      let rhs = self.vector_add(&[ga , hb, uc]);
-      p == &rhs 
+      let x = &self.curve.n().rand_elem(true);
 
-    } else {
-      // prover computes L,R whose length is n/2
-      let nn = n / 2;
-      let cL = &self.field_elem_mul(&a.to(..nn), &b.from(nn..)).sum();
-      let cR = &self.field_elem_mul(&a.from(nn..), &b.to(..nn)).sum();
-      let L = self.vector_add(&vec![
-        (g.from(nn..) * a.to(..nn)).sum(),
-        (h.to(..nn) * b.from(nn..)).sum(),
-        self.scalar_mul(u, &cL),
-      ]);
-      let R = self.vector_add(&vec![
-        (g.to(..nn) * a.from(nn..)).sum(),
-        (h.from(nn..) * b.to(..nn)).sum(),
-        u * cR,
-      ]);
+      let ggp = (gg.to(..np) * x.inv()) + (gg.from(np..) * x);
+      let hhp = (hh.to(..np) * x) + (hh.from(np..) * x.inv());
 
-      // prover passes L,R to verifier
+      let Pp = (L * x.sq()) + P + (R * x.sq().inv());
 
-      // verifier chooses x in Z^*_p and sends to prover
-      let x = self.curve.f().rand_elem(true);
+      let ap = a.to(..np) * x + a.from(np..) * x.inv();
+      let bp = b.to(..np) * x.inv() + b.from(np..) * x;
 
-      // both prover and verifier compute gg,hh,PP
-      let gg = (&g.to(..nn) * &x.inv()) * (&g.from(nn..) * &x);
-      let hh = (&h.to(..nn) * &x) * (&h.from(nn..) * &x.inv());
-      
-      let pp = self.vector_add(&vec![
-        L * x.sq(),
-        p.clone(),
-        R * x.sq().inv(),
-      ]);
-
-      // prover computes aa, bb
-      let aa = (&a.to(..nn) * &x) + (&a.from(nn..) * &x.inv());
-      let bb = (&b.to(..nn) * &x.inv()) + (&b.from(nn..) * &x);
-      self.improved_inner_product_argument(
-        nn, &gg, &hh, u, &pp, &aa, &bb)
+      self.inner_product_argument(
+        np, &ggp, &hhp, u, &Pp, &ap, &bp)
     }
   }
 
@@ -151,6 +129,7 @@ impl<'a, const N: usize> BulletProofs<'a, N> {
     h: &EcPoint1<'a>,
     gg: &EcPoints<'a>,
     hh: &EcPoints<'a>,
+    use_inner_product_argument: bool,
   ) -> bool {
     let co = self.curve.n();
 
@@ -234,15 +213,23 @@ impl<'a, const N: usize> BulletProofs<'a, N> {
       (hhp * ((y_n * z) + (two_n * z.sq()))).sum(),
     ]);
 
-    let rhs_66_67 = ((h * mu) + (gg * l).sum()) + (hhp * r).sum();
-    if P != rhs_66_67 {
-      return false;
+    if use_inner_product_argument {
+      let u = &self.rand_point();
+      let u = &self.ec_point(u);
+      let Pp = &(P + h * mu.negate() + u * (l * r).sum());
+      self.inner_product_argument(n, gg, hhp, u, Pp, l, r)
+
+    } else {
+      let rhs_66_67 = ((h * mu) + (gg * l).sum()) + (hhp * r).sum();
+      if P != rhs_66_67 {
+        return false;
+      }
+
+      // (68)
+      let rhs_68 = (l * r).sum();
+
+      t_hat == &rhs_68
     }
-
-    // (68)
-    let rhs_68 = (l * r).sum();
-
-    t_hat == &rhs_68
   }
 }
 
@@ -394,16 +381,19 @@ mod tests {
     let hh = bp.ec_points(&hh);
     let V = (&h * &gamma) + (&g * &upsilon);
 
-    let res = bp.range_proof(
-      n,
-      &V,
-      &aL,
-      &gamma,
-      &g,
-      &h,
-      &gg,
-      &hh, 
-    );
-    assert!(res == true);
+    for use_inner_product_argument in [true, false] {
+      let res = bp.range_proof(
+        n,
+        &V,
+        &aL,
+        &gamma,
+        &g,
+        &h,
+        &gg,
+        &hh, 
+        use_inner_product_argument,
+      );
+      assert!(res == true);
+    }
   }
 }
