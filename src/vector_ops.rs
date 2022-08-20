@@ -141,6 +141,8 @@ macro_rules! impl_ec_points_times_field_elems {
   };
 }
 impl_ec_points_times_field_elems!(&FieldElems, &EcPoints<'a>);
+impl_ec_points_times_field_elems!(FieldElems, EcPoints<'a>);
+impl_ec_points_times_field_elems!(FieldElems, &EcPoints<'a>);
 
 // returns Hadamard product
 macro_rules! impl_ec_points_times_ec_points {
@@ -188,6 +190,7 @@ macro_rules! impl_ec_points_times_field_elem {
 impl_ec_points_times_field_elem!(&FieldElem, &EcPoints<'a>);
 impl_ec_points_times_field_elem!(FieldElem, &EcPoints<'a>);
 impl_ec_points_times_field_elem!(&FieldElem, EcPoints<'a>);
+impl_ec_points_times_field_elem!(FieldElem, EcPoints<'a>);
 
 macro_rules! impl_ec_points_plus_ec_points {
   ($rhs: ty, $target: ty) => {

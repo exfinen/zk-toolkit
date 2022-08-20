@@ -52,9 +52,9 @@ impl<'a, const N: usize> BulletProofs<'a, N> {
     FieldElems(zs)
   }
 
-  pub fn vector_add(&self, xs: &[&EcPoint1<'a>]) -> EcPoint1<'a> {
+  pub fn vector_add(&self, xs: &[EcPoint1<'a>]) -> EcPoint1<'a> {
     assert!(xs.len() > 0);
-    let head = xs[0];
+    let head = &xs[0];
     let (ops, _) = xs[0].0;
     let tail = &xs[1..];
     let x = tail.iter().fold(head.0.1.clone(), |acc, x| {
@@ -96,25 +96,25 @@ impl<'a, const N: usize> BulletProofs<'a, N> {
       // verifier accepts if P = g^a h^b u^c holds
       let ga = &g[0] * &a[0];
       let hb = &h[0] * &b[0];
-      let uc = u * &c;
+      let uc = u * c;
 
-      let rhs = self.vector_add(&[&ga , &hb, &uc]);
+      let rhs = self.vector_add(&[ga , hb, uc]);
       p == &rhs 
 
     } else {
       // prover computes L,R whose length is n/2
       let nn = n / 2;
-      let cL = self.field_elem_mul(&a.to(..nn), &b.from(nn..)).sum();
-      let cR = self.field_elem_mul(&a.from(nn..), &b.to(..nn)).sum();
+      let cL = &self.field_elem_mul(&a.to(..nn), &b.from(nn..)).sum();
+      let cR = &self.field_elem_mul(&a.from(nn..), &b.to(..nn)).sum();
       let L = self.vector_add(&vec![
-        &(&g.from(nn..) * &a.to(..nn)).sum(),
-        &(&h.to(..nn) * &b.from(nn..)).sum(),
-        &self.scalar_mul(u, &cL),
+        (g.from(nn..) * a.to(..nn)).sum(),
+        (h.to(..nn) * b.from(nn..)).sum(),
+        self.scalar_mul(u, &cL),
       ]);
       let R = self.vector_add(&vec![
-        &(&g.to(..nn) * &a.from(nn..)).sum(),
-        &(&h.from(nn..) * &b.to(..nn)).sum(),
-        &(u * &cR),
+        (g.to(..nn) * a.from(nn..)).sum(),
+        (h.from(nn..) * b.to(..nn)).sum(),
+        u * cR,
       ]);
 
       // prover passes L,R to verifier
@@ -127,9 +127,9 @@ impl<'a, const N: usize> BulletProofs<'a, N> {
       let hh = (&h.to(..nn) * &x) * (&h.from(nn..) * &x.inv());
       
       let pp = self.vector_add(&vec![
-        &(&L * &x.sq()),
-        p,
-        &(&R * &x.sq().inv()),
+        L * x.sq(),
+        p.clone(),
+        R * x.sq().inv(),
       ]);
 
       // prover computes aa, bb
@@ -154,113 +154,95 @@ impl<'a, const N: usize> BulletProofs<'a, N> {
   ) -> bool {
     let co = self.curve.n();
 
-    // on input upsilon, gamma prover computes
     let one = co.elem(&1u8);
     let two = co.elem(&2u8);
-    let one_n = one.pow_seq(n);
-    let two_n = two.pow_seq(n);
+    let one_n = &one.pow_seq(n);
+    let two_n = &two.pow_seq(n);
 
-    let aR = aL - &one_n;
-    let alpha = co.rand_elem(true);
+    let aR = &(aL - one_n);
+    let alpha = &co.rand_elem(true);
     let A = self.vector_add(&vec![
-      &(h * &alpha),
-      &(gg * aL).sum(),
-      &(hh * &aR).sum(),
+      h * alpha,
+      (gg * aL).sum(),
+      (hh * aR).sum(),
     ]);
 
-    let sL = co.rand_elems(n, true);
-    let sR = co.rand_elems(n, true);
-    let rho = co.rand_elem(true);
+    let sL = &co.rand_elems(n, true);
+    let sR = &co.rand_elems(n, true);
+    let rho = &co.rand_elem(true);
     let S = self.vector_add(&vec![
-      &(h * &rho),
-      &(gg * &sL).sum(),
-      &(hh * &sR).sum(),
+      h * rho,
+      (gg * sL).sum(),
+      (hh * sR).sum(),
     ]);
 
-    // prover sends A,S to verifier
-  
-    // verifier sends y,z to prover
-    let y = co.rand_elem(true);
-    let z = co.rand_elem(true);
+    let y = &co.rand_elem(true);
+    let z = &co.rand_elem(true);
 
-    // define t(x) = <l(x),r(x)> = t0 + t1 * x + t2 * x^2
     let y_n = &y.pow_seq(n);
-    let l0 = aL - (&one_n * &z);
-    let l1 = &sL;
-    let r0 = (y_n * (&aR + (&one_n * &z))) + (&two_n * &z.sq());
-    let r1 = y_n * &sR;
+    let l0 = aL - (one_n * z);
+    let l1 = sL;
+    let r0 = (y_n * (aR + (one_n * z))) + (two_n * z.sq());
+    let r1 = y_n * sR;
 
-    let t0 = (&l0 * &r0).sum();
-    let t1 = (l1 * &r0).sum() + (&l0 * &r1).sum();
-    let t2 = (l1 * &r1).sum();
+    let t0 = &(&l0 * &r0).sum();
+    let t1 = &((l1 * &r0).sum() + (&l0 * &r1).sum());
+    let t2 = &(l1 * &r1).sum();
 
-    // prover computes
-    let tau1 = co.rand_elem(true);
-    let tau2 = co.rand_elem(true);
-    let T1 = self.vector_add(&vec![
-      &(g * &t1),
-      &(h * &tau1),
+    let tau1 = &co.rand_elem(true);
+    let tau2 = &co.rand_elem(true);
+    let T1 = &self.vector_add(&vec![
+      g * t1,
+      h * tau1,
     ]);
-    let T2 = self.vector_add(&vec![
-      &(g * &t2),
-      &(h * &tau2),
+    let T2 = &self.vector_add(&vec![
+      g * t2,
+      h * tau2,
     ]);
 
-    // prover sends T1,T2 to verifier
+    let x = &co.rand_elem(true);
 
-    // verifier selects random x and sends to prover
-    let x = co.rand_elem(true);
-
-    // prover computes
-
-    let t_hat = t0 + (&t1 * &x) + (&t2 * &x.sq());
-    let tau_x = &tau2 * &x.sq() + &((&tau1 * &x) + &(&z.sq() * gamma));
-    let mu = &alpha + &(&rho * &x);
-
-    // prover sends l, r, t_hat, mu to verifier
+    let t_hat = &(t0 + (t1 * x) + (t2 * x.sq()));
+    let tau_x = &(tau2 * x.sq() + (tau1 * x) + (z.sq() * gamma));
+    let mu = alpha + (rho * x);
 
     // (64)
-    let hhp = hh * &y.inv().pow_seq(n);
+    let hhp = &(hh * &y.inv().pow_seq(n));
 
     // (65)
-    let delta_yz = &((&z - &z.sq()) * &(&one_n * y_n).sum()) - &(&z.cube() * &(&one_n * &two_n).sum());
+    let delta_yz = &((z - z.sq()) * (one_n * y_n).sum()) - (z.cube() * (one_n * two_n).sum());
 
-    let lhs_65 = (g * &t_hat) + (h * &tau_x);
+    let lhs_65 = (g * t_hat) + (h * tau_x);
     let rhs_65 = self.vector_add(&vec![
-      &(V * &z.sq()),
-      &(g * &delta_yz),
-      &(&T1 * &x),
-      &(&T2 * &x.sq()),
+      V * z.sq(),
+      g * delta_yz,
+      T1 * x,
+      T2 * x.sq(),
     ]);
-    println!("CHECK 1");
     if lhs_65 != rhs_65 {
       return false;
     }
-    println!("CHECK 1 PASSED");
 
     // (66), (67)
-    let l = (aL - (&one_n * &z)) + (&sL * &x);
-    let r = (y_n * &((aR + (&one_n * &z)) + (&sR * &x))) + (&two_n * &z.sq());
+    let l = &((aL - (one_n * z)) + (sL * x));
+    let r = &((y_n * ((aR + (one_n * z)) + (sR * x))) + (two_n * z.sq()));
 
     let P = self.vector_add(&vec![
-      &A,
-      &(&S * &x),
-      &(gg * &(&one_n * &z.negate())).sum(),   // TODO check this
-      &(&hhp * &((y_n * &z) + (&two_n * &z.sq()))).sum(),
+      A,
+      S * x,
+      (gg * (one_n * z.negate())).sum(),
+      (hhp * ((y_n * z) + (two_n * z.sq()))).sum(),
     ]);
 
-    let rhs_66_67 = ((h * &mu) + (gg * &l).sum()) + (&hhp * &r).sum();
-    println!("CHECK 2");
+    let rhs_66_67 = ((h * mu) + (gg * l).sum()) + (hhp * r).sum();
     if P != rhs_66_67 {
       return false;
     }
-    println!("CHECK 2 PASSED");
 
     // (68)
-    let rhs_68 = (&l * &r).sum();
+    let rhs_68 = (l * r).sum();
 
-    println!("CHECK 3");
-    t_hat == rhs_68
+    t_hat == &rhs_68
   }
 }
 
@@ -391,85 +373,6 @@ mod tests {
     println!("ll[1]={0}", sLx[1].to_str_radix(16));
 
     assert!(gg * sLx == (gg * sL) * x);
-  }
-
-  #[test]
-  #[allow(non_snake_case)]
-  fn test_range_proof_66_67_excl_h_prime_experiment() {
-    let curve = WeierstrassEq::secp256k1();
-    let ops = JacobianAddOps::new();
-    let co = curve.n();
-    let bp: BulletProofs<2> = BulletProofs::new(&curve, &ops);
-
-    let n = 2;
-    let one = co.elem(&1u8);
-    let ones = &one.repeat(n);
-    let z = &co.rand_elem(true);
-
-    let alpha = &co.rand_elem(true);
-    let rho = &co.rand_elem(true);
-    let x = &co.rand_elem(true);
-    let mu = &(alpha + (rho * x)); 
-
-    let gg = bp.rand_points(n);
-    let gg = &bp.ec_points(&gg);
-
-    let aL = &FieldElems(vec![
-      co.elem(&1u8),
-      co.elem(&1u8),
-    ]);
-    let sL = &co.rand_elems(n, true);
-
-    let sLx = sL * x;
-    let ll = &(/*- (ones * z)*/ sLx);
-
-    let hmu_ggl = (gg * ll).sum();
-
-    let A = (gg * aL).sum();
-    let S = (gg * sL).sum();
-    let P = S * x; // + (gg * z.negate()).sum();
-
-    assert!(P == hmu_ggl);
-  }
-
-  #[test]
-  #[allow(non_snake_case)]
-  fn test_range_proof_66_67_excl_h_prime() {
-    let curve = WeierstrassEq::secp256k1();
-    let ops = JacobianAddOps::new();
-    let co = curve.n();
-    let bp: BulletProofs<2> = BulletProofs::new(&curve, &ops);
-
-    let n = 2;
-    let one = co.elem(&1u8);
-    let ones = &one.repeat(n);
-    let z = &co.rand_elem(true);
-
-    let alpha = &co.rand_elem(true);
-    let rho = &co.rand_elem(true);
-    let x = &co.rand_elem(true);
-    let mu = &(alpha + (rho * x)); 
-
-    let gg = bp.rand_points(n);
-    let gg = &bp.ec_points(&gg);
-    let h = bp.rand_point();
-    let h = &bp.ec_point(&h);
-
-    let aL = &FieldElems(vec![
-      co.elem(&1u8),
-      co.elem(&1u8),
-    ]);
-    let sL = &co.rand_elems(n, true);
-
-    let ll = &(aL - (ones * z) + (sL * x));
-
-    let hmu_ggl = (h * mu) + (gg * ll).sum();
-
-    let A = (h * alpha) + (gg * aL).sum();
-    let S = (h * rho) + (gg * sL).sum();
-    let P = (A + (&S * x)) + (gg * z.negate()).sum();
-
-    assert!(P == hmu_ggl);
   }
 
   #[test]

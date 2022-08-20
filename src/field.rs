@@ -528,6 +528,7 @@ macro_rules! impl_field_elems_times_field_elem {
 }
 impl_field_elems_times_field_elem!(&FieldElem, &FieldElems);
 impl_field_elems_times_field_elem!(FieldElem, FieldElems);
+impl_field_elems_times_field_elem!(FieldElem, &FieldElems);
 
 /////////////
 // tests
