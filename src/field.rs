@@ -34,69 +34,87 @@ impl PartialEq for FieldElem {
 
 impl Eq for FieldElem {}
 
-impl ops::Add<&dyn ToBigUint> for FieldElem {
-  type Output = Self;
+macro_rules! impl_add {
+  ($rhs: ty, $target: ty) => {
+    impl<'a> ops::Add<$rhs> for $target {
+      type Output = FieldElem;
 
-  fn add(self, rhs: &dyn ToBigUint) -> Self::Output {
-    self.plus(&rhs.to_biguint())
-  }
+      fn add(self, rhs: $rhs) -> Self::Output {
+        self.plus(&rhs.to_biguint())
+      }
+    }
+  };
 }
+impl_add!(u8, FieldElem);
+impl_add!(u32, FieldElem);
+impl_add!(FieldElem, &FieldElem);
+impl_add!(&FieldElem, &FieldElem);
+impl_add!(&FieldElem, FieldElem);
+impl_add!(FieldElem, FieldElem);
+impl_add!(&dyn ToBigUint, FieldElem);
+impl_add!(BigUint, FieldElem);
 
-impl<'a> ops::Add<&dyn ToBigUint> for &'a FieldElem {
-  type Output = FieldElem;
+macro_rules! impl_sub {
+  ($rhs: ty, $target: ty) => {
+    impl<'a> ops::Sub<$rhs> for $target {
+      type Output = FieldElem;
 
-  fn add(self, rhs: &dyn ToBigUint) -> Self::Output {
-    self.plus(&rhs.to_biguint())
-  }
+      fn sub(self, rhs: $rhs) -> Self::Output {
+        self.minus(&rhs.to_biguint())
+      }
+    }
+  };
 }
+impl_sub!(u8, FieldElem);
+impl_sub!(u32, FieldElem);
+impl_sub!(FieldElem, &FieldElem);
+impl_sub!(&FieldElem, &FieldElem);
+impl_sub!(&FieldElem, FieldElem);
+impl_sub!(FieldElem, FieldElem);
+impl_sub!(&dyn ToBigUint, FieldElem);
+impl_sub!(BigUint, FieldElem);
 
-impl ops::Sub<&dyn ToBigUint> for FieldElem {
-  type Output = Self;
+macro_rules! impl_mul {
+  ($rhs: ty, $target: ty) => {
+    impl<'a> ops::Mul<$rhs> for $target {
+      type Output = FieldElem;
 
-  fn sub(self, rhs: &dyn ToBigUint) -> Self::Output {
-    self.minus(&rhs.to_biguint())
-  }
+      fn mul(self, rhs: $rhs) -> Self::Output {
+        self.times(&rhs.to_biguint())
+      }
+    }
+  };
 }
+impl_mul!(u8, FieldElem);
+impl_mul!(u8, &FieldElem);
+impl_mul!(u32, FieldElem);
+impl_mul!(FieldElem, &FieldElem);
+impl_mul!(&FieldElem, &FieldElem);
+impl_mul!(&FieldElem, FieldElem);
+impl_mul!(FieldElem, FieldElem);
+impl_mul!(&dyn ToBigUint, FieldElem);
+impl_mul!(BigUint, FieldElem);
+impl_mul!(&BigUint, FieldElem);
 
-impl<'a> ops::Sub<&dyn ToBigUint> for &'a FieldElem {
-  type Output = FieldElem;
+macro_rules! impl_div {
+  ($rhs: ty, $target: ty) => {
+    impl<'a> ops::Div<$rhs> for $target {
+      type Output = FieldElem;
 
-  fn sub(self, rhs: &dyn ToBigUint) -> Self::Output {
-    self.minus(&rhs.to_biguint())
-  }
+      fn div(self, rhs: $rhs) -> Self::Output {
+        self.divide_by(&rhs.to_biguint())
+      }
+    }
+  };
 }
-
-impl ops::Mul<&dyn ToBigUint> for FieldElem {
-  type Output = Self;
-
-  fn mul(self, rhs: &dyn ToBigUint) -> Self::Output {
-    self.times(&rhs.to_biguint())
-  }
-}
-
-impl<'a> ops::Mul<&dyn ToBigUint> for &'a FieldElem {
-  type Output = FieldElem;
-
-  fn mul(self, rhs: &dyn ToBigUint) -> Self::Output {
-    self.times(&rhs.to_biguint())
-  }
-}
-
-impl ops::Div<&dyn ToBigUint> for FieldElem {
-  type Output = Self;
-
-  fn div(self, rhs: &dyn ToBigUint) -> Self::Output {
-    self.divide_by(&rhs.to_biguint())
-  }
-}
-
-impl<'a> ops::Div<&dyn ToBigUint> for &'a FieldElem {
-  type Output = FieldElem;
-
-  fn div(self, rhs: &dyn ToBigUint) -> Self::Output {
-    self.divide_by(&rhs.to_biguint())
-  }
-}
+impl_div!(u8, FieldElem);
+impl_div!(u32, FieldElem);
+impl_div!(FieldElem, &FieldElem);
+impl_div!(&FieldElem, &FieldElem);
+impl_div!(&FieldElem, FieldElem);
+impl_div!(FieldElem, FieldElem);
+impl_div!(&dyn ToBigUint, FieldElem);
+impl_div!(BigUint, FieldElem);
 
 impl ops::Neg for FieldElem {
   type Output = Self;
@@ -333,7 +351,7 @@ impl Field {
     let mut curr = self.elem(&1u8);
     for _ in 0..n {
       vec.push(curr.clone());
-      curr = curr * x;
+      curr = curr * x.to_biguint();
     }
     FieldElems(vec)
   }
@@ -427,60 +445,88 @@ impl Deref for FieldElems {
   }
 }
 
-impl<'a> ops::Add<&'a[FieldElem]> for &FieldElems {
-  type Output = FieldElems;
+macro_rules! impl_field_elems_plus_field_elems {
+  ($rhs: ty, $target: ty) => {
+    impl<'a> ops::Add<$rhs> for $target {
+      type Output = FieldElems;
+      
+      fn add(self, rhs: FieldElems) -> Self::Output {
+        assert!(self.len() > 0 && self.len() == rhs.len());
 
-  fn add(self, rhs: &'a[FieldElem]) -> Self::Output {
-    assert!(self.len() > 0 && self.len() == rhs.len());
-
-    let xs: Vec<FieldElem> = self.iter().zip(rhs.iter()).map(|(a, b)| {
-      a + b 
-    }).collect();
-    FieldElems(xs)
-  }
+        let mut xs = vec![];
+        for i in 0..self.len() {
+          xs.push(&self[i] + &rhs[i]);
+        }
+        FieldElems(xs)
+      }
+    }
+  };
 }
+impl_field_elems_plus_field_elems!(FieldElems, FieldElems);
+impl_field_elems_plus_field_elems!(FieldElems, &FieldElems);
 
-impl<'a> ops::Sub<&FieldElems> for &FieldElems {
-  type Output = FieldElems;
+macro_rules! impl_field_elems_minus_field_elems {
+  ($rhs: ty, $target: ty) => {
+    impl<'a> ops::Sub<$rhs> for $target {
+      type Output = FieldElems;
 
-  fn sub(self, rhs: &FieldElems) -> Self::Output {
-    assert!(self.len() > 0 && self.len() == rhs.len());
+      fn sub(self, rhs: $rhs) -> Self::Output {
+        assert!(self.len() > 0 && self.len() == rhs.len());
 
-    let xs: Vec<FieldElem> = self.iter().zip(rhs.iter()).map(|(l, r)| {
-      l - r 
-    }).collect();
-    FieldElems(xs)
-  }
+        let mut xs = vec![];
+        for i in 0..self.len() {
+          xs.push(&self[i] - &rhs[i]);
+        }
+        FieldElems(xs)
+      }
+    }
+  };
 }
+impl_field_elems_minus_field_elems!(FieldElems, &FieldElems);
+impl_field_elems_minus_field_elems!(&FieldElems, &FieldElems);
 
-// returns Hadamard product
-impl<'a> ops::Mul<&FieldElems> for &FieldElems {
-  type Output = FieldElems;
+macro_rules! impl_field_elems_times_field_elems {
+  ($rhs: ty, $target: ty) => {
+    impl<'a> ops::Mul<$rhs> for $target {
+      type Output = FieldElems;
 
-  fn mul(self, rhs: &FieldElems) -> Self::Output {
-    assert!(self.len() > 0 && self.len() == rhs.len());
+      fn mul(self, rhs: $rhs) -> Self::Output {
+        assert!(self.len() > 0 && self.len() == rhs.len());
 
-    let xs = self.iter().zip(rhs.iter()).map(|(l, r)| {
-      l * r
-    }).collect();
-    FieldElems(xs)
-  }
+        let mut xs = vec![];
+        for i in 0..self.len() {
+          xs.push(&self[i] * &rhs[i]);
+        }
+        FieldElems(xs)
+      }
+    }
+  };
 }
+impl_field_elems_times_field_elems!(FieldElems, FieldElems);
+impl_field_elems_times_field_elems!(FieldElems, &FieldElems);
+impl_field_elems_times_field_elems!(&FieldElems, &FieldElems);
 
 // multiply rhs (scalar) to each element
-impl<'a> ops::Mul<&FieldElem> for &FieldElems {
-  type Output = FieldElems;
+macro_rules! impl_field_elems_times_field_elem {
+  ($rhs: ty, $target: ty) => {
+    impl<'a> ops::Mul<$rhs> for $target {
+      type Output = FieldElems;
 
-  fn mul(self, rhs: &FieldElem) -> Self::Output {
-    assert!(self.len() > 0);
+      fn mul(self, rhs: $rhs) -> Self::Output {
+        assert!(self.len() > 0);
+        let rhs = rhs.clone();  // TODO find a better way to solve &&rhs issue
 
-    let xs: Vec<FieldElem> = self.iter().map(|fe| {
-      fe * rhs  
-    }).collect();
-
-    FieldElems(xs)
-  }
+        let mut xs = vec![];
+        for x in self.iter() {
+          xs.push(x * &rhs);
+        }
+        FieldElems(xs)
+      }
+    }
+  };
 }
+impl_field_elems_times_field_elem!(&FieldElem, &FieldElems);
+impl_field_elems_times_field_elem!(FieldElem, FieldElems);
 
 /////////////
 // tests
@@ -527,7 +573,7 @@ mod tests {
     let f = Field::new(&11u32);
     let a = FieldElem::new(&f, &9u32);
     let b = FieldElem::new(&f, &3u32);
-    let c = a + &b;
+    let c = a + b;
     assert_eq!(c.n, BigUint::from(1u32));
   }
 
@@ -536,7 +582,7 @@ mod tests {
     let f = Field::new(&11u32);
     let a = FieldElem::new(&f, &9u32);
     let b = FieldElem::new(&f, &2u32);
-    let c = a - &b;
+    let c = a - b;
     assert_eq!(c.n, BigUint::from(7u32));
   }
 
@@ -545,7 +591,7 @@ mod tests {
     let f = Field::new(&11u32);
     let a = FieldElem::new(&f, &9u32);
     let b = FieldElem::new(&f, &9u32);
-    let c = a - &b;
+    let c = a - b;
     assert_eq!(c.n, BigUint::zero());
   }
 
@@ -554,7 +600,7 @@ mod tests {
     let f = Field::new(&11u32);
     let a = FieldElem::new(&f, &9u32);
     let b = FieldElem::new(&f, &10u32);
-    let c = a - &b;
+    let c = a - b;
     assert_eq!(c.n, BigUint::from(10u32));
   }
 
@@ -563,7 +609,7 @@ mod tests {
     let f = Field::new(&11u32);
     let a = FieldElem::new(&f, &2u32);
     let b = FieldElem::new(&f, &5u32);
-    let c = a * &b;
+    let c = a * b;
     assert_eq!(c.n, BigUint::from(10u32));
   }
 
@@ -572,7 +618,7 @@ mod tests {
     let f = Field::new(&11u32);
     let a = FieldElem::new(&f, &1u32);
     let b = FieldElem::new(&f, &11u32);
-    let c = a * &b;
+    let c = a * b;
     assert_eq!(c.n, BigUint::from(0u32));
   }
 
@@ -581,7 +627,7 @@ mod tests {
     let f = Field::new(&11u32);
     let a = FieldElem::new(&f, &3u32);
     let b = FieldElem::new(&f, &9u32);
-    let c = a * &b;
+    let c = a * b;
     assert_eq!(c.n, BigUint::from(5u32));
   }
 
@@ -589,7 +635,7 @@ mod tests {
   fn mul_u32_below_order_result() {
     let f = Field::new(&11u8);
     let a = FieldElem::new(&f, &2u8);
-    let b = a * &5u8;
+    let b = a * 5u8;
     assert_eq!(b.n, BigUint::from(10u8));
   }
 

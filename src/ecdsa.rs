@@ -63,7 +63,7 @@ impl<'a, const HASHER_OUT_SIZE: usize> Ecdsa<'a, HASHER_OUT_SIZE> {
       let k_inv = k.inv();  // mod n
       let r_fe = f.elem(&r);  // mod n
       let z_fe = f.elem(&z);  // mod n
-      let s = k_inv * &(priv_key * &r_fe + &z_fe);  // mod n
+      let s = k_inv * (priv_key * &r_fe + z_fe);  // mod n
       // if s is 0, k is bad. repear the process from the beginning
       if s.n == BigUint::zero() {
         continue;
@@ -91,10 +91,10 @@ impl<'a, const HASHER_OUT_SIZE: usize> Ecdsa<'a, HASHER_OUT_SIZE> {
     }
     // check if r and s are in [1, n-1]
     else if 
-      sig.r.n == BigUint::zero()
-      || sig.s.n == BigUint::zero()
-      || n <= sig.r.n
-      || n <= sig.s.n {
+      *&sig.r.n.is_zero()
+      || *&sig.s.n.is_zero()
+      || &n <= &sig.r.n
+      || &n <= &sig.s.n {
       false
     } 
     else {
@@ -104,7 +104,7 @@ impl<'a, const HASHER_OUT_SIZE: usize> Ecdsa<'a, HASHER_OUT_SIZE> {
       let z_fe = FieldElem::new(&self.f, &z);  // mod n
       let w = sig.s.inv();  // mod n
       let u1 = z_fe * &w;  // mod n
-      let u2 = &sig.r * &w;  // mod n
+      let u2 = &sig.r * w;  // mod n
 
       // (x, y) = u1 * G + u2 * PubKey
       let p1 = self.ops.scalar_mul(&self.curve.g(), &u1.n);

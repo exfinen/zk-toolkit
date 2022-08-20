@@ -46,8 +46,8 @@ impl AddOps for Ed25519Sha512 {
     let x1x2y1y2 = &x1y2 * &x2y1;
     let y1y2 = &p1.y * &p2.y;
     let x1x2 = &p1.x * &p2.x;
-    let x = &(&x1y2 + &x2y1) / &(self.f.elem(&1u8) + &(&self.d * &x1x2y1y2));
-    let y = (&y1y2 + &x1x2) / &(self.f.elem(&1u8) - &(&self.d * &x1x2y1y2));
+    let x = (x1y2 + x2y1) / (self.f.elem(&1u8) + (&self.d * &x1x2y1y2));
+    let y = (y1y2 + x1x2) / (self.f.elem(&1u8) - (&self.d * x1x2y1y2));
     EcPoint::new(&x, &y)
   }
 
@@ -69,10 +69,10 @@ impl Ed25519Sha512 {
     let l = two.pow(252u32).add(27742317777372353535851937790883648493u128);
 
     // d = -121665 / 121666
-    let d = -f.elem(&121665u32) / &121666u32;
+    let d = -f.elem(&121665u32) / 121666u32;
 
     // base point is (+x, 4/5)
-    let B_y = f.elem(&4u8) / &5u8;
+    let B_y = f.elem(&4u8) / 5u8;
     let B_x = Self::recover_x(&d, &B_y, Parity::Even);  // get positive x
     let B = EcPoint::new(&B_x, &B_y);
 
@@ -92,7 +92,7 @@ impl Ed25519Sha512 {
     let q = &*d.f.order;
 
     // xx = x^2 = (y^2 - 1) / (1 + d*y^2)
-    let xx = (&y.sq() - &1u8) / &(&(d * &y.sq()) + &1u8);
+    let xx = (y.sq() - 1u8) / ((d * y.sq()) + 1u8);
 
     // calculate the square root of xx assuming a^((q-1)/4) = 1 mod q
     let mut x = (&xx).pow(&((q + &3u8) / &8u8));

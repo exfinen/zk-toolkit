@@ -123,8 +123,8 @@ impl<'a, const N: usize> BulletProofs<'a, N> {
       let x = self.curve.f().rand_elem(true);
 
       // both prover and verifier compute gg,hh,PP
-      let gg = &(&g.to(..nn) * &x.inv()) * &(&g.from(nn..) * &x);
-      let hh = &(&h.to(..nn) * &x) * &(&h.from(nn..) * &x.inv());
+      let gg = (&g.to(..nn) * &x.inv()) * (&g.from(nn..) * &x);
+      let hh = (&h.to(..nn) * &x) * (&h.from(nn..) * &x.inv());
       
       let pp = self.vector_add(&vec![
         &(&L * &x.sq()),
@@ -133,8 +133,8 @@ impl<'a, const N: usize> BulletProofs<'a, N> {
       ]);
 
       // prover computes aa, bb
-      let aa = &(&a.to(..nn) * &x) + &(&a.from(nn..) * &x.inv());
-      let bb = &(&b.to(..nn) * &x.inv()) + &(&b.from(nn..) * &x);
+      let aa = (&a.to(..nn) * &x) + (&a.from(nn..) * &x.inv());
+      let bb = (&b.to(..nn) * &x.inv()) + (&b.from(nn..) * &x);
       self.improved_inner_product_argument(
         nn, &gg, &hh, u, &pp, &aa, &bb)
     }
@@ -185,13 +185,13 @@ impl<'a, const N: usize> BulletProofs<'a, N> {
 
     // define t(x) = <l(x),r(x)> = t0 + t1 * x + t2 * x^2
     let y_n = &y.pow_seq(n);
-    let l0 = aL - &(&one_n * &z);
+    let l0 = aL - (&one_n * &z);
     let l1 = &sL;
-    let r0 = &(y_n * &(&aR + &(&one_n * &z))) + &(&two_n * &z.sq());
+    let r0 = (y_n * (&aR + (&one_n * &z))) + (&two_n * &z.sq());
     let r1 = y_n * &sR;
 
     let t0 = (&l0 * &r0).sum();
-    let t1 = (l1 * &r0).sum() + &(&l0 * &r1).sum();
+    let t1 = (l1 * &r0).sum() + (&l0 * &r1).sum();
     let t2 = (l1 * &r1).sum();
 
     // prover computes
@@ -213,7 +213,7 @@ impl<'a, const N: usize> BulletProofs<'a, N> {
 
     // prover computes
 
-    let t_hat = &t0 + &(&t1 * &x) + &(&t2 * &x.sq());
+    let t_hat = t0 + (&t1 * &x) + (&t2 * &x.sq());
     let tau_x = &tau2 * &x.sq() + &((&tau1 * &x) + &(&z.sq() * gamma));
     let mu = &alpha + &(&rho * &x);
 
@@ -225,7 +225,7 @@ impl<'a, const N: usize> BulletProofs<'a, N> {
     // (65)
     let delta_yz = &((&z - &z.sq()) * &(&one_n * y_n).sum()) - &(&z.cube() * &(&one_n * &two_n).sum());
 
-    let lhs_65 = &(g * &t_hat) + &(h * &tau_x);
+    let lhs_65 = (g * &t_hat) + (h * &tau_x);
     let rhs_65 = self.vector_add(&vec![
       &(V * &z.sq()),
       &(g * &delta_yz),
@@ -239,17 +239,17 @@ impl<'a, const N: usize> BulletProofs<'a, N> {
     println!("CHECK 1 PASSED");
 
     // (66), (67)
-    let l = &(aL - &(&one_n * &z)) + &(&sL * &x);
-    let r = &(y_n * &(&(&aR + &(&one_n * &z)) + &(&sR * &x))) + &(&two_n * &z.sq());
+    let l = (aL - (&one_n * &z)) + (&sL * &x);
+    let r = (y_n * &((aR + (&one_n * &z)) + (&sR * &x))) + (&two_n * &z.sq());
 
     let P = self.vector_add(&vec![
       &A,
       &(&S * &x),
       &(gg * &(&one_n * &z.negate())).sum(),   // TODO check this
-      &(&hhp * &(&(y_n * &z) + &(&two_n * &z.sq()))).sum(),
+      &(&hhp * &((y_n * &z) + (&two_n * &z.sq()))).sum(),
     ]);
 
-    let rhs_66_67 = &(&(h * &mu) + &(gg * &l).sum()) + &(&hhp * &r).sum();
+    let rhs_66_67 = ((h * &mu) + (gg * &l).sum()) + (&hhp * &r).sum();
     println!("CHECK 2");
     if P != rhs_66_67 {
       return false;
@@ -269,6 +269,98 @@ mod tests {
   use super::*;
   use crate::weierstrass_eq::WeierstrassEq;
   use crate::weierstrass_add_ops::JacobianAddOps;
+
+  // gg^z == gg^(ones * z)
+  #[test]
+  fn test_gg_ones_times_z() {
+    let curve = WeierstrassEq::secp256k1();
+    let ops = JacobianAddOps::new();
+    let f = curve.f();
+    let bp: BulletProofs<2> = BulletProofs::new(&curve, &ops);
+
+    let n = 2;
+    let z = f.rand_elem(true);
+    let gg = bp.rand_points(n);
+    let gg = bp.ec_points(&gg);
+
+    let r1 = &gg * &z;
+
+    let one = f.elem(&1u8);
+    let ones = one.repeat(n);
+    let r2 = &gg * &(&ones * &z);
+
+    assert!(r1 == r2);
+  }
+
+  #[test]
+  fn test_offset_by_negation() {
+    let curve = WeierstrassEq::secp256k1();
+    let ops = JacobianAddOps::new();
+    let f = curve.f();
+    let bp: BulletProofs<2> = BulletProofs::new(&curve, &ops);
+
+    {
+        let z = f.elem(&100u8);
+        let basis = f.elem(&12345u16);
+
+        let r1 = &basis - &z;
+        let r2 = &basis + &z.negate();
+        
+        assert_eq!(r1, r2);
+    }
+    {
+        let z = f.elem(&100u8);
+        let basis = f.elem(&12345u16);
+        let g = curve.g();
+        let g = bp.ec_point(&g);
+
+        let r1 = bp.scalar_mul(&g, &(&basis - &z));
+        let r2 = g * (basis + z.negate());
+        
+        assert!(r1 == r2);
+    }
+  }
+
+  #[test]
+  #[allow(non_snake_case)]
+  fn test_range_proof_66_67_excl_h_prime() {
+    let curve = WeierstrassEq::secp256k1();
+    let ops = JacobianAddOps::new();
+    let f = curve.f();
+    let bp: BulletProofs<2> = BulletProofs::new(&curve, &ops);
+
+    let n = 2;
+    let one = f.elem(&1u8);
+    let ones = &one.repeat(n);
+    let z = &f.rand_elem(true);
+
+    let alpha = &f.rand_elem(true);
+    let rho = &f.rand_elem(true);
+    let x = &f.rand_elem(true);
+    let mu = &(alpha + (rho * x)); 
+
+    let gg = bp.rand_points(n);
+    let gg = &bp.ec_points(&gg);
+    let h = bp.rand_point();
+    let h = &bp.ec_point(&h);
+
+    let aL = vec![
+      f.elem(&1u8),
+      f.elem(&1u8),
+    ];
+    let aL = &FieldElems(aL);
+    let sL = &f.rand_elems(n, true);
+
+    let ll = &(aL - (ones * z) + (sL * x));
+
+    let hmu_ggl = (h * mu) + (gg * ll).sum();
+
+    let A = (h * alpha) + (gg * aL).sum();
+    let S = (h * rho) + (gg * sL).sum();
+    let P = (A + (&S * x)) + (gg * z.negate()).sum();
+
+    assert!(P == hmu_ggl);
+  }
 
   #[test]
   #[allow(non_snake_case)]
@@ -295,7 +387,7 @@ mod tests {
     let gg = bp.ec_points(&gg);
     let hh = bp.rand_points(n);
     let hh = bp.ec_points(&hh);
-    let V = &(&h * &gamma) + &(&g * &upsilon);
+    let V = (&h * &gamma) + (&g * &upsilon);
 
     let res = bp.range_proof(
       n,

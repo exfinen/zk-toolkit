@@ -26,27 +26,37 @@ impl<'a> PartialEq for EcPoint1<'a> {
 
 impl<'a> Eq for EcPoint1<'a> {}
 
-// returns scalar multiple of self
-impl<'a> ops::Mul<&FieldElem> for &EcPoint1<'a> {
-  type Output = EcPoint1<'a>;
+macro_rules! impl_ec_point1_times_field_elem {
+  ($rhs: ty, $target: ty) => {
+    impl<'a> ops::Mul<$rhs> for $target {
+      type Output = EcPoint1<'a>;
 
-  fn mul(self, rhs: &FieldElem) -> Self::Output {
-    let (ops, lhs) = &self.0;
-    let x = ops.scalar_mul(&lhs, &rhs.n);
-    EcPoint1((*ops, x))
-  }
+      fn mul(self, rhs: $rhs) -> Self::Output {
+        let (ops, lhs) = &self.0;
+        let x = ops.scalar_mul(&lhs, &rhs.n);
+        EcPoint1((*ops, x))
+      }
+    }
+  };
 }
+impl_ec_point1_times_field_elem!(&FieldElem, &EcPoint1<'a>);
+impl_ec_point1_times_field_elem!(FieldElem, EcPoint1<'a>);
 
-// point addition
-impl<'a> ops::Add<&EcPoint1<'a>> for &EcPoint1<'a> {
-  type Output = EcPoint1<'a>;
+macro_rules! impl_ec_point1_plus_ec_point1 {
+  ($rhs: ty, $target: ty) => {
+    impl<'a> ops::Add<$rhs> for $target {
+      type Output = EcPoint1<'a>;
 
-  fn add(self, rhs: &EcPoint1<'a>) -> Self::Output {
-    let (ops, lhs) = &self.0;
-    let x = ops.add(&lhs, &rhs.0.1);
-    EcPoint1((*ops, x))
-  }
+      fn add(self, rhs: $rhs) -> Self::Output {
+        let (ops, lhs) = &self.0;
+        let x = ops.add(&lhs, &rhs.0.1);
+        EcPoint1((*ops, x))
+      }
+    }
+  };
 }
+impl_ec_point1_plus_ec_point1!(EcPoint1<'a>, EcPoint1<'a>);
+
 
 ///////////////
 // EcPoints
@@ -59,6 +69,12 @@ impl<'a> Deref for EcPoints<'a> {
 
   fn deref(&self) -> &Self::Target {
     &self.0.1[..]
+  }
+}
+
+impl<'a> PartialEq for EcPoints<'a> {
+  fn eq(&self, other: &Self) -> bool {
+    self.0.1 == other.0.1
   }
 }
 
@@ -102,86 +118,92 @@ impl<'a> EcPoints<'a> {
 }
 
 // returns Hadamard product
-impl<'a> ops::Mul<&FieldElems> for &EcPoints<'a> {
-  type Output = EcPoints<'a>;
+macro_rules! impl_ec_points_times_field_elems {
+  ($rhs: ty, $target: ty) => {
+    impl<'a> ops::Mul<$rhs> for $target {
+      type Output = EcPoints<'a>;
 
-  fn mul(self, rhs: &FieldElems) -> Self::Output {
-    assert!(self.len() > 0 && self.len() == rhs.len());
-    let (ops, lhs) = &self.0;
+      fn mul(self, rhs: $rhs) -> Self::Output {
+        assert!(self.len() > 0 && self.len() == rhs.len());
+        let (ops, lhs) = &self.0;
 
-    let xs: Vec<EcPoint1<'a>> = lhs.iter().zip(rhs.iter()).map(|(pt, fe)| {
-      let x = ops.scalar_mul(pt, &fe.n);
-      EcPoint1((*ops, x))
-    }).collect();
-
-    EcPoints((*ops, xs))
-  }
+        let mut xs = vec![];
+        for i in 0..self.len() {
+          let x = ops.scalar_mul(&lhs[i], &rhs[i]);
+          let x = EcPoint1((*ops, x));
+          xs.push(x);
+        }
+        EcPoints((*ops, xs))
+      }
+    }
+  };
 }
-
-// returns Hadamard product (TODO almost the same as ops::Mul<&FieldElems>)
-impl<'a> ops::Mul<&[FieldElem]> for &EcPoints<'a> {
-  type Output = EcPoints<'a>;
-
-  fn mul(self, rhs: &[FieldElem]) -> Self::Output {
-    assert!(self.len() > 0 && self.len() == rhs.len());
-    let (ops, lhs) = &self.0;
-
-    let xs: Vec<EcPoint1<'a>> = lhs.iter().zip(rhs.iter()).map(|(pt, fe)| {
-      let x = ops.scalar_mul(pt, &fe.n);
-      EcPoint1((*ops, x))
-    }).collect();
-
-    EcPoints((*ops, xs))
-  }
-}
+impl_ec_points_times_field_elems!(&FieldElems, &EcPoints<'a>);
 
 // returns Hadamard product
-impl<'a> ops::Mul<&EcPoints<'a>> for &EcPoints<'a> {
-  type Output = EcPoints<'a>;
+macro_rules! impl_ec_points_times_ec_points {
+  ($rhs: ty, $target: ty) => {
+    impl<'a> ops::Mul<$rhs> for $target {
+      type Output = EcPoints<'a>;
 
-  fn mul(self, rhs: &EcPoints) -> Self::Output {
-    assert!(self.len() > 0 && self.len() == rhs.len());
-    let (ops, lhs) = &self.0;
-    let (_, rhs) = &rhs.0;
+      fn mul(self, rhs: $rhs) -> Self::Output {
+        assert!(self.len() > 0 && self.len() == rhs.len());
+        let (ops, lhs) = &self.0;
 
-    let xs = lhs.iter().zip(rhs.iter()).map(|(l, r)| {
-      let x = ops.add(l, r);
-      EcPoint1((*ops, x))
-    }).collect();
-
-    EcPoints((*ops, xs))
-  }
+        let mut xs = vec![];
+        for i in 0..self.len() {
+          let x = ops.add(&lhs[i], &rhs[i]);
+          let x = EcPoint1((*ops, x));
+          xs.push(x);
+        }
+        EcPoints((*ops, xs))
+      }
+    }
+  };
 }
+impl_ec_points_times_ec_points!(EcPoints<'a>, EcPoints<'a>);
 
 // multiply rhs (scalar) to each element 
-impl<'a> ops::Mul<&FieldElem> for &EcPoints<'a> {
-  type Output = EcPoints<'a>;
+macro_rules! impl_ec_points_times_field_elem {
+  ($rhs: ty, $target: ty) => {
+    impl<'a> ops::Mul<$rhs> for $target {
+      type Output = EcPoints<'a>;
 
-  fn mul(self, rhs: &FieldElem) -> Self::Output {
-    assert!(self.len() > 0);
-    let (ops, lhs) = &self.0;
+      fn mul(self, rhs: $rhs) -> Self::Output {
+        assert!(self.len() > 0);
+        let (ops, lhs) = &self.0;
 
-    let xs = lhs.iter().map(|pt| {
-      let x = ops.scalar_mul(pt, &rhs.n);
-      EcPoint1((*ops, x))
-    }).collect();
+        let xs = lhs.iter().map(|pt| {
+          let x = ops.scalar_mul(pt, &rhs.n);
+          EcPoint1((*ops, x))
+        }).collect();
 
-    EcPoints((*ops, xs))
-  }
+        EcPoints((*ops, xs))
+      }
+    }
+  };
 }
+impl_ec_points_times_field_elem!(&FieldElem, &EcPoints<'a>);
+impl_ec_points_times_field_elem!(FieldElem, &EcPoints<'a>);
 
-impl<'a> ops::Sub<&EcPoints<'a>> for &EcPoints<'a> {
-  type Output = EcPoints<'a>;
+macro_rules! impl_ec_points_minus_ec_points {
+  ($rhs: ty, $target: ty) => {
+    impl<'a> ops::Sub<$rhs> for $target {
+      type Output = EcPoints<'a>;
 
-  fn sub(self, rhs: &EcPoints<'a>) -> Self::Output {
-    assert!(self.len() > 0 && self.len() == rhs.len());
-    let (ops, lhs) = &self.0;
+      fn sub(self, rhs: $rhs) -> Self::Output {
+        assert!(self.len() > 0 && self.len() == rhs.len());
+        let (ops, lhs) = &self.0;
 
-    let xs = lhs.iter().zip(rhs.iter()).map(|(g_i, h_i)| {
-      let x = ops.add(g_i, &ops.inv(&h_i));
-      EcPoint1((*ops, x))
-    }).collect();
-
-    EcPoints((*ops, xs))
-  }
+        let mut xs = vec![];
+        for i in 0..self.len() {
+          let x = ops.add(&lhs[i], &ops.inv(&rhs[i]));
+          let x = EcPoint1((*ops, x));
+          xs.push(x);
+        }
+        EcPoints((*ops, xs))
+      }
+    }
+  };
 }
+impl_ec_points_minus_ec_points!(&EcPoints<'a>, &EcPoints<'a>);
