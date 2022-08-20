@@ -323,6 +323,108 @@ mod tests {
 
   #[test]
   #[allow(non_snake_case)]
+  fn test_base_point_field_elem_mul() {
+    let curve = WeierstrassEq::secp256k1();
+    let ops = JacobianAddOps::new();
+    let f = curve.f();
+    let bp: BulletProofs<2> = BulletProofs::new(&curve, &ops);
+
+    let alpha = &f.rand_elem(true);
+    let rho = &f.rand_elem(true);
+    let h = bp.rand_point();
+    let h = &bp.ec_point(&h);
+
+    let a = h * alpha + h * rho;
+    let b = h * (alpha + rho);
+    assert!(a == b);
+  }
+
+  #[test]
+  #[allow(non_snake_case)]
+  fn test_field_elems_mul_field_elem() {
+    let curve = WeierstrassEq::secp256k1();
+    let f = curve.f();
+
+    let x = f.elem(&5u8);
+    let sL = FieldElems(vec![
+      f.elem(&2u8),
+      f.elem(&3u8),
+    ]);
+
+    let exp = FieldElems(vec![
+      f.elem(&10u8),
+      f.elem(&15u8),
+    ]);
+    let act = sL * x;
+    assert!(act == exp);
+  }
+
+  #[test]
+  #[allow(non_snake_case)]
+  fn test_range_proof_66_67_excl_h_prime_experiment2() {
+    let curve = WeierstrassEq::secp256k1();
+    let ops = JacobianAddOps::new();
+    let f = curve.f();
+    let bp: BulletProofs<2> = BulletProofs::new(&curve, &ops);
+
+    let n = 2;
+    let gg = bp.rand_points(n);
+    let gg = &bp.ec_points(&gg);
+
+    let x = &f.elem(&2u8);
+    let sL = &f.rand_elems(n, true);
+
+    let ll = &(sL * x);
+
+    let ggll = (gg * ll).sum();
+
+    let S = (gg * sL).sum();
+    let P = S * x;
+
+    assert!(P == ggll);
+  }
+
+  #[test]
+  #[allow(non_snake_case)]
+  fn test_range_proof_66_67_excl_h_prime_experiment() {
+    let curve = WeierstrassEq::secp256k1();
+    let ops = JacobianAddOps::new();
+    let f = curve.f();
+    let bp: BulletProofs<2> = BulletProofs::new(&curve, &ops);
+
+    let n = 2;
+    let one = f.elem(&1u8);
+    let ones = &one.repeat(n);
+    let z = &f.rand_elem(true);
+
+    let alpha = &f.rand_elem(true);
+    let rho = &f.rand_elem(true);
+    let x = &f.rand_elem(true);
+    let mu = &(alpha + (rho * x)); 
+
+    let gg = bp.rand_points(n);
+    let gg = &bp.ec_points(&gg);
+
+    let aL = &FieldElems(vec![
+      f.elem(&1u8),
+      f.elem(&1u8),
+    ]);
+    let sL = &f.rand_elems(n, true);
+
+    let sLx = sL * x;
+    let ll = &(/*- (ones * z)*/ sLx);
+
+    let hmu_ggl = (gg * ll).sum();
+
+    let A = (gg * aL).sum();
+    let S = (gg * sL).sum();
+    let P = (S * x); // + (gg * z.negate()).sum();
+
+    assert!(P == hmu_ggl);
+  }
+
+  #[test]
+  #[allow(non_snake_case)]
   fn test_range_proof_66_67_excl_h_prime() {
     let curve = WeierstrassEq::secp256k1();
     let ops = JacobianAddOps::new();
@@ -344,11 +446,10 @@ mod tests {
     let h = bp.rand_point();
     let h = &bp.ec_point(&h);
 
-    let aL = vec![
+    let aL = &FieldElems(vec![
       f.elem(&1u8),
       f.elem(&1u8),
-    ];
-    let aL = &FieldElems(aL);
+    ]);
     let sL = &f.rand_elems(n, true);
 
     let ll = &(aL - (ones * z) + (sL * x));

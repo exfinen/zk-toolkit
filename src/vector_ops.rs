@@ -40,7 +40,9 @@ macro_rules! impl_ec_point1_times_field_elem {
   };
 }
 impl_ec_point1_times_field_elem!(&FieldElem, &EcPoint1<'a>);
+impl_ec_point1_times_field_elem!(FieldElem, &EcPoint1<'a>);
 impl_ec_point1_times_field_elem!(FieldElem, EcPoint1<'a>);
+impl_ec_point1_times_field_elem!(&FieldElem, EcPoint1<'a>);
 
 macro_rules! impl_ec_point1_plus_ec_point1 {
   ($rhs: ty, $target: ty) => {

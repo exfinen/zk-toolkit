@@ -450,7 +450,7 @@ macro_rules! impl_field_elems_plus_field_elems {
     impl<'a> ops::Add<$rhs> for $target {
       type Output = FieldElems;
       
-      fn add(self, rhs: FieldElems) -> Self::Output {
+      fn add(self, rhs: $rhs) -> Self::Output {
         assert!(self.len() > 0 && self.len() == rhs.len());
 
         let mut xs = vec![];
@@ -464,6 +464,7 @@ macro_rules! impl_field_elems_plus_field_elems {
 }
 impl_field_elems_plus_field_elems!(FieldElems, FieldElems);
 impl_field_elems_plus_field_elems!(FieldElems, &FieldElems);
+impl_field_elems_plus_field_elems!(&FieldElems, &FieldElems);
 
 macro_rules! impl_field_elems_minus_field_elems {
   ($rhs: ty, $target: ty) => {
