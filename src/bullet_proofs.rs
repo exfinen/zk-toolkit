@@ -159,14 +159,14 @@ impl<'a, const N: usize> BulletProofs<'a, N> {
     let z = &co.rand_elem(true);
 
     let y_n = &y.pow_seq(n);
-    let l0 = aL - (one_n * z);
+    let l0 = &(aL - (one_n * z));
     let l1 = sL;
-    let r0 = (y_n * (aR + (one_n * z))) + (two_n * z.sq());
-    let r1 = y_n * sR;
+    let r0 = &((y_n * (aR + (one_n * z))) + (two_n * z.sq()));
+    let r1 = &(y_n * sR);
 
-    let t0 = &(&l0 * &r0).sum();
-    let t1 = &((l1 * &r0).sum() + (&l0 * &r1).sum());
-    let t2 = &(l1 * &r1).sum();
+    let t0 = &(l0 * r0).sum();
+    let t1 = &((l1 * r0).sum() + (l0 * r1).sum());
+    let t2 = &(l1 * r1).sum();
 
     let tau1 = &co.rand_elem(true);
     let tau2 = &co.rand_elem(true);
