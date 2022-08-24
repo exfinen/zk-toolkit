@@ -253,8 +253,6 @@ mod tests {
 
   fn get_ops_list<'a>() -> Vec<Box<dyn AddOps>> {
     vec![Box::new(AffineAddOps::new()), Box::new(JacobianAddOps::new())]
-    //vec![Box::new(JacobianAddOps::new())]
-    //vec![Box::new(AffineAddOps::new())]
   }
 
   #[test]
