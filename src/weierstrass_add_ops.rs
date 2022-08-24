@@ -195,13 +195,13 @@ impl AddOps for JacobianAddOps {
       // w/ unnecessary computation removed
       let jp = JacobianPoint::from_ec_point(p1).unwrap(); 
 
-      let a = jp.x.sq();
-      let b = jp.y.sq();
-      let c = b.sq();
-      let d = ((jp.x + b).sq() - &a - &c) * 2u8;
-      let e = &a * 3u8;
-      let f = e.sq();
-      let x3 = f - (&d * 2u8);
+      let a = &jp.x.sq();
+      let b = &jp.y.sq();
+      let c = &b.sq();
+      let d = &(((jp.x + b).sq() - a - c) * 2u8);
+      let e = &(a * 3u8);
+      let f = &e.sq();
+      let x3 = f - (d * 2u8);
       let y3 = e * (d - &x3) - (c * 8u8);
       let z3 = jp.y * 2u8;
 
