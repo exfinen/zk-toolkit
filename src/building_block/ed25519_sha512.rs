@@ -1,9 +1,9 @@
 #![allow(non_snake_case)]
-use crate::hasher::Hasher;
-use crate::sha512::Sha512;
-use crate::field::{Field, FieldElem};
-use crate::ec_point::EcPoint;
-use crate::elliptic_curve::AddOps;
+use crate::building_block::hasher::Hasher;
+use crate::building_block::sha512::Sha512;
+use crate::building_block::field::{Field, FieldElem};
+use crate::building_block::ec_point::EcPoint;
+use crate::building_block::elliptic_curve::AddOps;
 use num_bigint::BigUint;
 use core::ops::{Add, Sub, Rem};
 use num_traits::{Zero};

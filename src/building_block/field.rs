@@ -5,8 +5,8 @@ use num_traits::{Zero, One};
 use core::ops::Rem;
 use bitvec::prelude::*;
 use rand::RngCore;
-use crate::to_biguint::ToBigUint;
-use crate::random_number::RandomNumber;
+use crate::building_block::to_biguint::ToBigUint;
+use crate::building_block::random_number::RandomNumber;
 use std::ops::{Index, RangeFrom, RangeTo, Deref};
 
 ///////////////

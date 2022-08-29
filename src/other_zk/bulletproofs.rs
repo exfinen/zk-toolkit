@@ -1,21 +1,21 @@
-use crate::elliptic_curve::{EllipticCurve, AddOps};
-use crate::field::{FieldElem, FieldElems};
-use crate::ec_point::EcPoint;
-use crate::vector_ops::{EcPoints, EcPoint1};
+use crate::building_block::elliptic_curve::{EllipticCurve, AddOps};
+use crate::building_block::field::{FieldElem, FieldElems};
+use crate::building_block::ec_point::EcPoint;
+use crate::building_block::vector_ops::{EcPoints, EcPoint1};
 
 // implementation based on https://eprint.iacr.org/2017/1066.pdf
 
-pub struct BulletProofs<'a, const N: usize> {
+pub struct Bulletproofs<'a, const N: usize> {
   pub curve: &'a dyn EllipticCurve,
   pub ops: &'a dyn AddOps,
 }
 
-impl<'a, const N: usize> BulletProofs<'a, N> {
+impl<'a, const N: usize> Bulletproofs<'a, N> {
   pub fn new(
     curve: &'a dyn EllipticCurve, 
     ops: &'a dyn AddOps, 
   ) -> Self {
-    BulletProofs { curve, ops }
+    Bulletproofs { curve, ops }
   }
 
   pub fn ec_points(&self, ec_points: &'a [EcPoint]) -> EcPoints<'a> {
@@ -187,8 +187,8 @@ impl<'a, const N: usize> BulletProofs<'a, N> {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::weierstrass_eq::WeierstrassEq;
-  use crate::weierstrass_add_ops::JacobianAddOps;
+  use crate::building_block::weierstrass_eq::WeierstrassEq;
+  use crate::building_block::weierstrass_add_ops::JacobianAddOps;
 
   // gg^z == gg^(ones * z)
   #[test]
@@ -196,7 +196,7 @@ mod tests {
     let curve = WeierstrassEq::secp256k1();
     let ops = JacobianAddOps::new();
     let co = curve.n();
-    let bp: BulletProofs<2> = BulletProofs::new(&curve, &ops);
+    let bp: Bulletproofs<2> = Bulletproofs::new(&curve, &ops);
 
     let n = 2;
     let z = co.rand_elem(true);
@@ -217,7 +217,7 @@ mod tests {
     let curve = WeierstrassEq::secp256k1();
     let ops = JacobianAddOps::new();
     let co = curve.n();
-    let bp: BulletProofs<2> = BulletProofs::new(&curve, &ops);
+    let bp: Bulletproofs<2> = Bulletproofs::new(&curve, &ops);
 
     {
         let z = co.elem(&100u8);
@@ -247,7 +247,7 @@ mod tests {
     let curve = WeierstrassEq::secp256k1();
     let ops = JacobianAddOps::new();
     let co = curve.n();
-    let bp: BulletProofs<2> = BulletProofs::new(&curve, &ops);
+    let bp: Bulletproofs<2> = Bulletproofs::new(&curve, &ops);
 
     let alpha = &co.rand_elem(true);
     let rho = &co.rand_elem(true);
@@ -287,7 +287,7 @@ mod tests {
     let curve = WeierstrassEq::secp256k1();
     let ops = JacobianAddOps::new();
     let co = curve.n();
-    let bp: BulletProofs<2> = BulletProofs::new(&curve, &ops);
+    let bp: Bulletproofs<2> = Bulletproofs::new(&curve, &ops);
 
     let n = 2;
     let gg = vec![
@@ -311,7 +311,7 @@ mod tests {
     let curve = WeierstrassEq::secp256k1();
     let ops = JacobianAddOps::new();
     let co = curve.n();
-    let bp: BulletProofs<2> = BulletProofs::new(&curve, &ops);
+    let bp: Bulletproofs<2> = Bulletproofs::new(&curve, &ops);
 
     let aL = FieldElems::new(&vec![
       co.elem(&1u8), 

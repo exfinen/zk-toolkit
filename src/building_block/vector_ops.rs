@@ -1,6 +1,6 @@
-use crate::elliptic_curve::AddOps;
-use crate::field::{FieldElem, FieldElems};
-use crate::ec_point::EcPoint;
+use crate::building_block::elliptic_curve::AddOps;
+use crate::building_block::field::{FieldElem, FieldElems};
+use crate::building_block::ec_point::EcPoint;
 use std::ops;
 use std::ops::{Index, RangeFrom, RangeTo, Deref};
 
@@ -255,9 +255,9 @@ impl_ec_points_minus_ec_points!(EcPoints<'a>, EcPoints<'a>);
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::weierstrass_eq::WeierstrassEq;
-  use crate::weierstrass_add_ops::JacobianAddOps;
-  use crate::elliptic_curve::EllipticCurve;
+  use crate::building_block::weierstrass_eq::WeierstrassEq;
+  use crate::building_block::weierstrass_add_ops::JacobianAddOps;
+  use crate::building_block::elliptic_curve::EllipticCurve;
 
   #[test]
   fn ec_point1_eq() {

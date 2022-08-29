@@ -1,6 +1,6 @@
-use crate::field::{Field, FieldElem};
-use crate::ec_point::EcPoint;
-use crate::elliptic_curve::EllipticCurve;
+use crate::building_block::field::{Field, FieldElem};
+use crate::building_block::ec_point::EcPoint;
+use crate::building_block::elliptic_curve::EllipticCurve;
 use num_bigint::BigUint;
 use num_traits::identities::{Zero, One};
 

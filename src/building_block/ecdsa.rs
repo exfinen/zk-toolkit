@@ -1,10 +1,10 @@
-use crate::elliptic_curve::{EllipticCurve, AddOps};
-use crate::ec_point::EcPoint;
-use crate::field::{Field, FieldElem};
-use crate::hasher::Hasher;
+use crate::building_block::elliptic_curve::{EllipticCurve, AddOps};
+use crate::building_block::ec_point::EcPoint;
+use crate::building_block::field::{Field, FieldElem};
+use crate::building_block::hasher::Hasher;
+use crate::building_block::sha256::Sha256;
 use num_bigint::{BigUint};
 use num_traits::identities::Zero;
-use crate::sha256::Sha256;
 
 pub struct Ecdsa<'a, const HASHER_OUT_SIZE: usize> {
   pub curve: &'a dyn EllipticCurve,
@@ -117,8 +117,8 @@ impl<'a, const HASHER_OUT_SIZE: usize> Ecdsa<'a, HASHER_OUT_SIZE> {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::weierstrass_eq::WeierstrassEq;
-  use crate::weierstrass_add_ops::JacobianAddOps;
+  use crate::building_block::weierstrass_eq::WeierstrassEq;
+  use crate::building_block::weierstrass_add_ops::JacobianAddOps;
 
   #[test]
   // TODO create separate tests for not-on-curve and pub_key-not-order-n cases

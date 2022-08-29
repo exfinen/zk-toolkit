@@ -1,5 +1,5 @@
-use crate::ec_point::EcPoint;
-use crate::field::Field;
+use crate::building_block::ec_point::EcPoint;
+use crate::building_block::field::Field;
 use num_bigint::BigUint;
 use num_traits::identities::{Zero, One};
 use std::ops::{BitAnd, ShrAssign};

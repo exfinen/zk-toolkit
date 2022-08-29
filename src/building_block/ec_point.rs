@@ -1,5 +1,5 @@
-use crate::field::{Field, FieldElem};
-use crate::vector_ops::EcPoint1;
+use crate::building_block::field::{Field, FieldElem};
+use crate::building_block::vector_ops::EcPoint1;
 
 #[derive(Debug, Clone)]
 pub struct EcPoint {

@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
-use crate::hasher::Hasher;
-use crate::sha_common::{Block, MessageSchedule, HashValue, CoreLogic};
+use crate::building_block::hasher::Hasher;
+use crate::building_block::sha_common::{Block, MessageSchedule, HashValue, CoreLogic};
 
 // implementation based on: https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf
 

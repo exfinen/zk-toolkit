@@ -1,6 +1,6 @@
-use crate::elliptic_curve::AddOps;
-use crate::field::FieldElem;
-use crate::ec_point::EcPoint;
+use crate::building_block::elliptic_curve::AddOps;
+use crate::building_block::field::FieldElem;
+use crate::building_block::ec_point::EcPoint;
 use num_bigint::BigUint;
 use num_traits::identities::{One, Zero};
 
@@ -247,9 +247,9 @@ impl AddOps for JacobianAddOps {
 mod tests {
   use super::*;
   use num_bigint::BigUint;
-  use crate::weierstrass_eq::WeierstrassEq;
-  use crate::field::FieldElem;
-  use crate::field::Field;
+  use crate::building_block::weierstrass_eq::WeierstrassEq;
+  use crate::building_block::field::FieldElem;
+  use crate::building_block::field::Field;
 
   fn get_ops_list<'a>() -> Vec<Box<dyn AddOps>> {
     vec![Box::new(AffineAddOps::new()), Box::new(JacobianAddOps::new())]
