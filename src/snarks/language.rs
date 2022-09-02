@@ -72,7 +72,11 @@ impl Parser {
   fn term2(input: &str) -> IResult<&str, Ast> {
     let (input, node) = alt((
       Parser::decimal, 
-      delimited(char('('), Parser::expr, char(')')),
+      delimited(
+        delimited(multispace0, char('('), multispace0),
+        Parser::expr,
+        delimited(multispace0, char(')'), multispace0),
+      ),
     ))(input)?;
 
     Ok((input, node))
@@ -224,6 +228,20 @@ mod tests {
   }
 
   #[test]
+  fn test_simple_sub_expr_incl_neg2_with_spaces() {
+    match Parser::parse("123 - -456") {
+      Ok((input, x)) => { 
+        assert_eq!(input, "");
+        assert_eq!(x, Ast::Sub(
+          Box::new(Ast::Num(123)), 
+          Box::new(Ast::Num(-456)),
+        )); 
+      },
+      Err(_) => panic!(),
+    }
+  }
+
+  #[test]
   fn test_simple_mul_expr() {
     match Parser::parse("123*456") {
       Ok((input, x)) => { 
@@ -349,6 +367,23 @@ mod tests {
   }
 
   #[test]
+  fn test_paren_add_and_mul_expr_with_spaces() {
+    match Parser::parse(" (123 + 456) * 789") {
+      Ok((input, x)) => { 
+        assert_eq!(input, "");
+        assert_eq!(x, Ast::Mul(
+          Box::new(Ast::Add(
+            Box::new(Ast::Num(123)), 
+            Box::new(Ast::Num(456))
+          )),
+          Box::new(Ast::Num(789)),
+        )); 
+      },
+      Err(_) => panic!(),
+    }
+  }
+
+  #[test]
   fn test_paren_add_mul_sub_expr() {
     match Parser::parse("(111+222)*(333-444)") {
       Ok((input, x)) => { 
@@ -363,6 +398,34 @@ mod tests {
             Box::new(Ast::Num(444))
           )),
         )); 
+      },
+      Err(_) => panic!(),
+    }
+  }
+
+  #[test]
+  fn test_multiple_paren() {
+    match Parser::parse("((111+222))") {
+      Ok((input, x)) => { 
+        assert_eq!(input, "");
+        assert_eq!(x, Ast::Add(
+          Box::new(Ast::Num(111)), 
+          Box::new(Ast::Num(222)),
+        ));
+      },
+      Err(_) => panic!(),
+    }
+  }
+
+  #[test]
+  fn test_multiple_paren_with_spaces() {
+    match Parser::parse(" ( (111+222) ) ") {
+      Ok((input, x)) => { 
+        assert_eq!(input, "");
+        assert_eq!(x, Ast::Add(
+          Box::new(Ast::Num(111)), 
+          Box::new(Ast::Num(222)),
+        ));
       },
       Err(_) => panic!(),
     }
