@@ -1,7 +1,7 @@
 use nom::{
   IResult,
   branch::alt,
-  character::complete::{ char, one_of },
+  character::complete::{ char, one_of, multispace0 },
   combinator::{ opt, recognize },
   multi::{ many0, many1 },
   sequence::{ tuple, delimited, terminated },
@@ -20,14 +20,19 @@ pub struct Parser();
 
 impl Parser {
   fn decimal(input: &str) -> IResult<&str, Ast> {
-    let (input, s) = recognize(
-      tuple((
-        opt(char('-')),
-        many1(
-          terminated(one_of("0123456789"), many0(char('_')))
+    let (input, s) = 
+      delimited(
+        multispace0,
+        recognize(
+          tuple((
+            opt(char('-')),
+            many1(
+              terminated(one_of("0123456789"), many0(char('_')))
+            ),
+          )),
         ),
-      )),
-    )(input)?;
+        multispace0
+      )(input)?;
 
     let n: i32 = s.parse().unwrap();
     Ok((input, Ast::Num(n)))
@@ -118,6 +123,17 @@ mod tests {
   #[test]
   fn test_decimal() {
     match Parser::parse("123") {
+      Ok((input, x)) => { 
+        assert_eq!(input, "");
+        assert_eq!(x, Ast::Num(123)); 
+      },
+      Err(_) => panic!(),
+    }
+  }
+
+  #[test]
+  fn test_decimal_with_spaces() {
+    match Parser::parse(" 123 ") {
       Ok((input, x)) => { 
         assert_eq!(input, "");
         assert_eq!(x, Ast::Num(123)); 
