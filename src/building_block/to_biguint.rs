@@ -20,3 +20,10 @@ impl_to_biguint_for!(u32);
 impl_to_biguint_for!(u64);
 impl_to_biguint_for!(u128);
 impl_to_biguint_for!(usize);
+
+impl ToBigUint for bool {
+  fn to_biguint(&self) -> BigUint {
+    let x = if *self { 1u8 } else { 0u8 };
+    BigUint::from(x)
+  }
+}
