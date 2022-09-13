@@ -11,19 +11,19 @@ pub enum BoolCircuit {
   Or(Box<BoolCircuit>, Box<BoolCircuit>),
 }
 
-pub struct Executor();
+pub struct Processor();
 
-impl Executor {
+impl Processor {
   pub fn eval(root: &BoolCircuit) -> bool {
     match root {
       BoolCircuit::Leaf(x) => *x,
-      BoolCircuit::And(a, b) => Executor::eval(&a) && Executor::eval(&b),
+      BoolCircuit::And(a, b) => Processor::eval(&a) && Processor::eval(&b),
       BoolCircuit::Xor(a, b) => {
-        let a = Executor::eval(&a);
-        let b = Executor::eval(&b);
+        let a = Processor::eval(&a);
+        let b = Processor::eval(&b);
         !(a && b) && (a || b)
       }
-      BoolCircuit::Or(a, b) => Executor::eval(&a) || Executor::eval(&b),
+      BoolCircuit::Or(a, b) => Processor::eval(&a) || Processor::eval(&b),
     }
   }
 
@@ -31,16 +31,16 @@ impl Executor {
     match root {
       BoolCircuit::Leaf(x) => ArithCircuit::Leaf(f.elem(&x)),
       BoolCircuit::And(a, b) => {
-        let a = Executor::eval(&a);
-        let b = Executor::eval(&b);
+        let a = Processor::eval(&a);
+        let b = Processor::eval(&b);
         let a = ArithCircuit::Leaf(f.elem(&a));
         let b = ArithCircuit::Leaf(f.elem(&b));
         // AND(a, b) = ab
         ArithCircuit::Mul(Box::new(a), Box::new(b))
       },
       BoolCircuit::Xor(a, b) => {
-        let a = Executor::eval(&a);
-        let b = Executor::eval(&b);
+        let a = Processor::eval(&a);
+        let b = Processor::eval(&b);
         let a = ArithCircuit::Leaf(f.elem(&a));
         let b = ArithCircuit::Leaf(f.elem(&b));
 
@@ -59,8 +59,8 @@ impl Executor {
         )
       },
       BoolCircuit::Or(a, b) => {
-        let a = Executor::eval(&a);
-        let b = Executor::eval(&b);
+        let a = Processor::eval(&a);
+        let b = Processor::eval(&b);
         let a = ArithCircuit::Leaf(f.elem(&a));
         let b = ArithCircuit::Leaf(f.elem(&b));
         // Or(a, b) = a + b - a * b

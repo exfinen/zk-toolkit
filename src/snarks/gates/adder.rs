@@ -1,4 +1,4 @@
-use crate::snarks::gates::bool_circuit::{BoolCircuit, Executor};
+use crate::snarks::gates::bool_circuit::{BoolCircuit, Processor};
 
 pub struct HalfAdder();
 
@@ -20,8 +20,8 @@ impl HalfAdder {
       Box::new(BoolCircuit::Leaf(addend)),
     );
 
-    let sum = Executor::eval(&sum);
-    let carry = Executor::eval(&carry);
+    let sum = Processor::eval(&sum);
+    let carry = Processor::eval(&carry);
 
     AdderResult { sum, carry }
   }
@@ -37,7 +37,7 @@ impl FullAdder {
       Box::new(BoolCircuit::Leaf(res1.carry)),
       Box::new(BoolCircuit::Leaf(res2.carry)),
     );
-    let carry = Executor::eval(&carry);
+    let carry = Processor::eval(&carry);
     AdderResult { sum: res2.sum, carry }
   }
 }
