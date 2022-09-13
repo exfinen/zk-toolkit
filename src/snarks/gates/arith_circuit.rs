@@ -5,4 +5,6 @@ pub enum ArithCircuit {
   Leaf(FieldElem),
   Mul(Box<ArithCircuit>, Box<ArithCircuit>),
   Add(Box<ArithCircuit>, Box<ArithCircuit>),
+  Sub(Box<ArithCircuit>, Box<ArithCircuit>),
+  Div(Box<ArithCircuit>, Box<ArithCircuit>),
 }

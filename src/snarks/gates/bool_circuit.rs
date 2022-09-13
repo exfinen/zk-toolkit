@@ -1,6 +1,5 @@
 use crate::snarks::gates::{
   arith_circuit::ArithCircuit,
-  number::Number,
 };
 use crate::building_block::field::Field;
 
@@ -9,40 +8,7 @@ pub enum BoolCircuit {
   Leaf(bool),
   And(Box<BoolCircuit>, Box<BoolCircuit>),
   Xor(Box<BoolCircuit>, Box<BoolCircuit>),
-}
-
-pub struct HalfAdder();
-
-pub struct AdderResult {
-  pub sum: bool,
-  pub carry: bool,
-}
-
-impl HalfAdder {
-  // (augend, addend) -> (sum, carry)
-  pub fn add(augend: bool, addend: bool) -> AdderResult {
-    let sum = BoolCircuit::Xor(
-      Box::new(BoolCircuit::Leaf(augend)),
-      Box::new(BoolCircuit::Leaf(addend)),
-    );
-    let carry = BoolCircuit::And(
-      Box::new(BoolCircuit::Leaf(augend)),
-      Box::new(BoolCircuit::Leaf(addend)),
-    );
-
-    let sum = Executor::eval(&sum);
-    let carry = Executor::eval(&carry);
-
-    AdderResult { sum, carry }
-  }
-}
-
-pub struct FullAdder();
-
-impl FullAdder {
-  pub fn add(_a: &Number, _b: &Number) -> Number {
-    Number::new(0)
-  }
+  Or(Box<BoolCircuit>, Box<BoolCircuit>),
 }
 
 pub struct Executor();
@@ -57,6 +23,7 @@ impl Executor {
         let b = Executor::eval(&b);
         !(a && b) && (a || b)
       }
+      BoolCircuit::Or(a, b) => Executor::eval(&a) || Executor::eval(&b),
     }
   }
 
@@ -90,7 +57,20 @@ impl Executor {
           Box::new(t1),
           Box::new(t2),
         )
-      }
+      },
+      BoolCircuit::Or(a, b) => {
+        let a = Executor::eval(&a);
+        let b = Executor::eval(&b);
+        let a = ArithCircuit::Leaf(f.elem(&a));
+        let b = ArithCircuit::Leaf(f.elem(&b));
+        // Or(a, b) = a + b - a * b
+        let t1 = ArithCircuit::Add(Box::new(a.clone()), Box::new(b.clone()));
+        let t2 = ArithCircuit::Mul(Box::new(a.clone()), Box::new(b.clone()));
+        ArithCircuit::Sub(
+          Box::new(t1),
+          Box::new(t2),
+        )
+      },
     }
   }
 }
