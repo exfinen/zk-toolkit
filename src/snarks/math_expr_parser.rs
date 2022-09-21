@@ -73,8 +73,7 @@ impl Parser {
   }
 
   fn decimal<'a>(&'a self, signal_id: &'a Cell<u128>) -> impl Fn(&str) -> IResult<&str, MathExpr> + 'a {
-    let signal_id = signal_id.clone();
-    move |input| {
+    |input| {
       let (input, s) =
         delimited(
           multispace0,
