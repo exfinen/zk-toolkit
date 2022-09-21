@@ -1,6 +1,6 @@
 use std::rc::Rc;
 use std::ops;
-use num_bigint::{BigUint, BigInt, ToBigInt};
+use num_bigint::{BigUint, BigInt, ToBigInt, Sign};
 use num_traits::{Zero, One};
 use core::ops::Rem;
 use bitvec::prelude::*;
@@ -335,10 +335,23 @@ impl Field {
     Field {
       order: Rc::new(order.to_biguint()),
     }
-  } 
+  }
 
   pub fn elem(&self, x: &impl ToBigUint) -> FieldElem {
     FieldElem::new(self, x)
+  }
+
+  pub fn elem_from_signed_int(&self, n: i128) -> FieldElem {
+    if n < 0 {
+      let order = BigInt::from_biguint(Sign::Plus, (*self.order).clone());
+      let n = BigInt::from(n);
+      let n = order - n;
+      let n = n.to_biguint().unwrap();
+      FieldElem::new(self, &n)
+    } else {
+      let n = BigInt::from(n).to_biguint().unwrap();
+      FieldElem::new(self, &n)
+    }
   }
 
   pub fn repeated_elem(&self, x: &impl ToBigUint, count: usize) -> FieldElems {
@@ -967,11 +980,25 @@ mod tests {
     let a = f.elem(&7u8);
     assert_eq!(a.n, BigUint::from(7u32));
   }
-  
+
   #[test]
   fn new_elem_from_u8() {
     let f = Field::new(&11u32);
     let a = f.elem(&7u8);
     assert_eq!(a.n, BigUint::from(7u32));
+  }
+
+  #[test]
+  fn new_elem_from_pos_signed_int() {
+    let f = Field::new(&11u32);
+    let a = f.elem_from_signed_int(7);
+    assert_eq!(a.n, BigUint::from(7u32));
+  }
+
+  #[test]
+  fn new_elem_from_neg_signed_int() {
+    let f = Field::new(&11u32);
+    let a = f.elem_from_signed_int(-7);
+    assert_eq!(a.n, BigUint::from(4u32));
   }
 }

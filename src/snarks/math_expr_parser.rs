@@ -10,6 +10,7 @@ use nom::{
 };
 use crate::building_block::field::{Field, FieldElem};
 use num_bigint::{BigInt, BigUint, Sign};
+use std::cell::Cell;
 
 type SignalId = u128;
 
@@ -23,171 +24,127 @@ pub enum MathExpr {
   Sub(SignalId, Box<MathExpr>, Box<MathExpr>),
 }
 
-// making static because nom parsers cannot refer to self
-static mut OPT_FIELD: Option<Field> = None;
-static mut SIGNAL_ID: u128 = 0;
+pub struct MathExprParser {
+  f: Field,
+}
 
-pub struct MathExprParser();
+macro_rules! set_next_id {
+  ($signal_id: expr) => {
+    $signal_id.set($signal_id.get() + 1);
+  };
+}
 
 impl MathExprParser {
-  fn num_str_to_field_elem(s: &str) -> FieldElem {
-    unsafe {
-      let field: &Field = OPT_FIELD.as_ref().unwrap();
+  fn num_str_to_field_elem(f: &Field, s: &str) -> FieldElem {
+    if s.starts_with("-") {
+      let mut n = BigInt::parse_bytes(s.as_bytes(), 10).unwrap();
+      if n.sign() == Sign::Minus {
+        let order = BigInt::from_biguint(Sign::Plus, (*f.order).clone());
+        n = -n;
+        n = n % &order;
+        n = &order - n;
+        let n = n.to_biguint().unwrap();
+        f.elem(&n)
 
-      if s.starts_with("-") {
-        let mut n = BigInt::parse_bytes(s.as_bytes(), 10).unwrap();
-        if n.sign() == Sign::Minus {
-          let order = BigInt::from_biguint(Sign::Plus, (*field.order).clone());
-          n = -n;
-          n = n % &order;
-          n = &order - n;
-          let n = n.to_biguint().unwrap();
-          field.elem(&n)
-
-        } else {
-          let n = n.to_biguint().unwrap();
-          field.elem(&n)
-        }
-      } else { // if positive
-        let n = BigUint::parse_bytes(s.as_bytes(), 10).unwrap();
-        field.elem(&n)
+      } else {
+        let n = n.to_biguint().unwrap();
+        f.elem(&n)
       }
+    } else { // if positive
+      let n = BigUint::parse_bytes(s.as_bytes(), 10).unwrap();
+      f.elem(&n)
     }
   }
 
-  fn variable(input: &str) -> IResult<&str, MathExpr> {
-    let (input, s) =
-      delimited(
-        multispace0,
-        recognize(
-          terminated(alpha1, many0(one_of("0123456789")))
-        ),
-        multispace0
-      )(input)?;
+  fn variable<'a>(&'a self, signal_id: &'a Cell<u128>) -> impl Fn(&str) -> IResult<&str, MathExpr> + 'a {
+    |input| {
+      let (input, s) =
+        delimited(
+          multispace0,
+          recognize(
+            terminated(alpha1, many0(one_of("0123456789")))
+          ),
+          multispace0
+        )(input)?;
 
-    unsafe {
-      SIGNAL_ID += 1;
-      Ok((input, MathExpr::Var(SIGNAL_ID, s.to_string())))
+      set_next_id!(signal_id);
+      Ok((input, MathExpr::Var(signal_id.get(), s.to_string())))
     }
   }
 
-  fn decimal(input: &str) -> IResult<&str, MathExpr> {
-    let (input, s) =
-      delimited(
-        multispace0,
-        recognize(
-          tuple((
-            opt(char('-')),
-            many1(
-              one_of("0123456789")
-            ),
-          )),
-        ),
-        multispace0
-      )(input)?;
+  fn decimal<'a>(&'a self, signal_id: &'a Cell<u128>) -> impl Fn(&str) -> IResult<&str, MathExpr> + 'a {
+    let signal_id = signal_id.clone();
+    move |input| {
+      let (input, s) =
+        delimited(
+          multispace0,
+          recognize(
+            tuple((
+              opt(char('-')),
+              many1(
+                one_of("0123456789")
+              ),
+            )),
+          ),
+          multispace0
+        )(input)?;
 
-    let n = MathExprParser::num_str_to_field_elem(s);
-    unsafe {
-      SIGNAL_ID += 1;
-      Ok((input, MathExpr::Num(SIGNAL_ID, n)))
-    }
-  }
-
-  // <expr> ::= <term1> [ ('+'|'-') <term1> ]*
-  fn expr(input: &str) -> IResult<&str, MathExpr> {
-    let rhs = tuple((alt((char('+'), char('-'))), MathExprParser::term1));
-    let (input, (lhs, rhs)) = tuple((
-      MathExprParser::term1,
-      many0(rhs),
-    ))(input)?;
-
-    if rhs.len() == 0 {
-      Ok((input, lhs))
-    } else {
-      // translate rhs vector to Add<Add<..,Add>>>..
-      let rhs_head = &rhs[0];
-      let rhs = rhs.iter().skip(1).fold(rhs_head.1.clone(), |acc, x| {
-        match x {
-          ('+', node) => {
-            unsafe {
-              SIGNAL_ID += 1;
-              MathExpr::Add(SIGNAL_ID, Box::new(acc), Box::new(node.clone()))
-            }
-          },
-          ('-', node) => {
-            unsafe {
-              SIGNAL_ID += 1;
-              MathExpr::Sub(SIGNAL_ID, Box::new(acc), Box::new(node.clone()))
-            }
-          },
-          (op, _) => panic!("unexpected operator encountered in expr: {}", op),
-        }
-      });
-
-      unsafe {
-        SIGNAL_ID += 1;
-        let node = if rhs_head.0 == '+' {
-          MathExpr::Add(SIGNAL_ID, Box::new(lhs), Box::new(rhs))
-        } else {
-          MathExpr::Sub(SIGNAL_ID, Box::new(lhs), Box::new(rhs))
-        };
-        Ok((input, node))
-      }
+      set_next_id!(signal_id);
+      let n = MathExprParser::num_str_to_field_elem(&self.f, s);
+      Ok((input, MathExpr::Num(signal_id.get(), n)))
     }
   }
 
   // <term2> ::= <variable> | <number> | '(' <expr> ')'
-  fn term2(input: &str) -> IResult<&str, MathExpr> {
-    let (input, node) = alt((
-      MathExprParser::variable,
-      MathExprParser::decimal,
-      delimited(
-        delimited(multispace0, char('('), multispace0),
-        MathExprParser::expr,
-        delimited(multispace0, char(')'), multispace0),
-      ),
-    ))(input)?;
+  fn term2<'a>(&'a self, signal_id: &'a Cell<u128>) -> impl Fn(&str) -> IResult<&str, MathExpr> + 'a {
+    |input| {
+      let (input, node) = alt((
+        MathExprParser::variable(self, signal_id),
+        MathExprParser::decimal(self, signal_id),
+        delimited(
+          delimited(multispace0, char('('), multispace0),
+          MathExprParser::expr(self, signal_id),
+          delimited(multispace0, char(')'), multispace0),
+        ),
+      ))(input)?;
 
-    Ok((input, node))
+      Ok((input, node))
+    }
   }
 
   // <term1> ::= <term2> [ ('*'|'/') <term2> ]*
-  fn term1(input: &str) -> IResult<&str, MathExpr> {
-    let rhs = tuple((alt((char('*'), char('/'))), MathExprParser::term2));
-    let (input, (lhs, rhs)) = tuple((
-      MathExprParser::term2,
-      many0(rhs),
-    ))(input)?;
+  fn term1<'a>(&'a self, signal_id: &'a Cell<u128>) -> impl Fn(&str) -> IResult<&str, MathExpr> + 'a {
+    |input| {
+      let rhs = tuple((alt((char('*'), char('/'))), MathExprParser::term2(self, signal_id)));
+      let (input, (lhs, rhs)) = tuple((
+        MathExprParser::term2(self, signal_id),
+        many0(rhs),
+      ))(input)?;
 
-    if rhs.len() == 0 {
-      Ok((input, lhs))
-    } else {
-      // translate rhs vector to Mul<Mul<..,Mul>>>..
-      let rhs_head = &rhs[0];
-      let rhs = rhs.iter().skip(1).fold(rhs_head.1.clone(), |acc, x| {
-        match x {
-          ('*', node) => {
-            unsafe {
-              SIGNAL_ID += 1;
-              MathExpr::Mul(SIGNAL_ID, Box::new(acc), Box::new(node.clone()))
-            }
-          },
-          ('/', node) => {
-            unsafe {
-              SIGNAL_ID += 1;
-              MathExpr::Div(SIGNAL_ID, Box::new(acc), Box::new(node.clone()))
-            }
-          },
-          (op, _) => panic!("unexpected operator encountered in term1 {}", op),
-        }
-      });
+      if rhs.len() == 0 {
+        Ok((input, lhs))
+      } else {
+        // translate rhs vector to Mul<Mul<..,Mul>>>..
+        let rhs_head = &rhs[0];
+        let rhs = rhs.iter().skip(1).fold(rhs_head.1.clone(), |acc, x| {
+          match x {
+            ('*', node) => {
+              set_next_id!(signal_id);
+              MathExpr::Mul(signal_id.get(), Box::new(acc), Box::new(node.clone()))
+            },
+            ('/', node) => {
+              set_next_id!(signal_id);
+              MathExpr::Div(signal_id.get(), Box::new(acc), Box::new(node.clone()))
+            },
+            (op, _) => panic!("unexpected operator encountered in term1 {}", op),
+          }
+        });
 
-      unsafe {
-        SIGNAL_ID += 1;
+        set_next_id!(signal_id);
         let node = if rhs_head.0 == '*' {
-          MathExpr::Mul(SIGNAL_ID, Box::new(lhs), Box::new(rhs))
+          MathExpr::Mul(signal_id.get(), Box::new(lhs), Box::new(rhs))
         } else {
-          MathExpr::Div(SIGNAL_ID, Box::new(lhs), Box::new(rhs))
+          MathExpr::Div(signal_id.get(), Box::new(lhs), Box::new(rhs))
         };
         Ok((input, node))
       }
@@ -195,15 +152,56 @@ impl MathExprParser {
   }
 
   // <expr> ::= <term1> [ ('+'|'-') <term1> ]*
+  fn expr<'a>(&'a self, signal_id: &'a Cell<u128>) -> impl Fn(&str) -> IResult<&str, MathExpr> + 'a {
+    |input| {
+      let rhs = tuple((alt((char('+'), char('-'))), MathExprParser::term1(self, signal_id)));
+      let (input, (lhs, rhs)) = tuple((
+        MathExprParser::term1(self, signal_id),
+        many0(rhs),
+      ))(input)?;
+
+      if rhs.len() == 0 {
+        Ok((input, lhs))
+      } else {
+        // translate rhs vector to Add<Add<..,Add>>>..
+        let rhs_head = &rhs[0];
+        let rhs = rhs.iter().skip(1).fold(rhs_head.1.clone(), |acc, x| {
+          match x {
+            ('+', node) => {
+              set_next_id!(signal_id);
+              MathExpr::Add(signal_id.get(), Box::new(acc), Box::new(node.clone()))
+            },
+            ('-', node) => {
+              set_next_id!(signal_id);
+              MathExpr::Sub(signal_id.get(), Box::new(acc), Box::new(node.clone()))
+            },
+            (op, _) => panic!("unexpected operator encountered in expr: {}", op),
+          }
+        });
+
+        set_next_id!(signal_id);
+        let node = if rhs_head.0 == '+' {
+          MathExpr::Add(signal_id.get(), Box::new(lhs), Box::new(rhs))
+        } else {
+          MathExpr::Sub(signal_id.get(), Box::new(lhs), Box::new(rhs))
+        };
+        Ok((input, node))
+      }
+    }
+  }
+
   // <term1> ::= <term2> [ ('*'|'/') <term2> ]*
   // <term2> ::= <variable> | <number> | '(' <expr> ')'
-  pub fn parse(input: &str, f: Field) -> IResult<&str, MathExpr> {
-    // reset parser
-    unsafe {
-      OPT_FIELD = Some(f);
-      SIGNAL_ID = 0;
-    }
-    MathExprParser::expr(input)
+  // <expr> ::= <term1> [ ('+'|'-') <term1> ]*
+  pub fn parse<'a>(&self, input: &'a str) -> IResult<&'a str, MathExpr> {
+    let signal_id = Cell::new(0);
+    let expr = MathExprParser::expr(self, &signal_id);
+    expr(input)
+  }
+
+  pub fn new(f: &Field) -> MathExprParser {
+    let f = f.clone();
+    MathExprParser { f }
   }
 }
 
@@ -213,8 +211,9 @@ mod tests {
 
   #[test]
   fn test_decimal() {
-    let f = Field::new(&11u8);
-    match MathExprParser::parse("123", f) {
+    let f = &Field::new(&11u8);
+    let parser = MathExprParser::new(f);
+    match parser.parse("123") {
       Ok((input, x)) => {
         assert_eq!(input, "");
         assert_eq!(x, MathExpr::Num(1, f.elem(&123u8)));
@@ -225,21 +224,38 @@ mod tests {
 
   #[test]
   fn test_decimal_with_spaces() {
-    match MathExprParser::parse(" 123 ") {
+    let f = &Field::new(&11u8);
+    let parser = MathExprParser::new(f);
+    match parser.parse(" 123 ") {
       Ok((input, x)) => {
         assert_eq!(input, "");
-        assert_eq!(x, MathExpr::Num("123".to_string()));
+        assert_eq!(x, MathExpr::Num(1, f.elem(&123u8)));
       },
       Err(_) => panic!(),
     }
   }
 
   #[test]
-  fn test_neg_decimal() {
-    match MathExprParser::parse("-123") {
+  fn test_neg_decimal_below_order() {
+    let f = &Field::new(&11u8);
+    let parser = MathExprParser::new(f);
+    match parser.parse("-123") {
       Ok((input, x)) => {
         assert_eq!(input, "");
-        assert_eq!(x, MathExpr::Num("-123".to_string()));
+        assert_eq!(x, MathExpr::Num(1, f.elem_from_signed_int(-123)));
+      },
+      Err(_) => panic!(),
+    }
+  }
+
+  #[test]
+  fn test_neg_decimal_above_order() {
+    let f = &Field::new(&11u8);
+    let parser = MathExprParser::new(f);
+    match parser.parse("-123") {
+      Ok((input, x)) => {
+        assert_eq!(input, "");
+        assert_eq!(x, MathExpr::Num(1, f.elem_from_signed_int(-123)));
       },
       Err(_) => panic!(),
     }
@@ -247,11 +263,13 @@ mod tests {
 
   #[test]
   fn test_1_char_variable() {
+    let f = &Field::new(&11u8);
     for s in vec!["x", "x1", "x0", "xy", "xy1"] {
-      match MathExprParser::parse(s) {
+      let parser = MathExprParser::new(f);
+      match parser.parse(s) {
         Ok((input, x)) => {
           assert_eq!(input, "");
-          assert_eq!(x, MathExpr::Var(s.to_string()));
+          assert_eq!(x, MathExpr::Var(1, s.to_string()));
         },
         Err(_) => panic!(),
       }
@@ -260,11 +278,13 @@ mod tests {
 
   #[test]
   fn test_1_char_variable_with_spaces() {
+    let f = &Field::new(&11u8);
     for s in vec!["x", "x1", "x0", "xy", "xy1"] {
-      match MathExprParser::parse(&format!("  {}  ", s)) {
+      let parser = MathExprParser::new(f);
+      match parser.parse(&format!("  {}  ", s)) {
         Ok((input, x)) => {
           assert_eq!(input, "");
-          assert_eq!(x, MathExpr::Var(s.to_string()));
+          assert_eq!(x, MathExpr::Var(1, s.to_string()));
         },
         Err(_) => panic!(),
       }
@@ -273,12 +293,14 @@ mod tests {
 
   #[test]
   fn test_simple_add_expr() {
-    match MathExprParser::parse("123+456") {
+    let f = &Field::new(&11u8);
+    let parser = MathExprParser::new(f);
+    match parser.parse("123+456") {
       Ok((input, x)) => {
         assert_eq!(input, "");
-        assert_eq!(x, MathExpr::Add(
-          Box::new(MathExpr::Num("123".to_string())),
-          Box::new(MathExpr::Num("456".to_string())),
+        assert_eq!(x, MathExpr::Add(3,
+          Box::new(MathExpr::Num(1, f.elem(&123u16))),
+          Box::new(MathExpr::Num(2, f.elem(&456u16))),
         ));
       },
       Err(_) => panic!(),
@@ -287,13 +309,15 @@ mod tests {
 
   #[test]
   fn test_simple_add_expr_with_1_var() {
+    let f = &Field::new(&11u8);
     for s in vec!["x", "x1", "x0", "xy", "xy1"] {
-      match MathExprParser::parse(&format!("{}+456", s)) {
+      let parser = MathExprParser::new(f);
+      match parser.parse(&format!("{}+456", s)) {
         Ok((input, x)) => {
           assert_eq!(input, "");
-          assert_eq!(x, MathExpr::Add(
-            Box::new(MathExpr::Var(s.to_string())),
-            Box::new(MathExpr::Num("456".to_string())),
+          assert_eq!(x, MathExpr::Add(3,
+            Box::new(MathExpr::Var(1, s.to_string())),
+            Box::new(MathExpr::Num(2, f.elem(&456u16))),
           ));
         },
         Err(_) => panic!(),
@@ -303,13 +327,15 @@ mod tests {
 
   #[test]
   fn test_simple_add_expr_with_2_vars() {
+    let f = &Field::new(&11u8);
     for (a,b) in vec![("x", "y"), ("x1", "y1"), ("xxx1123", "yyy123443")] {
-      match MathExprParser::parse(&format!("{}+{}", a, b)) {
+      let parser = MathExprParser::new(f);
+      match parser.parse(&format!("{}+{}", a, b)) {
         Ok((input, x)) => {
           assert_eq!(input, "");
-          assert_eq!(x, MathExpr::Add(
-            Box::new(MathExpr::Var(a.to_string())),
-            Box::new(MathExpr::Var(b.to_string())),
+          assert_eq!(x, MathExpr::Add(3,
+            Box::new(MathExpr::Var(1, a.to_string())),
+            Box::new(MathExpr::Var(2, b.to_string())),
           ));
         },
         Err(_) => panic!(),
@@ -319,12 +345,14 @@ mod tests {
 
   #[test]
   fn test_simple_add_expr_incl_neg() {
-    match MathExprParser::parse("123+-456") {
+    let f = &Field::new(&11u8);
+    let parser = MathExprParser::new(f);
+    match parser.parse("123+-456") {
       Ok((input, x)) => {
         assert_eq!(input, "");
-        assert_eq!(x, MathExpr::Add(
-          Box::new(MathExpr::Num("123".to_string())),
-          Box::new(MathExpr::Num("-456".to_string())),
+        assert_eq!(x, MathExpr::Add(3,
+          Box::new(MathExpr::Num(1, f.elem(&123u16))),
+          Box::new(MathExpr::Num(2, f.elem_from_signed_int(-456))),
         ));
       },
       Err(_) => panic!(),
@@ -333,12 +361,14 @@ mod tests {
 
   #[test]
   fn test_simple_sub_expr() {
-    match MathExprParser::parse("123-456") {
+    let f = &Field::new(&11u8);
+    let parser = MathExprParser::new(f);
+    match parser.parse("123-456") {
       Ok((input, x)) => {
         assert_eq!(input, "");
-        assert_eq!(x, MathExpr::Sub(
-          Box::new(MathExpr::Num("123".to_string())),
-          Box::new(MathExpr::Num("456".to_string())),
+        assert_eq!(x, MathExpr::Sub(3,
+          Box::new(MathExpr::Num(1, f.elem(&123u16))),
+          Box::new(MathExpr::Num(2, f.elem(&456u16))),
         ));
       },
       Err(_) => panic!(),
@@ -347,13 +377,15 @@ mod tests {
 
   #[test]
   fn test_simple_sub_expr_1_var() {
+    let f = &Field::new(&11u8);
     for s in vec!["x", "x1", "x0", "xy", "xy1"] {
-      match MathExprParser::parse(&format!("123-{}", s)) {
+      let parser = MathExprParser::new(f);
+      match parser.parse(&format!("123-{}", s)) {
         Ok((input, x)) => {
           assert_eq!(input, "");
-          assert_eq!(x, MathExpr::Sub(
-            Box::new(MathExpr::Num("123".to_string())),
-            Box::new(MathExpr::Var(s.to_string())),
+          assert_eq!(x, MathExpr::Sub(3,
+            Box::new(MathExpr::Num(1, f.elem(&123u16))),
+            Box::new(MathExpr::Var(2, s.to_string())),
           ));
         },
         Err(_) => panic!(),
@@ -363,12 +395,14 @@ mod tests {
 
   #[test]
   fn test_simple_sub_expr_incl_neg1() {
-    match MathExprParser::parse("-123-456") {
+    let f = &Field::new(&11u8);
+    let parser = MathExprParser::new(f);
+    match parser.parse("-123-456") {
       Ok((input, x)) => {
         assert_eq!(input, "");
-        assert_eq!(x, MathExpr::Sub(
-          Box::new(MathExpr::Num("-123".to_string())),
-          Box::new(MathExpr::Num("456".to_string())),
+        assert_eq!(x, MathExpr::Sub(3,
+          Box::new(MathExpr::Num(1, f.elem_from_signed_int(-123))),
+          Box::new(MathExpr::Num(2, f.elem(&456u16))),
         ));
       },
       Err(_) => panic!(),
@@ -377,13 +411,15 @@ mod tests {
 
   #[test]
   fn test_simple_sub_expr_incl_neg1_1_var() {
+    let f = &Field::new(&11u8);
     for s in vec!["x", "x1", "x0", "xy", "xy1"] {
-      match MathExprParser::parse(&format!("-123-{}", s)) {
+      let parser = MathExprParser::new(f);
+      match parser.parse(&format!("-123-{}", s)) {
         Ok((input, x)) => {
           assert_eq!(input, "");
-          assert_eq!(x, MathExpr::Sub(
-            Box::new(MathExpr::Num("-123".to_string())),
-            Box::new(MathExpr::Var(s.to_string())),
+          assert_eq!(x, MathExpr::Sub(3,
+            Box::new(MathExpr::Num(1, f.elem_from_signed_int(-123))),
+            Box::new(MathExpr::Var(2, s.to_string())),
           ));
         },
         Err(_) => panic!(),
@@ -392,12 +428,14 @@ mod tests {
   }
   #[test]
   fn test_simple_sub_expr_incl_neg2() {
-    match MathExprParser::parse("123--456") {
+    let f = &Field::new(&11u8);
+    let parser = MathExprParser::new(f);
+    match parser.parse("123--456") {
       Ok((input, x)) => {
         assert_eq!(input, "");
-        assert_eq!(x, MathExpr::Sub(
-          Box::new(MathExpr::Num("123".to_string())),
-          Box::new(MathExpr::Num("-456".to_string())),
+        assert_eq!(x, MathExpr::Sub(3,
+          Box::new(MathExpr::Num(1, f.elem(&123u16))),
+          Box::new(MathExpr::Num(2, f.elem_from_signed_int(-456))),
         ));
       },
       Err(_) => panic!(),
@@ -406,12 +444,14 @@ mod tests {
 
   #[test]
   fn test_simple_sub_expr_incl_neg2_with_spaces() {
-    match MathExprParser::parse("123 - -456") {
+    let f = &Field::new(&11u8);
+    let parser = MathExprParser::new(f);
+    match parser.parse("123 - -456") {
       Ok((input, x)) => {
         assert_eq!(input, "");
-        assert_eq!(x, MathExpr::Sub(
-          Box::new(MathExpr::Num("123".to_string())),
-          Box::new(MathExpr::Num("-456".to_string())),
+        assert_eq!(x, MathExpr::Sub(3,
+          Box::new(MathExpr::Num(1, f.elem(&123u16))),
+          Box::new(MathExpr::Num(2, f.elem_from_signed_int(-456))),
         ));
       },
       Err(_) => panic!(),
@@ -420,12 +460,14 @@ mod tests {
 
   #[test]
   fn test_simple_sub_expr_incl_neg2_with_spaces_1_var() {
-    match MathExprParser::parse("x - -456") {
+    let f = &Field::new(&11u8);
+    let parser = MathExprParser::new(f);
+    match parser.parse("x - -456") {
       Ok((input, x)) => {
         assert_eq!(input, "");
-        assert_eq!(x, MathExpr::Sub(
-          Box::new(MathExpr::Var("x".to_string())),
-          Box::new(MathExpr::Num("-456".to_string())),
+        assert_eq!(x, MathExpr::Sub(3,
+          Box::new(MathExpr::Var(1, "x".to_string())),
+          Box::new(MathExpr::Num(2, f.elem_from_signed_int(-456))),
         ));
       },
       Err(_) => panic!(),
@@ -434,12 +476,14 @@ mod tests {
 
   #[test]
   fn test_simple_mul_expr() {
-    match MathExprParser::parse("123*456") {
+    let f = &Field::new(&11u8);
+    let parser = MathExprParser::new(f);
+    match parser.parse("123*456") {
       Ok((input, x)) => {
         assert_eq!(input, "");
-        assert_eq!(x, MathExpr::Mul(
-          Box::new(MathExpr::Num("123".to_string())),
-          Box::new(MathExpr::Num("456".to_string())),
+        assert_eq!(x, MathExpr::Mul(3,
+          Box::new(MathExpr::Num(1, f.elem(&123u16))),
+          Box::new(MathExpr::Num(2, f.elem(&456u16))),
         ));
       },
       Err(_) => panic!(),
@@ -448,13 +492,15 @@ mod tests {
 
   #[test]
   fn test_simple_mul_expr_incl_neg1() {
-    match MathExprParser::parse("123*-456") {
+    let f = &Field::new(&11u8);
+    let parser = MathExprParser::new(f);
+    match parser.parse("123*-456") {
       Ok((input, x)) => {
         assert_eq!(input, "");
-        assert_eq!(x, MathExpr::Mul(
-          Box::new(MathExpr::Num("123".to_string())),
-          Box::new(MathExpr::Num("-456".to_string())),
-        ));
+        assert_eq!(x, MathExpr::Mul(3,
+          Box::new(MathExpr::Num(1, f.elem(&123u16))),
+          Box::new(MathExpr::Num(2, f.elem_from_signed_int(-456)),
+        )));
       },
       Err(_) => panic!(),
     }
@@ -462,12 +508,14 @@ mod tests {
 
   #[test]
   fn test_simple_mul_expr_incl_neg2() {
-    match MathExprParser::parse("-123*456") {
+    let f = &Field::new(&11u8);
+    let parser = MathExprParser::new(f);
+    match parser.parse("-123*456") {
       Ok((input, x)) => {
         assert_eq!(input, "");
-        assert_eq!(x, MathExpr::Mul(
-          Box::new(MathExpr::Num("-123".to_string())),
-          Box::new(MathExpr::Num("456".to_string())),
+        assert_eq!(x, MathExpr::Mul(3,
+          Box::new(MathExpr::Num(1, f.elem_from_signed_int(-123))),
+          Box::new(MathExpr::Num(2, f.elem(&456u16))),
         ));
       },
       Err(_) => panic!(),
@@ -476,12 +524,14 @@ mod tests {
 
   #[test]
   fn test_simple_mul_expr_incl_neg() {
-    match MathExprParser::parse("123*-456") {
+    let f = &Field::new(&11u8);
+    let parser = MathExprParser::new(f);
+    match parser.parse("123*-456") {
       Ok((input, x)) => {
         assert_eq!(input, "");
-        assert_eq!(x, MathExpr::Mul(
-          Box::new(MathExpr::Num("123".to_string())),
-          Box::new(MathExpr::Num("-456".to_string())),
+        assert_eq!(x, MathExpr::Mul(3,
+          Box::new(MathExpr::Num(1, f.elem(&123u16))),
+          Box::new(MathExpr::Num(2, f.elem_from_signed_int(-456))),
         ));
       },
       Err(_) => panic!(),
@@ -490,12 +540,14 @@ mod tests {
 
   #[test]
   fn test_simple_div_expr() {
-    match MathExprParser::parse("123/456") {
+    let f = &Field::new(&11u8);
+    let parser = MathExprParser::new(f);
+    match parser.parse("123/456") {
       Ok((input, x)) => {
         assert_eq!(input, "");
-        assert_eq!(x, MathExpr::Div(
-          Box::new(MathExpr::Num("123".to_string())),
-          Box::new(MathExpr::Num("456".to_string())),
+        assert_eq!(x, MathExpr::Div(3,
+          Box::new(MathExpr::Num(1, f.elem(&123u16))),
+          Box::new(MathExpr::Num(2, f.elem(&456u16))),
         ));
       },
       Err(_) => panic!(),
@@ -504,14 +556,16 @@ mod tests {
 
   #[test]
   fn test_add_and_mul_expr() {
-    match MathExprParser::parse("123+456*789") {
+    let f = &Field::new(&11u8);
+    let parser = MathExprParser::new(f);
+    match parser.parse("123+456*789") {
       Ok((input, x)) => {
         assert_eq!(input, "");
-        assert_eq!(x, MathExpr::Add(
-          Box::new(MathExpr::Num("123".to_string())),
-          Box::new(MathExpr::Mul(
-            Box::new(MathExpr::Num("456".to_string())),
-            Box::new(MathExpr::Num("789".to_string()))
+        assert_eq!(x, MathExpr::Add(5,
+          Box::new(MathExpr::Num(1, f.elem(&123u16))),
+          Box::new(MathExpr::Mul(4,
+            Box::new(MathExpr::Num(2, f.elem(&456u16))),
+            Box::new(MathExpr::Num(3, f.elem(&789u16)))
           )),
         ));
       },
@@ -521,17 +575,19 @@ mod tests {
 
   #[test]
   fn test_add_mul_div_expr() {
-    match MathExprParser::parse("111/222+333*444") {
+    let f = &Field::new(&11u8);
+    let parser = MathExprParser::new(f);
+    match parser.parse("111/222+333*444") {
       Ok((input, x)) => {
         assert_eq!(input, "");
-        assert_eq!(x, MathExpr::Add(
-          Box::new(MathExpr::Div(
-            Box::new(MathExpr::Num("111".to_string())),
-            Box::new(MathExpr::Num("222".to_string()))
+        assert_eq!(x, MathExpr::Add(7,
+          Box::new(MathExpr::Div(3,
+            Box::new(MathExpr::Num(1, f.elem(&111u16))),
+            Box::new(MathExpr::Num(2, f.elem(&222u16))),
           )),
-          Box::new(MathExpr::Mul(
-            Box::new(MathExpr::Num("333".to_string())),
-            Box::new(MathExpr::Num("444".to_string()))
+          Box::new(MathExpr::Mul(6,
+            Box::new(MathExpr::Num(4, f.elem(&333u16))),
+            Box::new(MathExpr::Num(5, f.elem(&444u16))),
           )),
         ));
       },
@@ -541,15 +597,17 @@ mod tests {
 
   #[test]
   fn test_paren_add_and_mul_expr() {
-    match MathExprParser::parse("(123+456)*789") {
+    let f = &Field::new(&11u8);
+    let parser = MathExprParser::new(f);
+    match parser.parse("(123+456)*789") {
       Ok((input, x)) => {
         assert_eq!(input, "");
-        assert_eq!(x, MathExpr::Mul(
-          Box::new(MathExpr::Add(
-            Box::new(MathExpr::Num("123".to_string())),
-            Box::new(MathExpr::Num("456".to_string()))
+        assert_eq!(x, MathExpr::Mul(5,
+          Box::new(MathExpr::Add(3,
+            Box::new(MathExpr::Num(1, f.elem(&123u16))),
+            Box::new(MathExpr::Num(2, f.elem(&456u16))),
           )),
-          Box::new(MathExpr::Num("789".to_string())),
+          Box::new(MathExpr::Num(4, f.elem(&789u16))),
         ));
       },
       Err(_) => panic!(),
@@ -558,15 +616,17 @@ mod tests {
 
   #[test]
   fn test_paren_add_and_mul_expr_with_spaces() {
-    match MathExprParser::parse(" (123 + 456) * 789") {
+    let f = &Field::new(&11u8);
+    let parser = MathExprParser::new(f);
+    match parser.parse(" (123 + 456) * 789") {
       Ok((input, x)) => {
         assert_eq!(input, "");
-        assert_eq!(x, MathExpr::Mul(
-          Box::new(MathExpr::Add(
-            Box::new(MathExpr::Num("123".to_string())),
-            Box::new(MathExpr::Num("456".to_string()))
+        assert_eq!(x, MathExpr::Mul(5,
+          Box::new(MathExpr::Add(3,
+            Box::new(MathExpr::Num(1, f.elem(&123u16))),
+            Box::new(MathExpr::Num(2, f.elem(&456u16))),
           )),
-          Box::new(MathExpr::Num("789".to_string())),
+          Box::new(MathExpr::Num(4, f.elem(&789u16))),
         ));
       },
       Err(_) => panic!(),
@@ -575,17 +635,19 @@ mod tests {
 
   #[test]
   fn test_paren_add_mul_sub_expr() {
-    match MathExprParser::parse("(111+222)*(333-444)") {
+    let f = &Field::new(&11u8);
+    let parser = MathExprParser::new(f);
+    match parser.parse("(111+222)*(333-444)") {
       Ok((input, x)) => {
         assert_eq!(input, "");
-        assert_eq!(x, MathExpr::Mul(
-          Box::new(MathExpr::Add(
-            Box::new(MathExpr::Num("111".to_string())),
-            Box::new(MathExpr::Num("222".to_string()))
+        assert_eq!(x, MathExpr::Mul(7,
+          Box::new(MathExpr::Add(3,
+            Box::new(MathExpr::Num(1, f.elem(&111u16))),
+            Box::new(MathExpr::Num(2, f.elem(&222u16))),
           )),
-          Box::new(MathExpr::Sub(
-            Box::new(MathExpr::Num("333".to_string())),
-            Box::new(MathExpr::Num("444".to_string()))
+          Box::new(MathExpr::Sub(6,
+            Box::new(MathExpr::Num(4, f.elem(&333u16))),
+            Box::new(MathExpr::Num(5, f.elem(&444u16))),
           )),
         ));
       },
@@ -595,12 +657,14 @@ mod tests {
 
   #[test]
   fn test_multiple_paren() {
-    match MathExprParser::parse("((111+222))") {
+    let f = &Field::new(&11u8);
+    let parser = MathExprParser::new(f);
+    match parser.parse("((111+222))") {
       Ok((input, x)) => {
         assert_eq!(input, "");
-        assert_eq!(x, MathExpr::Add(
-          Box::new(MathExpr::Num("111".to_string())),
-          Box::new(MathExpr::Num("222".to_string())),
+        assert_eq!(x, MathExpr::Add(3,
+          Box::new(MathExpr::Num(1, f.elem(&111u8))),
+          Box::new(MathExpr::Num(2, f.elem(&222u8))),
         ));
       },
       Err(_) => panic!(),
@@ -609,12 +673,14 @@ mod tests {
 
   #[test]
   fn test_multiple_paren_with_spaces() {
-    match MathExprParser::parse(" ( (111+222) ) ") {
+    let f = &Field::new(&11u8);
+    let parser = MathExprParser::new(f);
+    match parser.parse(" ( (111+222) ) ") {
       Ok((input, x)) => {
         assert_eq!(input, "");
-        assert_eq!(x, MathExpr::Add(
-          Box::new(MathExpr::Num("111".to_string())),
-          Box::new(MathExpr::Num("222".to_string())),
+        assert_eq!(x, MathExpr::Add(3,
+          Box::new(MathExpr::Num(1, f.elem(&111u8))),
+          Box::new(MathExpr::Num(2, f.elem(&222u8))),
         ));
       },
       Err(_) => panic!(),
