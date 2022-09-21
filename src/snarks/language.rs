@@ -9,7 +9,7 @@ use nom::{
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Ast {
-  Num(i32),
+  Num(String),
   Mul(Box<Ast>, Box<Ast>),
   Div(Box<Ast>, Box<Ast>),
   Add(Box<Ast>, Box<Ast>),
@@ -34,8 +34,7 @@ impl Parser {
         multispace0
       )(input)?;
 
-    let n: i32 = s.parse().unwrap();
-    Ok((input, Ast::Num(n)))
+    Ok((input, Ast::Num(s.to_string())))
   }
 
   // <expr> ::= <term1> [ ('+'|'-') <term1> ]*
@@ -129,7 +128,7 @@ mod tests {
     match Parser::parse("123") {
       Ok((input, x)) => {
         assert_eq!(input, "");
-        assert_eq!(x, Ast::Num(123));
+        assert_eq!(x, Ast::Num("123".to_string()));
       },
       Err(_) => panic!(),
     }
@@ -138,9 +137,9 @@ mod tests {
   #[test]
   fn test_decimal_with_spaces() {
     match Parser::parse(" 123 ") {
-      Ok((input, x)) => { 
+      Ok((input, x)) => {
         assert_eq!(input, "");
-        assert_eq!(x, Ast::Num(123)); 
+        assert_eq!(x, Ast::Num("123".to_string()));
       },
       Err(_) => panic!(),
     }
@@ -149,9 +148,9 @@ mod tests {
   #[test]
   fn test_neg_decimal() {
     match Parser::parse("-123") {
-      Ok((input, x)) => { 
+      Ok((input, x)) => {
         assert_eq!(input, "");
-        assert_eq!(x, Ast::Num(-123)); 
+        assert_eq!(x, Ast::Num("-123".to_string()));
       },
       Err(_) => panic!(),
     }
@@ -160,12 +159,12 @@ mod tests {
   #[test]
   fn test_simple_add_expr() {
     match Parser::parse("123+456") {
-      Ok((input, x)) => { 
+      Ok((input, x)) => {
         assert_eq!(input, "");
         assert_eq!(x, Ast::Add(
-          Box::new(Ast::Num(123)), 
-          Box::new(Ast::Num(456)),
-        )); 
+          Box::new(Ast::Num("123".to_string())),
+          Box::new(Ast::Num("456".to_string())),
+        ));
       },
       Err(_) => panic!(),
     }
@@ -177,8 +176,8 @@ mod tests {
       Ok((input, x)) => {
         assert_eq!(input, "");
         assert_eq!(x, Ast::Add(
-          Box::new(Ast::Num(123)),
-          Box::new(Ast::Num(-456)),
+          Box::new(Ast::Num("123".to_string())),
+          Box::new(Ast::Num("-456".to_string())),
         ));
       },
       Err(_) => panic!(),
@@ -191,8 +190,8 @@ mod tests {
       Ok((input, x)) => {
         assert_eq!(input, "");
         assert_eq!(x, Ast::Sub(
-          Box::new(Ast::Num(123)),
-          Box::new(Ast::Num(456)),
+          Box::new(Ast::Num("123".to_string())),
+          Box::new(Ast::Num("456".to_string())),
         ));
       },
       Err(_) => panic!(),
@@ -205,8 +204,8 @@ mod tests {
       Ok((input, x)) => {
         assert_eq!(input, "");
         assert_eq!(x, Ast::Sub(
-          Box::new(Ast::Num(-123)),
-          Box::new(Ast::Num(456)),
+          Box::new(Ast::Num("-123".to_string())),
+          Box::new(Ast::Num("456".to_string())),
         ));
       },
       Err(_) => panic!(),
@@ -219,8 +218,8 @@ mod tests {
       Ok((input, x)) => {
         assert_eq!(input, "");
         assert_eq!(x, Ast::Sub(
-          Box::new(Ast::Num(123)),
-          Box::new(Ast::Num(-456)),
+          Box::new(Ast::Num("123".to_string())),
+          Box::new(Ast::Num("-456".to_string())),
         ));
       },
       Err(_) => panic!(),
@@ -233,8 +232,8 @@ mod tests {
       Ok((input, x)) => {
         assert_eq!(input, "");
         assert_eq!(x, Ast::Sub(
-          Box::new(Ast::Num(123)),
-          Box::new(Ast::Num(-456)),
+          Box::new(Ast::Num("123".to_string())),
+          Box::new(Ast::Num("-456".to_string())),
         ));
       },
       Err(_) => panic!(),
@@ -247,8 +246,8 @@ mod tests {
       Ok((input, x)) => {
         assert_eq!(input, "");
         assert_eq!(x, Ast::Mul(
-          Box::new(Ast::Num(123)),
-          Box::new(Ast::Num(456)),
+          Box::new(Ast::Num("123".to_string())),
+          Box::new(Ast::Num("456".to_string())),
         ));
       },
       Err(_) => panic!(),
@@ -261,8 +260,8 @@ mod tests {
       Ok((input, x)) => {
         assert_eq!(input, "");
         assert_eq!(x, Ast::Mul(
-          Box::new(Ast::Num(123)),
-          Box::new(Ast::Num(-456)),
+          Box::new(Ast::Num("123".to_string())),
+          Box::new(Ast::Num("-456".to_string())),
         ));
       },
       Err(_) => panic!(),
@@ -276,8 +275,8 @@ mod tests {
       Ok((input, x)) => {
         assert_eq!(input, "");
         assert_eq!(x, Ast::Mul(
-          Box::new(Ast::Num(-123)),
-          Box::new(Ast::Num(456)),
+          Box::new(Ast::Num("-123".to_string())),
+          Box::new(Ast::Num("456".to_string())),
         ));
       },
       Err(_) => panic!(),
@@ -290,8 +289,8 @@ mod tests {
       Ok((input, x)) => {
         assert_eq!(input, "");
         assert_eq!(x, Ast::Mul(
-          Box::new(Ast::Num(123)),
-          Box::new(Ast::Num(-456)),
+          Box::new(Ast::Num("123".to_string())),
+          Box::new(Ast::Num("-456".to_string())),
         ));
       },
       Err(_) => panic!(),
@@ -304,8 +303,8 @@ mod tests {
       Ok((input, x)) => {
         assert_eq!(input, "");
         assert_eq!(x, Ast::Div(
-          Box::new(Ast::Num(123)),
-          Box::new(Ast::Num(456)),
+          Box::new(Ast::Num("123".to_string())),
+          Box::new(Ast::Num("456".to_string())),
         ));
       },
       Err(_) => panic!(),
@@ -318,10 +317,10 @@ mod tests {
       Ok((input, x)) => {
         assert_eq!(input, "");
         assert_eq!(x, Ast::Add(
-          Box::new(Ast::Num(123)),
+          Box::new(Ast::Num("123".to_string())),
           Box::new(Ast::Mul(
-            Box::new(Ast::Num(456)),
-            Box::new(Ast::Num(789))
+            Box::new(Ast::Num("456".to_string())),
+            Box::new(Ast::Num("789".to_string()))
           )),
         ));
       },
@@ -336,12 +335,12 @@ mod tests {
         assert_eq!(input, "");
         assert_eq!(x, Ast::Add(
           Box::new(Ast::Div(
-            Box::new(Ast::Num(111)),
-            Box::new(Ast::Num(222))
+            Box::new(Ast::Num("111".to_string())),
+            Box::new(Ast::Num("222".to_string()))
           )),
           Box::new(Ast::Mul(
-            Box::new(Ast::Num(333)),
-            Box::new(Ast::Num(444))
+            Box::new(Ast::Num("333".to_string())),
+            Box::new(Ast::Num("444".to_string()))
           )),
         ));
       },
@@ -356,10 +355,10 @@ mod tests {
         assert_eq!(input, "");
         assert_eq!(x, Ast::Mul(
           Box::new(Ast::Add(
-            Box::new(Ast::Num(123)),
-            Box::new(Ast::Num(456))
+            Box::new(Ast::Num("123".to_string())),
+            Box::new(Ast::Num("456".to_string()))
           )),
-          Box::new(Ast::Num(789)),
+          Box::new(Ast::Num("789".to_string())),
         ));
       },
       Err(_) => panic!(),
@@ -373,10 +372,10 @@ mod tests {
         assert_eq!(input, "");
         assert_eq!(x, Ast::Mul(
           Box::new(Ast::Add(
-            Box::new(Ast::Num(123)),
-            Box::new(Ast::Num(456))
+            Box::new(Ast::Num("123".to_string())),
+            Box::new(Ast::Num("456".to_string()))
           )),
-          Box::new(Ast::Num(789)),
+          Box::new(Ast::Num("789".to_string())),
         ));
       },
       Err(_) => panic!(),
@@ -390,12 +389,12 @@ mod tests {
         assert_eq!(input, "");
         assert_eq!(x, Ast::Mul(
           Box::new(Ast::Add(
-            Box::new(Ast::Num(111)),
-            Box::new(Ast::Num(222))
+            Box::new(Ast::Num("111".to_string())),
+            Box::new(Ast::Num("222".to_string()))
           )),
           Box::new(Ast::Sub(
-            Box::new(Ast::Num(333)),
-            Box::new(Ast::Num(444))
+            Box::new(Ast::Num("333".to_string())),
+            Box::new(Ast::Num("444".to_string()))
           )),
         ));
       },
@@ -409,8 +408,8 @@ mod tests {
       Ok((input, x)) => {
         assert_eq!(input, "");
         assert_eq!(x, Ast::Add(
-          Box::new(Ast::Num(111)),
-          Box::new(Ast::Num(222)),
+          Box::new(Ast::Num("111".to_string())),
+          Box::new(Ast::Num("222".to_string())),
         ));
       },
       Err(_) => panic!(),
@@ -423,8 +422,8 @@ mod tests {
       Ok((input, x)) => {
         assert_eq!(input, "");
         assert_eq!(x, Ast::Add(
-          Box::new(Ast::Num(111)),
-          Box::new(Ast::Num(222)),
+          Box::new(Ast::Num("111".to_string())),
+          Box::new(Ast::Num("222".to_string())),
         ));
       },
       Err(_) => panic!(),
