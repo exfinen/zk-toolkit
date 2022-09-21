@@ -20,7 +20,7 @@ pub struct Parser();
 
 impl Parser {
   fn decimal(input: &str) -> IResult<&str, Ast> {
-    let (input, s) = 
+    let (input, s) =
       delimited(
         multispace0,
         recognize(
@@ -42,7 +42,7 @@ impl Parser {
   fn expr(input: &str) -> IResult<&str, Ast> {
     let rhs = tuple((alt((char('+'), char('-'))), Parser::term1));
     let (input, (lhs, rhs)) = tuple((
-      Parser::term1, 
+      Parser::term1,
       many0(rhs),
     ))(input)?;
 
@@ -71,7 +71,7 @@ impl Parser {
   // <term2> ::= <number> | '(' <expr> ')'
   fn term2(input: &str) -> IResult<&str, Ast> {
     let (input, node) = alt((
-      Parser::decimal, 
+      Parser::decimal,
       delimited(
         delimited(multispace0, char('('), multispace0),
         Parser::expr,
@@ -86,7 +86,7 @@ impl Parser {
   fn term1(input: &str) -> IResult<&str, Ast> {
     let rhs = tuple((alt((char('*'), char('/'))), Parser::term2));
     let (input, (lhs, rhs)) = tuple((
-      Parser::term2, 
+      Parser::term2,
       many0(rhs),
     ))(input)?;
 
@@ -127,9 +127,9 @@ mod tests {
   #[test]
   fn test_decimal() {
     match Parser::parse("123") {
-      Ok((input, x)) => { 
+      Ok((input, x)) => {
         assert_eq!(input, "");
-        assert_eq!(x, Ast::Num(123)); 
+        assert_eq!(x, Ast::Num(123));
       },
       Err(_) => panic!(),
     }
@@ -174,12 +174,12 @@ mod tests {
   #[test]
   fn test_simple_add_expr_incl_neg() {
     match Parser::parse("123+-456") {
-      Ok((input, x)) => { 
+      Ok((input, x)) => {
         assert_eq!(input, "");
         assert_eq!(x, Ast::Add(
-          Box::new(Ast::Num(123)), 
+          Box::new(Ast::Num(123)),
           Box::new(Ast::Num(-456)),
-        )); 
+        ));
       },
       Err(_) => panic!(),
     }
@@ -188,12 +188,12 @@ mod tests {
   #[test]
   fn test_simple_sub_expr() {
     match Parser::parse("123-456") {
-      Ok((input, x)) => { 
+      Ok((input, x)) => {
         assert_eq!(input, "");
         assert_eq!(x, Ast::Sub(
-          Box::new(Ast::Num(123)), 
+          Box::new(Ast::Num(123)),
           Box::new(Ast::Num(456)),
-        )); 
+        ));
       },
       Err(_) => panic!(),
     }
@@ -202,12 +202,12 @@ mod tests {
   #[test]
   fn test_simple_sub_expr_incl_neg1() {
     match Parser::parse("-123-456") {
-      Ok((input, x)) => { 
+      Ok((input, x)) => {
         assert_eq!(input, "");
         assert_eq!(x, Ast::Sub(
-          Box::new(Ast::Num(-123)), 
+          Box::new(Ast::Num(-123)),
           Box::new(Ast::Num(456)),
-        )); 
+        ));
       },
       Err(_) => panic!(),
     }
@@ -216,12 +216,12 @@ mod tests {
   #[test]
   fn test_simple_sub_expr_incl_neg2() {
     match Parser::parse("123--456") {
-      Ok((input, x)) => { 
+      Ok((input, x)) => {
         assert_eq!(input, "");
         assert_eq!(x, Ast::Sub(
-          Box::new(Ast::Num(123)), 
+          Box::new(Ast::Num(123)),
           Box::new(Ast::Num(-456)),
-        )); 
+        ));
       },
       Err(_) => panic!(),
     }
@@ -230,12 +230,12 @@ mod tests {
   #[test]
   fn test_simple_sub_expr_incl_neg2_with_spaces() {
     match Parser::parse("123 - -456") {
-      Ok((input, x)) => { 
+      Ok((input, x)) => {
         assert_eq!(input, "");
         assert_eq!(x, Ast::Sub(
-          Box::new(Ast::Num(123)), 
+          Box::new(Ast::Num(123)),
           Box::new(Ast::Num(-456)),
-        )); 
+        ));
       },
       Err(_) => panic!(),
     }
@@ -244,12 +244,12 @@ mod tests {
   #[test]
   fn test_simple_mul_expr() {
     match Parser::parse("123*456") {
-      Ok((input, x)) => { 
+      Ok((input, x)) => {
         assert_eq!(input, "");
         assert_eq!(x, Ast::Mul(
-          Box::new(Ast::Num(123)), 
+          Box::new(Ast::Num(123)),
           Box::new(Ast::Num(456)),
-        )); 
+        ));
       },
       Err(_) => panic!(),
     }
@@ -258,12 +258,12 @@ mod tests {
   #[test]
   fn test_simple_mul_expr_incl_neg1() {
     match Parser::parse("123*-456") {
-      Ok((input, x)) => { 
+      Ok((input, x)) => {
         assert_eq!(input, "");
         assert_eq!(x, Ast::Mul(
-          Box::new(Ast::Num(123)), 
+          Box::new(Ast::Num(123)),
           Box::new(Ast::Num(-456)),
-        )); 
+        ));
       },
       Err(_) => panic!(),
     }
@@ -273,12 +273,12 @@ mod tests {
   #[test]
   fn test_simple_mul_expr_incl_neg2() {
     match Parser::parse("-123*456") {
-      Ok((input, x)) => { 
+      Ok((input, x)) => {
         assert_eq!(input, "");
         assert_eq!(x, Ast::Mul(
-          Box::new(Ast::Num(-123)), 
+          Box::new(Ast::Num(-123)),
           Box::new(Ast::Num(456)),
-        )); 
+        ));
       },
       Err(_) => panic!(),
     }
@@ -287,12 +287,12 @@ mod tests {
   #[test]
   fn test_simple_mul_expr_incl_neg() {
     match Parser::parse("123*-456") {
-      Ok((input, x)) => { 
+      Ok((input, x)) => {
         assert_eq!(input, "");
         assert_eq!(x, Ast::Mul(
-          Box::new(Ast::Num(123)), 
+          Box::new(Ast::Num(123)),
           Box::new(Ast::Num(-456)),
-        )); 
+        ));
       },
       Err(_) => panic!(),
     }
@@ -301,12 +301,12 @@ mod tests {
   #[test]
   fn test_simple_div_expr() {
     match Parser::parse("123/456") {
-      Ok((input, x)) => { 
+      Ok((input, x)) => {
         assert_eq!(input, "");
         assert_eq!(x, Ast::Div(
-          Box::new(Ast::Num(123)), 
+          Box::new(Ast::Num(123)),
           Box::new(Ast::Num(456)),
-        )); 
+        ));
       },
       Err(_) => panic!(),
     }
@@ -315,15 +315,15 @@ mod tests {
   #[test]
   fn test_add_and_mul_expr() {
     match Parser::parse("123+456*789") {
-      Ok((input, x)) => { 
+      Ok((input, x)) => {
         assert_eq!(input, "");
         assert_eq!(x, Ast::Add(
           Box::new(Ast::Num(123)),
           Box::new(Ast::Mul(
-            Box::new(Ast::Num(456)), 
+            Box::new(Ast::Num(456)),
             Box::new(Ast::Num(789))
           )),
-        )); 
+        ));
       },
       Err(_) => panic!(),
     }
@@ -332,18 +332,18 @@ mod tests {
   #[test]
   fn test_add_mul_div_expr() {
     match Parser::parse("111/222+333*444") {
-      Ok((input, x)) => { 
+      Ok((input, x)) => {
         assert_eq!(input, "");
         assert_eq!(x, Ast::Add(
           Box::new(Ast::Div(
-            Box::new(Ast::Num(111)), 
+            Box::new(Ast::Num(111)),
             Box::new(Ast::Num(222))
           )),
           Box::new(Ast::Mul(
-            Box::new(Ast::Num(333)), 
+            Box::new(Ast::Num(333)),
             Box::new(Ast::Num(444))
           )),
-        )); 
+        ));
       },
       Err(_) => panic!(),
     }
@@ -352,15 +352,15 @@ mod tests {
   #[test]
   fn test_paren_add_and_mul_expr() {
     match Parser::parse("(123+456)*789") {
-      Ok((input, x)) => { 
+      Ok((input, x)) => {
         assert_eq!(input, "");
         assert_eq!(x, Ast::Mul(
           Box::new(Ast::Add(
-            Box::new(Ast::Num(123)), 
+            Box::new(Ast::Num(123)),
             Box::new(Ast::Num(456))
           )),
           Box::new(Ast::Num(789)),
-        )); 
+        ));
       },
       Err(_) => panic!(),
     }
@@ -369,15 +369,15 @@ mod tests {
   #[test]
   fn test_paren_add_and_mul_expr_with_spaces() {
     match Parser::parse(" (123 + 456) * 789") {
-      Ok((input, x)) => { 
+      Ok((input, x)) => {
         assert_eq!(input, "");
         assert_eq!(x, Ast::Mul(
           Box::new(Ast::Add(
-            Box::new(Ast::Num(123)), 
+            Box::new(Ast::Num(123)),
             Box::new(Ast::Num(456))
           )),
           Box::new(Ast::Num(789)),
-        )); 
+        ));
       },
       Err(_) => panic!(),
     }
@@ -386,18 +386,18 @@ mod tests {
   #[test]
   fn test_paren_add_mul_sub_expr() {
     match Parser::parse("(111+222)*(333-444)") {
-      Ok((input, x)) => { 
+      Ok((input, x)) => {
         assert_eq!(input, "");
         assert_eq!(x, Ast::Mul(
           Box::new(Ast::Add(
-            Box::new(Ast::Num(111)), 
+            Box::new(Ast::Num(111)),
             Box::new(Ast::Num(222))
           )),
           Box::new(Ast::Sub(
-            Box::new(Ast::Num(333)), 
+            Box::new(Ast::Num(333)),
             Box::new(Ast::Num(444))
           )),
-        )); 
+        ));
       },
       Err(_) => panic!(),
     }
@@ -406,10 +406,10 @@ mod tests {
   #[test]
   fn test_multiple_paren() {
     match Parser::parse("((111+222))") {
-      Ok((input, x)) => { 
+      Ok((input, x)) => {
         assert_eq!(input, "");
         assert_eq!(x, Ast::Add(
-          Box::new(Ast::Num(111)), 
+          Box::new(Ast::Num(111)),
           Box::new(Ast::Num(222)),
         ));
       },
@@ -420,10 +420,10 @@ mod tests {
   #[test]
   fn test_multiple_paren_with_spaces() {
     match Parser::parse(" ( (111+222) ) ") {
-      Ok((input, x)) => { 
+      Ok((input, x)) => {
         assert_eq!(input, "");
         assert_eq!(x, Ast::Add(
-          Box::new(Ast::Num(111)), 
+          Box::new(Ast::Num(111)),
           Box::new(Ast::Num(222)),
         ));
       },
