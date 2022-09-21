@@ -8,20 +8,53 @@ use nom::{
   multi::{ many0, many1 },
   sequence::{ tuple, delimited, terminated },
 };
+use crate::building_block::field::{Field, FieldElem};
+use num_bigint::{BigInt, BigUint, Sign};
+
+type SignalId = u128;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum MathExpr {
-  Num(String),
-  Var(String),
-  Mul(Box<MathExpr>, Box<MathExpr>),
-  Div(Box<MathExpr>, Box<MathExpr>),
-  Add(Box<MathExpr>, Box<MathExpr>),
-  Sub(Box<MathExpr>, Box<MathExpr>),
+  Num(SignalId, FieldElem),
+  Var(SignalId, String),
+  Mul(SignalId, Box<MathExpr>, Box<MathExpr>),
+  Div(SignalId, Box<MathExpr>, Box<MathExpr>),
+  Add(SignalId, Box<MathExpr>, Box<MathExpr>),
+  Sub(SignalId, Box<MathExpr>, Box<MathExpr>),
 }
+
+// making static because nom parsers cannot refer to self
+static mut OPT_FIELD: Option<Field> = None;
+static mut SIGNAL_ID: u128 = 0;
 
 pub struct MathExprParser();
 
 impl MathExprParser {
+  fn num_str_to_field_elem(s: &str) -> FieldElem {
+    unsafe {
+      let field: &Field = OPT_FIELD.as_ref().unwrap();
+
+      if s.starts_with("-") {
+        let mut n = BigInt::parse_bytes(s.as_bytes(), 10).unwrap();
+        if n.sign() == Sign::Minus {
+          let order = BigInt::from_biguint(Sign::Plus, (*field.order).clone());
+          n = -n;
+          n = n % &order;
+          n = &order - n;
+          let n = n.to_biguint().unwrap();
+          field.elem(&n)
+
+        } else {
+          let n = n.to_biguint().unwrap();
+          field.elem(&n)
+        }
+      } else { // if positive
+        let n = BigUint::parse_bytes(s.as_bytes(), 10).unwrap();
+        field.elem(&n)
+      }
+    }
+  }
+
   fn variable(input: &str) -> IResult<&str, MathExpr> {
     let (input, s) =
       delimited(
@@ -32,7 +65,10 @@ impl MathExprParser {
         multispace0
       )(input)?;
 
-    Ok((input, MathExpr::Var(s.to_string())))
+    unsafe {
+      SIGNAL_ID += 1;
+      Ok((input, MathExpr::Var(SIGNAL_ID, s.to_string())))
+    }
   }
 
   fn decimal(input: &str) -> IResult<&str, MathExpr> {
@@ -50,7 +86,11 @@ impl MathExprParser {
         multispace0
       )(input)?;
 
-    Ok((input, MathExpr::Num(s.to_string())))
+    let n = MathExprParser::num_str_to_field_elem(s);
+    unsafe {
+      SIGNAL_ID += 1;
+      Ok((input, MathExpr::Num(SIGNAL_ID, n)))
+    }
   }
 
   // <expr> ::= <term1> [ ('+'|'-') <term1> ]*
@@ -68,18 +108,31 @@ impl MathExprParser {
       let rhs_head = &rhs[0];
       let rhs = rhs.iter().skip(1).fold(rhs_head.1.clone(), |acc, x| {
         match x {
-          ('+', node) => MathExpr::Add(Box::new(acc), Box::new(node.clone())),
-          ('-', node) => MathExpr::Sub(Box::new(acc), Box::new(node.clone())),
+          ('+', node) => {
+            unsafe {
+              SIGNAL_ID += 1;
+              MathExpr::Add(SIGNAL_ID, Box::new(acc), Box::new(node.clone()))
+            }
+          },
+          ('-', node) => {
+            unsafe {
+              SIGNAL_ID += 1;
+              MathExpr::Sub(SIGNAL_ID, Box::new(acc), Box::new(node.clone()))
+            }
+          },
           (op, _) => panic!("unexpected operator encountered in expr: {}", op),
         }
       });
 
-      let node = if rhs_head.0 == '+' {
-        MathExpr::Add(Box::new(lhs), Box::new(rhs))
-      } else {
-        MathExpr::Sub(Box::new(lhs), Box::new(rhs))
-      };
-      Ok((input, node))
+      unsafe {
+        SIGNAL_ID += 1;
+        let node = if rhs_head.0 == '+' {
+          MathExpr::Add(SIGNAL_ID, Box::new(lhs), Box::new(rhs))
+        } else {
+          MathExpr::Sub(SIGNAL_ID, Box::new(lhs), Box::new(rhs))
+        };
+        Ok((input, node))
+      }
     }
   }
 
@@ -113,25 +166,43 @@ impl MathExprParser {
       let rhs_head = &rhs[0];
       let rhs = rhs.iter().skip(1).fold(rhs_head.1.clone(), |acc, x| {
         match x {
-          ('*', node) => MathExpr::Mul(Box::new(acc), Box::new(node.clone())),
-          ('/', node) => MathExpr::Div(Box::new(acc), Box::new(node.clone())),
+          ('*', node) => {
+            unsafe {
+              SIGNAL_ID += 1;
+              MathExpr::Mul(SIGNAL_ID, Box::new(acc), Box::new(node.clone()))
+            }
+          },
+          ('/', node) => {
+            unsafe {
+              SIGNAL_ID += 1;
+              MathExpr::Div(SIGNAL_ID, Box::new(acc), Box::new(node.clone()))
+            }
+          },
           (op, _) => panic!("unexpected operator encountered in term1 {}", op),
         }
       });
 
-      let node = if rhs_head.0 == '*' {
-        MathExpr::Mul(Box::new(lhs), Box::new(rhs))
-      } else {
-        MathExpr::Div(Box::new(lhs), Box::new(rhs))
-      };
-      Ok((input, node))
+      unsafe {
+        SIGNAL_ID += 1;
+        let node = if rhs_head.0 == '*' {
+          MathExpr::Mul(SIGNAL_ID, Box::new(lhs), Box::new(rhs))
+        } else {
+          MathExpr::Div(SIGNAL_ID, Box::new(lhs), Box::new(rhs))
+        };
+        Ok((input, node))
+      }
     }
   }
 
   // <expr> ::= <term1> [ ('+'|'-') <term1> ]*
   // <term1> ::= <term2> [ ('*'|'/') <term2> ]*
   // <term2> ::= <variable> | <number> | '(' <expr> ')'
-  pub fn parse(input: &str) -> IResult<&str, MathExpr> {
+  pub fn parse(input: &str, f: Field) -> IResult<&str, MathExpr> {
+    // reset parser
+    unsafe {
+      OPT_FIELD = Some(f);
+      SIGNAL_ID = 0;
+    }
     MathExprParser::expr(input)
   }
 }
@@ -142,10 +213,11 @@ mod tests {
 
   #[test]
   fn test_decimal() {
-    match MathExprParser::parse("123") {
+    let f = Field::new(&11u8);
+    match MathExprParser::parse("123", f) {
       Ok((input, x)) => {
         assert_eq!(input, "");
-        assert_eq!(x, MathExpr::Num("123".to_string()));
+        assert_eq!(x, MathExpr::Num(1, f.elem(&123u8)));
       },
       Err(_) => panic!(),
     }
