@@ -6,6 +6,7 @@ use core::ops::Rem;
 use bitvec::prelude::*;
 use rand::RngCore;
 use crate::building_block::to_biguint::ToBigUint;
+use crate::building_block::to_bigint::ToBigInt as ToBigIntType;
 use crate::building_block::random_number::RandomNumber;
 use std::ops::{Index, RangeFrom, RangeTo, Deref};
 
@@ -341,11 +342,13 @@ impl Field {
     FieldElem::new(self, x)
   }
 
-  pub fn elem_from_signed_int(&self, n: i128) -> FieldElem {
-    if n < 0 {
-      let order = BigInt::from_biguint(Sign::Plus, (*self.order).clone());
-      let n = BigInt::from(n);
-      let n = order - n;
+  pub fn elem_from_signed(&self, x: &impl ToBigIntType) -> FieldElem {
+    let n = x.to_bigint();
+    if n.sign() == Sign::Minus {
+      let order = &BigInt::from_biguint(Sign::Plus, (*self.order).clone());
+      let mut n = -n;
+      n = n % order;
+      n = order - n;
       let n = n.to_biguint().unwrap();
       FieldElem::new(self, &n)
     } else {
@@ -462,7 +465,7 @@ macro_rules! impl_field_elems_plus_field_elems {
   ($rhs: ty, $target: ty) => {
     impl<'a> ops::Add<$rhs> for $target {
       type Output = FieldElems;
-      
+
       fn add(self, rhs: $rhs) -> Self::Output {
         assert!(self.len() > 0 && self.len() == rhs.len());
 
@@ -991,14 +994,14 @@ mod tests {
   #[test]
   fn new_elem_from_pos_signed_int() {
     let f = Field::new(&11u32);
-    let a = f.elem_from_signed_int(7);
+    let a = f.elem_from_signed(&7);
     assert_eq!(a.n, BigUint::from(7u32));
   }
 
   #[test]
   fn new_elem_from_neg_signed_int() {
     let f = Field::new(&11u32);
-    let a = f.elem_from_signed_int(-7);
+    let a = f.elem_from_signed(&-7);
     assert_eq!(a.n, BigUint::from(4u32));
   }
 }
