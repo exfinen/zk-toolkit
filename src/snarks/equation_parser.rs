@@ -15,13 +15,13 @@ use std::cell::Cell;
 type SignalId = u128;
 
 #[derive(Debug, PartialEq, Clone)]
-pub enum MathExpr {
+pub enum Equation {
   Num(SignalId, FieldElem),
   Var(SignalId, String),
-  Mul(SignalId, Box<MathExpr>, Box<MathExpr>),
-  Div(SignalId, Box<MathExpr>, Box<MathExpr>),
-  Add(SignalId, Box<MathExpr>, Box<MathExpr>),
-  Sub(SignalId, Box<MathExpr>, Box<MathExpr>),
+  Mul(SignalId, Box<Equation>, Box<Equation>),
+  Div(SignalId, Box<Equation>, Box<Equation>),
+  Add(SignalId, Box<Equation>, Box<Equation>),
+  Sub(SignalId, Box<Equation>, Box<Equation>),
 }
 
 pub struct Parser();
@@ -43,7 +43,7 @@ impl Parser {
     }
   }
 
-  fn variable<'a>(signal_id: &'a Cell<u128>) -> impl Fn(&str) -> IResult<&str, MathExpr> + 'a {
+  fn variable<'a>(signal_id: &'a Cell<u128>) -> impl Fn(&str) -> IResult<&str, Equation> + 'a {
     |input| {
       let (input, s) =
         delimited(
@@ -55,11 +55,11 @@ impl Parser {
         )(input)?;
 
       set_next_id!(signal_id);
-      Ok((input, MathExpr::Var(signal_id.get(), s.to_string())))
+      Ok((input, Equation::Var(signal_id.get(), s.to_string())))
     }
   }
 
-  fn decimal<'a>(f: &'a Field, signal_id: &'a Cell<u128>) -> impl Fn(&str) -> IResult<&str, MathExpr> + 'a {
+  fn decimal<'a>(f: &'a Field, signal_id: &'a Cell<u128>) -> impl Fn(&str) -> IResult<&str, Equation> + 'a {
     |input| {
       let (input, s) =
         delimited(
@@ -77,12 +77,12 @@ impl Parser {
 
       set_next_id!(signal_id);
       let n = Parser::num_str_to_field_elem(f, s);
-      Ok((input, MathExpr::Num(signal_id.get(), n)))
+      Ok((input, Equation::Num(signal_id.get(), n)))
     }
   }
 
   // <term2> ::= <variable> | <number> | '(' <expr> ')'
-  fn term2<'a>(f: &'a Field, signal_id: &'a Cell<u128>) -> impl Fn(&str) -> IResult<&str, MathExpr> + 'a {
+  fn term2<'a>(f: &'a Field, signal_id: &'a Cell<u128>) -> impl Fn(&str) -> IResult<&str, Equation> + 'a {
     |input| {
       let (input, node) = alt((
         Parser::variable(signal_id),
@@ -99,7 +99,7 @@ impl Parser {
   }
 
   // <term1> ::= <term2> [ ('*'|'/') <term2> ]*
-  fn term1<'a>(f: &'a Field, signal_id: &'a Cell<u128>) -> impl Fn(&str) -> IResult<&str, MathExpr> + 'a {
+  fn term1<'a>(f: &'a Field, signal_id: &'a Cell<u128>) -> impl Fn(&str) -> IResult<&str, Equation> + 'a {
     |input| {
       let rhs = tuple((alt((char('*'), char('/'))), Parser::term2(f, signal_id)));
       let (input, (lhs, rhs)) = tuple((
@@ -116,11 +116,11 @@ impl Parser {
           match x {
             ('*', node) => {
               set_next_id!(signal_id);
-              MathExpr::Mul(signal_id.get(), Box::new(acc), Box::new(node.clone()))
+              Equation::Mul(signal_id.get(), Box::new(acc), Box::new(node.clone()))
             },
             ('/', node) => {
               set_next_id!(signal_id);
-              MathExpr::Div(signal_id.get(), Box::new(acc), Box::new(node.clone()))
+              Equation::Div(signal_id.get(), Box::new(acc), Box::new(node.clone()))
             },
             (op, _) => panic!("unexpected operator encountered in term1 {}", op),
           }
@@ -128,9 +128,9 @@ impl Parser {
 
         set_next_id!(signal_id);
         let node = if rhs_head.0 == '*' {
-          MathExpr::Mul(signal_id.get(), Box::new(lhs), Box::new(rhs))
+          Equation::Mul(signal_id.get(), Box::new(lhs), Box::new(rhs))
         } else {
-          MathExpr::Div(signal_id.get(), Box::new(lhs), Box::new(rhs))
+          Equation::Div(signal_id.get(), Box::new(lhs), Box::new(rhs))
         };
         Ok((input, node))
       }
@@ -138,7 +138,7 @@ impl Parser {
   }
 
   // <expr> ::= <term1> [ ('+'|'-') <term1> ]*
-  fn expr<'a>(f: &'a Field, signal_id: &'a Cell<u128>) -> impl Fn(&str) -> IResult<&str, MathExpr> + 'a {
+  fn expr<'a>(f: &'a Field, signal_id: &'a Cell<u128>) -> impl Fn(&str) -> IResult<&str, Equation> + 'a {
     |input| {
       let rhs = tuple((alt((char('+'), char('-'))), Parser::term1(f, signal_id)));
       let (input, (lhs, rhs)) = tuple((
@@ -155,11 +155,11 @@ impl Parser {
           match x {
             ('+', node) => {
               set_next_id!(signal_id);
-              MathExpr::Add(signal_id.get(), Box::new(acc), Box::new(node.clone()))
+              Equation::Add(signal_id.get(), Box::new(acc), Box::new(node.clone()))
             },
             ('-', node) => {
               set_next_id!(signal_id);
-              MathExpr::Sub(signal_id.get(), Box::new(acc), Box::new(node.clone()))
+              Equation::Sub(signal_id.get(), Box::new(acc), Box::new(node.clone()))
             },
             (op, _) => panic!("unexpected operator encountered in expr: {}", op),
           }
@@ -167,9 +167,9 @@ impl Parser {
 
         set_next_id!(signal_id);
         let node = if rhs_head.0 == '+' {
-          MathExpr::Add(signal_id.get(), Box::new(lhs), Box::new(rhs))
+          Equation::Add(signal_id.get(), Box::new(lhs), Box::new(rhs))
         } else {
-          MathExpr::Sub(signal_id.get(), Box::new(lhs), Box::new(rhs))
+          Equation::Sub(signal_id.get(), Box::new(lhs), Box::new(rhs))
         };
         Ok((input, node))
       }
@@ -179,7 +179,7 @@ impl Parser {
   // <term1> ::= <term2> [ ('*'|'/') <term2> ]*
   // <term2> ::= <variable> | <number> | '(' <expr> ')'
   // <expr> ::= <term1> [ ('+'|'-') <term1> ]*
-  pub fn parse<'a>(f: &'a Field, input: &'a str) -> IResult<&'a str, MathExpr> {
+  pub fn parse<'a>(f: &'a Field, input: &'a str) -> IResult<&'a str, Equation> {
     let signal_id = Cell::new(0);
     let expr = Parser::expr(f, &signal_id);
     expr(input)
@@ -196,7 +196,7 @@ mod tests {
     match Parser::parse(f, "123") {
       Ok((input, x)) => {
         assert_eq!(input, "");
-        assert_eq!(x, MathExpr::Num(1, f.elem(&123u8)));
+        assert_eq!(x, Equation::Num(1, f.elem(&123u8)));
       },
       Err(_) => panic!(),
     }
@@ -208,7 +208,7 @@ mod tests {
     match Parser::parse(f, " 123 ") {
       Ok((input, x)) => {
         assert_eq!(input, "");
-        assert_eq!(x, MathExpr::Num(1, f.elem(&123u8)));
+        assert_eq!(x, Equation::Num(1, f.elem(&123u8)));
       },
       Err(_) => panic!(),
     }
@@ -220,7 +220,7 @@ mod tests {
     match Parser::parse(f, "-123") {
       Ok((input, x)) => {
         assert_eq!(input, "");
-        assert_eq!(x, MathExpr::Num(1, f.elem_from_signed(&-123)));
+        assert_eq!(x, Equation::Num(1, f.elem_from_signed(&-123)));
       },
       Err(_) => panic!(),
     }
@@ -232,7 +232,7 @@ mod tests {
     match Parser::parse(f, "-123") {
       Ok((input, x)) => {
         assert_eq!(input, "");
-        assert_eq!(x, MathExpr::Num(1, f.elem_from_signed(&-123)));
+        assert_eq!(x, Equation::Num(1, f.elem_from_signed(&-123)));
       },
       Err(_) => panic!(),
     }
@@ -245,7 +245,7 @@ mod tests {
       match Parser::parse(f, s) {
         Ok((input, x)) => {
           assert_eq!(input, "");
-          assert_eq!(x, MathExpr::Var(1, s.to_string()));
+          assert_eq!(x, Equation::Var(1, s.to_string()));
         },
         Err(_) => panic!(),
       }
@@ -259,7 +259,7 @@ mod tests {
       match Parser::parse(f, &format!("  {}  ", s)) {
         Ok((input, x)) => {
           assert_eq!(input, "");
-          assert_eq!(x, MathExpr::Var(1, s.to_string()));
+          assert_eq!(x, Equation::Var(1, s.to_string()));
         },
         Err(_) => panic!(),
       }
@@ -272,9 +272,9 @@ mod tests {
     match Parser::parse(f, "123+456") {
       Ok((input, x)) => {
         assert_eq!(input, "");
-        assert_eq!(x, MathExpr::Add(3,
-          Box::new(MathExpr::Num(1, f.elem(&123u16))),
-          Box::new(MathExpr::Num(2, f.elem(&456u16))),
+        assert_eq!(x, Equation::Add(3,
+          Box::new(Equation::Num(1, f.elem(&123u16))),
+          Box::new(Equation::Num(2, f.elem(&456u16))),
         ));
       },
       Err(_) => panic!(),
@@ -288,9 +288,9 @@ mod tests {
       match Parser::parse(f, &format!("{}+456", s)) {
         Ok((input, x)) => {
           assert_eq!(input, "");
-          assert_eq!(x, MathExpr::Add(3,
-            Box::new(MathExpr::Var(1, s.to_string())),
-            Box::new(MathExpr::Num(2, f.elem(&456u16))),
+          assert_eq!(x, Equation::Add(3,
+            Box::new(Equation::Var(1, s.to_string())),
+            Box::new(Equation::Num(2, f.elem(&456u16))),
           ));
         },
         Err(_) => panic!(),
@@ -305,9 +305,9 @@ mod tests {
       match Parser::parse(f, &format!("{}+{}", a, b)) {
         Ok((input, x)) => {
           assert_eq!(input, "");
-          assert_eq!(x, MathExpr::Add(3,
-            Box::new(MathExpr::Var(1, a.to_string())),
-            Box::new(MathExpr::Var(2, b.to_string())),
+          assert_eq!(x, Equation::Add(3,
+            Box::new(Equation::Var(1, a.to_string())),
+            Box::new(Equation::Var(2, b.to_string())),
           ));
         },
         Err(_) => panic!(),
@@ -321,9 +321,9 @@ mod tests {
     match Parser::parse(f, "123+-456") {
       Ok((input, x)) => {
         assert_eq!(input, "");
-        assert_eq!(x, MathExpr::Add(3,
-          Box::new(MathExpr::Num(1, f.elem(&123u16))),
-          Box::new(MathExpr::Num(2, f.elem_from_signed(&-456))),
+        assert_eq!(x, Equation::Add(3,
+          Box::new(Equation::Num(1, f.elem(&123u16))),
+          Box::new(Equation::Num(2, f.elem_from_signed(&-456))),
         ));
       },
       Err(_) => panic!(),
@@ -336,9 +336,9 @@ mod tests {
     match Parser::parse(f, "123-456") {
       Ok((input, x)) => {
         assert_eq!(input, "");
-        assert_eq!(x, MathExpr::Sub(3,
-          Box::new(MathExpr::Num(1, f.elem(&123u16))),
-          Box::new(MathExpr::Num(2, f.elem(&456u16))),
+        assert_eq!(x, Equation::Sub(3,
+          Box::new(Equation::Num(1, f.elem(&123u16))),
+          Box::new(Equation::Num(2, f.elem(&456u16))),
         ));
       },
       Err(_) => panic!(),
@@ -352,9 +352,9 @@ mod tests {
       match Parser::parse(f, &format!("123-{}", s)) {
         Ok((input, x)) => {
           assert_eq!(input, "");
-          assert_eq!(x, MathExpr::Sub(3,
-            Box::new(MathExpr::Num(1, f.elem(&123u16))),
-            Box::new(MathExpr::Var(2, s.to_string())),
+          assert_eq!(x, Equation::Sub(3,
+            Box::new(Equation::Num(1, f.elem(&123u16))),
+            Box::new(Equation::Var(2, s.to_string())),
           ));
         },
         Err(_) => panic!(),
@@ -368,9 +368,9 @@ mod tests {
     match Parser::parse(f, "-123-456") {
       Ok((input, x)) => {
         assert_eq!(input, "");
-        assert_eq!(x, MathExpr::Sub(3,
-          Box::new(MathExpr::Num(1, f.elem_from_signed(&-123))),
-          Box::new(MathExpr::Num(2, f.elem(&456u16))),
+        assert_eq!(x, Equation::Sub(3,
+          Box::new(Equation::Num(1, f.elem_from_signed(&-123))),
+          Box::new(Equation::Num(2, f.elem(&456u16))),
         ));
       },
       Err(_) => panic!(),
@@ -384,9 +384,9 @@ mod tests {
       match Parser::parse(f, &format!("-123-{}", s)) {
         Ok((input, x)) => {
           assert_eq!(input, "");
-          assert_eq!(x, MathExpr::Sub(3,
-            Box::new(MathExpr::Num(1, f.elem_from_signed(&-123))),
-            Box::new(MathExpr::Var(2, s.to_string())),
+          assert_eq!(x, Equation::Sub(3,
+            Box::new(Equation::Num(1, f.elem_from_signed(&-123))),
+            Box::new(Equation::Var(2, s.to_string())),
           ));
         },
         Err(_) => panic!(),
@@ -399,9 +399,9 @@ mod tests {
     match Parser::parse(f, "123--456") {
       Ok((input, x)) => {
         assert_eq!(input, "");
-        assert_eq!(x, MathExpr::Sub(3,
-          Box::new(MathExpr::Num(1, f.elem(&123u16))),
-          Box::new(MathExpr::Num(2, f.elem_from_signed(&-456))),
+        assert_eq!(x, Equation::Sub(3,
+          Box::new(Equation::Num(1, f.elem(&123u16))),
+          Box::new(Equation::Num(2, f.elem_from_signed(&-456))),
         ));
       },
       Err(_) => panic!(),
@@ -414,9 +414,9 @@ mod tests {
     match Parser::parse(f, "123 - -456") {
       Ok((input, x)) => {
         assert_eq!(input, "");
-        assert_eq!(x, MathExpr::Sub(3,
-          Box::new(MathExpr::Num(1, f.elem(&123u16))),
-          Box::new(MathExpr::Num(2, f.elem_from_signed(&-456))),
+        assert_eq!(x, Equation::Sub(3,
+          Box::new(Equation::Num(1, f.elem(&123u16))),
+          Box::new(Equation::Num(2, f.elem_from_signed(&-456))),
         ));
       },
       Err(_) => panic!(),
@@ -429,9 +429,9 @@ mod tests {
     match Parser::parse(f, "x - -456") {
       Ok((input, x)) => {
         assert_eq!(input, "");
-        assert_eq!(x, MathExpr::Sub(3,
-          Box::new(MathExpr::Var(1, "x".to_string())),
-          Box::new(MathExpr::Num(2, f.elem_from_signed(&-456))),
+        assert_eq!(x, Equation::Sub(3,
+          Box::new(Equation::Var(1, "x".to_string())),
+          Box::new(Equation::Num(2, f.elem_from_signed(&-456))),
         ));
       },
       Err(_) => panic!(),
@@ -444,9 +444,9 @@ mod tests {
     match Parser::parse(f, "123*456") {
       Ok((input, x)) => {
         assert_eq!(input, "");
-        assert_eq!(x, MathExpr::Mul(3,
-          Box::new(MathExpr::Num(1, f.elem(&123u16))),
-          Box::new(MathExpr::Num(2, f.elem(&456u16))),
+        assert_eq!(x, Equation::Mul(3,
+          Box::new(Equation::Num(1, f.elem(&123u16))),
+          Box::new(Equation::Num(2, f.elem(&456u16))),
         ));
       },
       Err(_) => panic!(),
@@ -459,9 +459,9 @@ mod tests {
     match Parser::parse(f, "123*-456") {
       Ok((input, x)) => {
         assert_eq!(input, "");
-        assert_eq!(x, MathExpr::Mul(3,
-          Box::new(MathExpr::Num(1, f.elem(&123u16))),
-          Box::new(MathExpr::Num(2, f.elem_from_signed(&-456)),
+        assert_eq!(x, Equation::Mul(3,
+          Box::new(Equation::Num(1, f.elem(&123u16))),
+          Box::new(Equation::Num(2, f.elem_from_signed(&-456)),
         )));
       },
       Err(_) => panic!(),
@@ -474,9 +474,9 @@ mod tests {
     match Parser::parse(f, "-123*456") {
       Ok((input, x)) => {
         assert_eq!(input, "");
-        assert_eq!(x, MathExpr::Mul(3,
-          Box::new(MathExpr::Num(1, f.elem_from_signed(&-123))),
-          Box::new(MathExpr::Num(2, f.elem(&456u16))),
+        assert_eq!(x, Equation::Mul(3,
+          Box::new(Equation::Num(1, f.elem_from_signed(&-123))),
+          Box::new(Equation::Num(2, f.elem(&456u16))),
         ));
       },
       Err(_) => panic!(),
@@ -489,9 +489,9 @@ mod tests {
     match Parser::parse(f, "123*-456") {
       Ok((input, x)) => {
         assert_eq!(input, "");
-        assert_eq!(x, MathExpr::Mul(3,
-          Box::new(MathExpr::Num(1, f.elem(&123u16))),
-          Box::new(MathExpr::Num(2, f.elem_from_signed(&-456))),
+        assert_eq!(x, Equation::Mul(3,
+          Box::new(Equation::Num(1, f.elem(&123u16))),
+          Box::new(Equation::Num(2, f.elem_from_signed(&-456))),
         ));
       },
       Err(_) => panic!(),
@@ -504,9 +504,9 @@ mod tests {
     match Parser::parse(f, "123/456") {
       Ok((input, x)) => {
         assert_eq!(input, "");
-        assert_eq!(x, MathExpr::Div(3,
-          Box::new(MathExpr::Num(1, f.elem(&123u16))),
-          Box::new(MathExpr::Num(2, f.elem(&456u16))),
+        assert_eq!(x, Equation::Div(3,
+          Box::new(Equation::Num(1, f.elem(&123u16))),
+          Box::new(Equation::Num(2, f.elem(&456u16))),
         ));
       },
       Err(_) => panic!(),
@@ -519,11 +519,11 @@ mod tests {
     match Parser::parse(f, "123+456*789") {
       Ok((input, x)) => {
         assert_eq!(input, "");
-        assert_eq!(x, MathExpr::Add(5,
-          Box::new(MathExpr::Num(1, f.elem(&123u16))),
-          Box::new(MathExpr::Mul(4,
-            Box::new(MathExpr::Num(2, f.elem(&456u16))),
-            Box::new(MathExpr::Num(3, f.elem(&789u16)))
+        assert_eq!(x, Equation::Add(5,
+          Box::new(Equation::Num(1, f.elem(&123u16))),
+          Box::new(Equation::Mul(4,
+            Box::new(Equation::Num(2, f.elem(&456u16))),
+            Box::new(Equation::Num(3, f.elem(&789u16)))
           )),
         ));
       },
@@ -537,14 +537,14 @@ mod tests {
     match Parser::parse(f, "111/222+333*444") {
       Ok((input, x)) => {
         assert_eq!(input, "");
-        assert_eq!(x, MathExpr::Add(7,
-          Box::new(MathExpr::Div(3,
-            Box::new(MathExpr::Num(1, f.elem(&111u16))),
-            Box::new(MathExpr::Num(2, f.elem(&222u16))),
+        assert_eq!(x, Equation::Add(7,
+          Box::new(Equation::Div(3,
+            Box::new(Equation::Num(1, f.elem(&111u16))),
+            Box::new(Equation::Num(2, f.elem(&222u16))),
           )),
-          Box::new(MathExpr::Mul(6,
-            Box::new(MathExpr::Num(4, f.elem(&333u16))),
-            Box::new(MathExpr::Num(5, f.elem(&444u16))),
+          Box::new(Equation::Mul(6,
+            Box::new(Equation::Num(4, f.elem(&333u16))),
+            Box::new(Equation::Num(5, f.elem(&444u16))),
           )),
         ));
       },
@@ -558,12 +558,12 @@ mod tests {
     match Parser::parse(f, "(123+456)*789") {
       Ok((input, x)) => {
         assert_eq!(input, "");
-        assert_eq!(x, MathExpr::Mul(5,
-          Box::new(MathExpr::Add(3,
-            Box::new(MathExpr::Num(1, f.elem(&123u16))),
-            Box::new(MathExpr::Num(2, f.elem(&456u16))),
+        assert_eq!(x, Equation::Mul(5,
+          Box::new(Equation::Add(3,
+            Box::new(Equation::Num(1, f.elem(&123u16))),
+            Box::new(Equation::Num(2, f.elem(&456u16))),
           )),
-          Box::new(MathExpr::Num(4, f.elem(&789u16))),
+          Box::new(Equation::Num(4, f.elem(&789u16))),
         ));
       },
       Err(_) => panic!(),
@@ -576,12 +576,12 @@ mod tests {
     match Parser::parse(f, " (123 + 456) * 789") {
       Ok((input, x)) => {
         assert_eq!(input, "");
-        assert_eq!(x, MathExpr::Mul(5,
-          Box::new(MathExpr::Add(3,
-            Box::new(MathExpr::Num(1, f.elem(&123u16))),
-            Box::new(MathExpr::Num(2, f.elem(&456u16))),
+        assert_eq!(x, Equation::Mul(5,
+          Box::new(Equation::Add(3,
+            Box::new(Equation::Num(1, f.elem(&123u16))),
+            Box::new(Equation::Num(2, f.elem(&456u16))),
           )),
-          Box::new(MathExpr::Num(4, f.elem(&789u16))),
+          Box::new(Equation::Num(4, f.elem(&789u16))),
         ));
       },
       Err(_) => panic!(),
@@ -594,14 +594,14 @@ mod tests {
     match Parser::parse(f, "(111+222)*(333-444)") {
       Ok((input, x)) => {
         assert_eq!(input, "");
-        assert_eq!(x, MathExpr::Mul(7,
-          Box::new(MathExpr::Add(3,
-            Box::new(MathExpr::Num(1, f.elem(&111u16))),
-            Box::new(MathExpr::Num(2, f.elem(&222u16))),
+        assert_eq!(x, Equation::Mul(7,
+          Box::new(Equation::Add(3,
+            Box::new(Equation::Num(1, f.elem(&111u16))),
+            Box::new(Equation::Num(2, f.elem(&222u16))),
           )),
-          Box::new(MathExpr::Sub(6,
-            Box::new(MathExpr::Num(4, f.elem(&333u16))),
-            Box::new(MathExpr::Num(5, f.elem(&444u16))),
+          Box::new(Equation::Sub(6,
+            Box::new(Equation::Num(4, f.elem(&333u16))),
+            Box::new(Equation::Num(5, f.elem(&444u16))),
           )),
         ));
       },
@@ -615,9 +615,9 @@ mod tests {
     match Parser::parse(f, "((111+222))") {
       Ok((input, x)) => {
         assert_eq!(input, "");
-        assert_eq!(x, MathExpr::Add(3,
-          Box::new(MathExpr::Num(1, f.elem(&111u8))),
-          Box::new(MathExpr::Num(2, f.elem(&222u8))),
+        assert_eq!(x, Equation::Add(3,
+          Box::new(Equation::Num(1, f.elem(&111u8))),
+          Box::new(Equation::Num(2, f.elem(&222u8))),
         ));
       },
       Err(_) => panic!(),
@@ -630,9 +630,9 @@ mod tests {
     match Parser::parse(f, " ( (111+222) ) ") {
       Ok((input, x)) => {
         assert_eq!(input, "");
-        assert_eq!(x, MathExpr::Add(3,
-          Box::new(MathExpr::Num(1, f.elem(&111u8))),
-          Box::new(MathExpr::Num(2, f.elem(&222u8))),
+        assert_eq!(x, Equation::Add(3,
+          Box::new(Equation::Num(1, f.elem(&111u8))),
+          Box::new(Equation::Num(2, f.elem(&222u8))),
         ));
       },
       Err(_) => panic!(),
