@@ -13,7 +13,7 @@ use std::ops::{Index, RangeFrom, RangeTo, Deref};
 ///////////////
 // FieldElem
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct FieldElem {
   pub f: Field,
   pub n: BigUint,
@@ -314,7 +314,7 @@ impl FieldElem {
   }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct Field {
   pub order: Rc<BigUint>,
 }
