@@ -30,8 +30,10 @@ impl std::fmt::Debug for Term {
   }
 }
 
+type ABC = (SparseVec, SparseVec, SparseVec);
+
 pub struct R1CS {
-  pub abcs: Vec<(SparseVec, SparseVec, SparseVec)>,
+  pub abcs: Vec<ABC>,
   pub w_tmpl: Vec<Term>,
   pub w_index: HashMap<Term, usize>,
 }
