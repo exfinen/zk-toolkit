@@ -93,6 +93,7 @@ impl R1CS {
 
     let vec_size = gates.len();
 
+    // create a, b anc c vectors for each gate
     for gate in gates {
       let mut a_vec = SparseVec::new(vec_size);
       R1CS::gate_to_vec(&r1cs, f, &mut a_vec, &gate.a);
