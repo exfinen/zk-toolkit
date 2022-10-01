@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::cmp::{PartialEq, Eq};
 
 use super::config::SignalId;
-use super::matrix::SparseVec;
+use super::sparse_vec::SparseVec;
 
 #[derive(Clone, Hash, PartialEq, Eq)]
 pub enum Term {
@@ -30,20 +30,22 @@ impl std::fmt::Debug for Term {
   }
 }
 
-type ABC = (SparseVec, SparseVec, SparseVec);
+type Constraint = (SparseVec, SparseVec, SparseVec);
 
-pub struct R1CS {
-  pub abcs: Vec<ABC>,
-  pub w_tmpl: Vec<Term>,
-  pub w_index: HashMap<Term, usize>,
+pub struct R1CS<'a> {
+  f: &'a Field,
+  pub constraints: Vec<Constraint>,
+  pub witness_tmpl: Vec<Term>,
+  pub term_index: HashMap<Term, usize>,
 }
 
-impl R1CS {
-  fn new() -> Self {
+impl<'a> R1CS<'a> {
+  fn new(f: &'a Field) -> Self {
     let mut r1cs = R1CS {
-      abcs: vec![],
-      w_tmpl: vec![],
-      w_index: HashMap::<Term, usize>::new(),
+      f,
+      constraints: vec![],
+      witness_tmpl: vec![],
+      term_index: HashMap::<Term, usize>::new(),
     };
     r1cs.update_index(&Term::One);
     r1cs
@@ -56,9 +58,9 @@ impl R1CS {
         self.update_index(&b);
       },
       t => {
-        if self.w_index.contains_key(t) { return };
-        self.w_tmpl.push(t.clone());
-        self.w_index.insert(t.clone(), self.w_index.len());
+        if self.term_index.contains_key(t) { return };
+        self.witness_tmpl.push(t.clone());
+        self.term_index.insert(t.clone(), self.term_index.len());
       }
     }
   }
@@ -70,7 +72,7 @@ impl R1CS {
         R1CS::gate_to_vec(r1cs, f, vec, &b);
       },
       x => {
-        let index = r1cs.w_index.get(&x).unwrap();
+        let index = r1cs.term_index.get(&x).unwrap();
         match &x {
           Term::Num(n) => {
             vec.set(*index, n.clone());
@@ -83,8 +85,42 @@ impl R1CS {
     }
   }
 
-  pub fn from_gates(f: &Field, gates: &[Gate]) -> R1CS {
-    let mut r1cs = R1CS::new();
+  pub fn validate_witness(&self, witness_map: &HashMap<Term, FieldElem>) -> Result<(), String> {
+    // generate SparseVec from the witness
+    let mut witness = SparseVec::new(self.witness_tmpl.len());
+
+    for (i, term) in self.witness_tmpl.iter().enumerate() {
+      match term {
+        Term::One => {
+          witness.set(i, self.f.elem(&1u8));
+        },
+        Term::Sum(_a, _b) => { assert!(false, "Sum should not be included"); }
+        term => {
+          match witness_map.get(term) {
+            Some(v) => witness.set(i, v.clone()),
+            None => {
+              return Err(format!("Witness for {:?} is missing", term));
+            }
+          }
+        },
+      }
+    }
+
+    // evaluate constraints with given witness and confirm they all hold
+    for constraint in &self.constraints {
+      let a = &(&constraint.0 * &witness).sum();
+      let b = &(&constraint.1 * &witness).sum();
+      let c = &(&constraint.2 * &witness).sum();
+
+      if &(a * b) != c {
+        return Err(format!("Constraint a ({:?}) * b ({:?}) = c ({:?}) doesn't hold", a, b, c));
+      }
+    }
+    Ok(())
+  }
+
+  pub fn from_gates(f: &'a Field, gates: &[Gate]) -> R1CS<'a> {
+    let mut r1cs = R1CS::new(f);
 
     // build witness vector
     for gate in gates {
@@ -106,8 +142,8 @@ impl R1CS {
       let mut c_vec = SparseVec::new(vec_size);
       R1CS::gate_to_vec(&r1cs, f, &mut c_vec, &gate.c);
 
-      let abc = (a_vec, b_vec, c_vec);
-      r1cs.abcs.push(abc)
+      let constraint = (a_vec, b_vec, c_vec);
+      r1cs.constraints.push(constraint)
     }
 
     r1cs
@@ -331,7 +367,7 @@ mod tests {
     let r1cs = R1CS::from_gates(f, gates);
 
     // expected w: [1, 3, x, t1, 4, t2, out]
-    let h = r1cs.w_index;
+    let h = r1cs.term_index;
     let w = [
       Term::One,
       Term::Num(f.elem(&3u8)),
@@ -353,7 +389,7 @@ mod tests {
   fn term_to_str(r1cs: &R1CS, vec: &SparseVec) -> String {
     let indices = vec.indices();
     let s = indices.iter().map(|i| {
-      match &r1cs.w_tmpl[*i] {
+      match &r1cs.witness_tmpl[*i] {
         Term::Num(n) => n.to_string(),
         Term::Var(s) => s.clone(),
         Term::TmpVar(i) => format!("t{}", i),
@@ -375,10 +411,10 @@ mod tests {
     let r1cs = R1CS::from_gates(f, gates);
 
     let mut res = vec![];
-    for abc in &r1cs.abcs {
-      let a = term_to_str(&r1cs, &abc.0);
-      let b = term_to_str(&r1cs, &abc.1);
-      let c = term_to_str(&r1cs, &abc.2);
+    for constraint in &r1cs.constraints {
+      let a = term_to_str(&r1cs, &constraint.0);
+      let b = term_to_str(&r1cs, &constraint.1);
+      let c = term_to_str(&r1cs, &constraint.2);
       res.push((a, b, c));
     }
 
@@ -386,5 +422,10 @@ mod tests {
     assert_eq!(res[0], ("3".to_string(), "x".to_string(), "t1".to_string()));
     assert_eq!(res[1], ("4 + t1".to_string(), "1".to_string(), "t2".to_string()));  // not "t1 + 4" due to the term order in w_index
     assert_eq!(res[2], ("t2".to_string(), "1".to_string(), "out".to_string()));
+  }
+
+  #[test]
+  fn test_r1cs_good_constraints() {
+    assert!(false);
   }
  }
