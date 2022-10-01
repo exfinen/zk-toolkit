@@ -425,7 +425,7 @@ mod tests {
   }
 
   #[test]
-  fn test_r1cs_good_constraints() {
+  fn test_r1cs_validate_witness() {
     assert!(false);
   }
  }
