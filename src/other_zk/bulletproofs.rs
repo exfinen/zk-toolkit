@@ -12,8 +12,8 @@ pub struct Bulletproofs<'a, const N: usize> {
 
 impl<'a, const N: usize> Bulletproofs<'a, N> {
   pub fn new(
-    curve: &'a dyn EllipticCurve, 
-    ops: &'a dyn AddOps, 
+    curve: &'a dyn EllipticCurve,
+    ops: &'a dyn AddOps,
   ) -> Self {
     Bulletproofs { curve, ops }
   }
@@ -56,9 +56,9 @@ impl<'a, const N: usize> Bulletproofs<'a, N> {
     gg: &EcPoints<'a>,
     hh: &EcPoints<'a>,
     u: &EcPoint1<'a>,
-    P: &EcPoint1<'a>,  
+    P: &EcPoint1<'a>,
     a: &FieldElems,
-    b: &FieldElems, 
+    b: &FieldElems,
   ) -> bool {
     if n == 1 {
         let c = (a * b).sum();
@@ -158,8 +158,8 @@ impl<'a, const N: usize> Bulletproofs<'a, N> {
     let l = &((aL - (one_n * z)) + (sL * x));
     let r = &((y_n * ((aR + (one_n * z)) + (sR * x))) + (two_n * z.sq()));
 
-    let P = 
-      A 
+    let P =
+      A
       + S * x
       + (gg * (one_n * z.negate())).sum()
       + (hhp * ((y_n * z) + (two_n * z.sq()))).sum();
@@ -225,7 +225,7 @@ mod tests {
 
         let r1 = &basis - &z;
         let r2 = &basis + &z.negate();
-        
+
         assert_eq!(r1, r2);
     }
     {
@@ -236,7 +236,7 @@ mod tests {
 
         let r1 = bp.scalar_mul(&g, &(&basis - &z));
         let r2 = g * (basis + z.negate());
-        
+
         assert!(r1 == r2);
     }
   }
@@ -299,7 +299,7 @@ mod tests {
     let order_minus_1 = co.order.as_ref() - BigUint::from(1u8);
     let x = co.elem(&order_minus_1);
     let sL = &co.rand_elems(n, true);
-    
+
     let sLx = &(sL * &x);
 
     assert!(gg * sLx == (gg * sL) * x);
@@ -314,9 +314,9 @@ mod tests {
     let bp: Bulletproofs<2> = Bulletproofs::new(&curve, &ops);
 
     let aL = FieldElems::new(&vec![
-      co.elem(&1u8), 
-      co.elem(&0u8), 
-      co.elem(&0u8), 
+      co.elem(&1u8),
+      co.elem(&0u8),
+      co.elem(&0u8),
       co.elem(&1u8),
     ]);
     let n = aL.len();
@@ -341,7 +341,7 @@ mod tests {
         &g,
         &h,
         &gg,
-        &hh, 
+        &hh,
         use_inner_product_argument,
       );
       assert!(res == true);
