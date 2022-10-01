@@ -153,6 +153,27 @@ impl Gate {
         gates.push(Gate { a, b, c: c.clone() });
         c
       },
+      Equation::Sub(signal_id, left, right) => {
+        let a = Gate::traverse_and_build(f, left, gates);
+        let b = Gate::traverse_and_build(f, right, gates);
+        let c = Term::TmpVar(*signal_id);
+        // a - b = c
+        // -> b + c = a
+        // -> (b + c) * 1 = a
+        let sum = Term::Sum(Box::new(b), Box::new(c.clone()));
+        gates.push(Gate { a: sum, b: Term::One, c: a.clone() });
+        c
+      },
+      Equation::Div(signal_id, left, right) => {
+        let a = Gate::traverse_and_build(f, left, gates);
+        let b = Gate::traverse_and_build(f, right, gates);
+        let c = Term::TmpVar(*signal_id);
+        // a / b = c
+        // -> b * c = a
+        gates.push(Gate { a: b, b: c.clone(), c: a.clone() });
+        // send c to next as the original division does
+        c
+      },
     }
   }
 
