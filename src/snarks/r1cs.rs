@@ -1,7 +1,10 @@
 use crate::building_block::field::{Field, FieldElem};
-use crate::snarks::constraint::Constraint;
-use crate::snarks::sparse_vec::SparseVec;
-use crate::snarks::r1cs_tmpl::{Term, R1CSTmpl};
+use crate::snarks::{
+  constraint::Constraint,
+  r1cs_tmpl::R1CSTmpl,
+  sparse_vec::SparseVec,
+  term::Term,
+};
 use std::collections::HashMap;
 
 pub struct R1CS {
@@ -51,12 +54,39 @@ impl R1CS {
     Ok(())
   }
 
-  pub fn new(f: Field, tmpl: &R1CSTmpl, var_assignments: &HashMap<Term, FieldElem>) -> Result<R1CS, String> {
+  pub fn new(f: &Field, tmpl: &R1CSTmpl, var_assignments: &HashMap<Term, FieldElem>) -> Result<R1CS, String> {
     let solution_vec = R1CS::build_solution_vec(&f, tmpl, var_assignments)?;
     let r1cs = R1CS {
       constraints: tmpl.constraints.clone(),
       solution_vec,
     };
     Ok(r1cs)
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::snarks::{
+    equation_parser::Parser,
+    gate::Gate,
+    r1cs_tmpl::R1CSTmpl,
+    term::Term,
+  };
+
+  #[test]
+  fn test_validate() {
+    let f = &Field::new(&3911u16);
+    let input = "x + 4 * y = 11";
+    let eq = Parser::parse(f, input).unwrap();
+
+    let gates = &Gate::build(f, &eq);
+    for gate in gates {
+      println!("{:?}", gate);
+    }
+    let tmpl = &R1CSTmpl::from_gates(f, gates);
+    let var_assignments = HashMap::<Term, FieldElem>::new();
+    let r1cs = R1CS::new(f, tmpl, &var_assignments).unwrap();
+    r1cs.validate().unwrap();
   }
 }
