@@ -4,7 +4,7 @@ use crate::building_block::field::FieldElem;
 type Index = usize;
 type Value = FieldElem;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SparseVec {
   pub size: usize,
   elems: HashMap<Index, Value>,
