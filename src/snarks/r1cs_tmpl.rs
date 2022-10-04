@@ -33,6 +33,7 @@ impl<'a> R1CSTmpl<'a> {
         self.add_term(&a);
         self.add_term(&b);
       },
+      Term::Num(_) => {},  // num should not be included to witness
       t => {
         if self.indices.contains_key(t) { return };
         self.witness.push(t.clone());
@@ -41,27 +42,23 @@ impl<'a> R1CSTmpl<'a> {
     }
   }
 
-  fn gate_to_vec(tmpl: &R1CSTmpl, f: &Field, vec: &mut SparseVec, term: &Term) {
+  fn gate_to_vec(&mut self, f: &Field, vec: &mut SparseVec, term: &Term) {
     match term {
       Term::Sum(a, b) => {
-        R1CSTmpl::gate_to_vec(tmpl, f, vec, &a);
-        R1CSTmpl::gate_to_vec(tmpl, f, vec, &b);
+        self.gate_to_vec(f, vec, &a);
+        self.gate_to_vec(f, vec, &b);
+      },
+      Term::Num(n) => {
+        vec.set(0, n.clone());  // Num is represented by multiplying the number by 1
       },
       x => {
-        let index = tmpl.indices.get(&x).unwrap();
-        match &x {
-          Term::Num(n) => {
-            vec.set(*index, n.clone());
-          },
-          _ => {
-            vec.set(*index, f.elem(&1u8));
-          },
-        };
+        let index = self.indices.get(&x).unwrap();
+        vec.set(*index, f.elem(&1u8));
       },
     }
   }
 
-  pub fn from_gates(f: &'a Field, gates: &[Gate]) -> R1CSTmpl<'a> {
+  pub fn from_gates(f: &'a Field, gates: &[Gate]) -> Self {
     let mut tmpl = R1CSTmpl::new(f);
 
     // build witness vector
@@ -76,18 +73,17 @@ impl<'a> R1CSTmpl<'a> {
     // create a, b anc c vectors for each gate
     for gate in gates {
       let mut a = SparseVec::new(vec_size);
-      R1CSTmpl::gate_to_vec(&tmpl, f, &mut a, &gate.a);
+      tmpl.gate_to_vec(f, &mut a, &gate.a);
 
       let mut b = SparseVec::new(vec_size);
-      R1CSTmpl::gate_to_vec(&tmpl, f, &mut b, &gate.b);
+      tmpl.gate_to_vec(f, &mut b, &gate.b);
 
       let mut c = SparseVec::new(vec_size);
-      R1CSTmpl::gate_to_vec(&tmpl, f, &mut c, &gate.c);
+      tmpl.gate_to_vec(f, &mut c, &gate.c);
 
       let constraint = Constraint { a, b, c };
       tmpl.constraints.push(constraint)
     }
-
     tmpl
   }
 }
@@ -98,111 +94,134 @@ mod tests {
   use crate::snarks::equation_parser::Parser;
 
   #[test]
-  fn test_gate_build_add() {
+  fn test_get_to_vec() {
     let f = &Field::new(&3911u16);
-    let input = "x + 4 == 9";
-    let eq = Parser::parse(f, input).unwrap();
-    let gates = &Gate::build(f, &eq);
-    assert_eq!(gates.len(), 2);
+    let terms = vec![
+      Term::Out,
+      Term::Var("x".to_string()),
+      Term::TmpVar(2),
+    ];
+    for term in terms {
+      let mut tmpl = R1CSTmpl::new(f);
+      let mut sv = SparseVec::new(2);
+      tmpl.add_term(&term);
+      tmpl.gate_to_vec(f, &mut sv, &term);
+      let indices = sv.indices().to_vec();
 
-    // t1 = (x + 4) * 1
-    assert_eq!(gates[0].a, Term::Sum(Box::new(Term::Var("x".to_string())), Box::new(Term::Num(f.elem(&4u8)))));
-    assert_eq!(gates[0].b, Term::One);
-    assert_eq!(gates[0].c, Term::TmpVar(1));
+      // should be stored at index 1 in witness vector
+      assert_eq!(indices[0], 1);
+      // and the multiplier should be 1
+      assert_eq!(sv.get(&1), f.elem(&1u8));
+    }
+    {
+      // test Num term
+      let mut tmpl = R1CSTmpl::new(f);
+      let mut sv = SparseVec::new(1);
+      let n = f.elem(&4u8);
+      let term = Term::Num(n.clone());
+      tmpl.gate_to_vec(f, &mut sv, &term);
+      let indices = sv.indices().to_vec();
 
-    // out = t1 * 1
-    assert_eq!(gates[1].a, Term::TmpVar(1));
-    assert_eq!(gates[1].b, Term::One);
-    assert_eq!(gates[1].c, Term::Out);
+      // term should map to index 0 of witness that stores One term
+      assert_eq!(indices[0], 0);
+      assert_eq!(sv.get(&0), n);
+    }
+    {
+      // test Sum term
+      let mut tmpl = R1CSTmpl::new(f);
+      let mut sv = SparseVec::new(3);
+      let y = Term::Var("y".to_string());
+      let z = Term::Var("z".to_string());
+      let term = Term::Sum(Box::new(y.clone()), Box::new(z.clone()));
+      tmpl.add_term(&term);
+      tmpl.gate_to_vec(f, &mut sv, &term);
+      let mut indices = sv.indices().to_vec();
+      indices.sort();
+
+      // y and z should be stored at index 1 and 2 of witness vector respectively
+      assert_eq!(indices[0], 1);
+      assert_eq!(indices[1], 2);
+
+      // and both of the multipliers should be 1
+      assert_eq!(sv.get(&1), f.elem(&1u8));
+      assert_eq!(sv.get(&2), f.elem(&1u8));
+    }
   }
 
   #[test]
-  fn test_gate_build_sub() {
+  fn test_add_term() {
     let f = &Field::new(&3911u16);
-    let input = "x - 4 == 9";
-    let eq = Parser::parse(f, input).unwrap();
-    let gates = &Gate::build(f, &eq);
-    assert_eq!(gates.len(), 2);
+    let mut tmpl = R1CSTmpl::new(f);
+    assert_eq!(tmpl.indices.len(), 1);
 
-    // t1 = (x + 4) * 1
-    assert_eq!(gates[0].a, Term::Sum(Box::new(Term::Num(f.elem(&4u8))), Box::new(Term::TmpVar(1))));
-    assert_eq!(gates[0].b, Term::One);
-    assert_eq!(gates[0].c, Term::Var("x".to_string()));
+    // initially witness contains only One term
+    assert_eq!(tmpl.indices.get(&Term::One).unwrap(), &0);
+    assert_eq!(tmpl.witness.len(), 1);
+    assert_eq!(tmpl.witness[0], Term::One);
 
-    // out = t1 * 1
-    assert_eq!(gates[1].a, Term::TmpVar(1));
-    assert_eq!(gates[1].b, Term::One);
-    assert_eq!(gates[1].c, Term::Out);
+    // Num term should not be added to witness
+    tmpl.add_term(&Term::Num(f.elem(&9u8)));
+    assert_eq!(tmpl.indices.len(), 1);
+    assert_eq!(tmpl.witness.len(), 1);
+
+    // One term should not be added twice
+    tmpl.add_term(&Term::One);
+    assert_eq!(tmpl.indices.len(), 1);
+    assert_eq!(tmpl.witness.len(), 1);
+
+    // Var term should be added
+    let x = Term::Var("x".to_string());
+    tmpl.add_term(&x);
+    assert_eq!(tmpl.witness.len(), 2);
+    assert_eq!(tmpl.indices.get(&x).unwrap(), &1);
+    assert_eq!(tmpl.witness[1], x);
+
+    // same Var term should not be added twice
+    tmpl.add_term(&x);
+    assert_eq!(tmpl.indices.len(), 2);
+    assert_eq!(tmpl.witness.len(), 2);
+
+    // TmpVar term should be added
+    let x = Term::TmpVar(1);
+    tmpl.add_term(&x);
+    assert_eq!(tmpl.indices.len(), 3);
+    assert_eq!(tmpl.indices.get(&x).unwrap(), &2);
+    assert_eq!(tmpl.witness.len(), 3);
+    assert_eq!(tmpl.witness[2], x);
+
+    // same TmpVar term should not be added twice
+    tmpl.add_term(&x);
+    assert_eq!(tmpl.indices.len(), 3);
+    assert_eq!(tmpl.witness.len(), 3);
+
+    // Out term should be added
+    let x = Term::Out;
+    tmpl.add_term(&x);
+    assert_eq!(tmpl.indices.len(), 4);
+    assert_eq!(tmpl.indices.get(&x).unwrap(), &3);
+    assert_eq!(tmpl.witness.len(), 4);
+    assert_eq!(tmpl.witness[3], x);
+
+    // Out term should not be added twice
+    tmpl.add_term(&x);
+    assert_eq!(tmpl.indices.len(), 4);
+    assert_eq!(tmpl.witness.len(), 4);
+
+    // Sum term should be added
+    let y = Term::Var("y".to_string());
+    let z = Term::Var("z".to_string());
+    let sum = Term::Sum(Box::new(y.clone()), Box::new(z.clone()));
+    tmpl.add_term(&sum);
+    assert_eq!(tmpl.indices.len(), 6);
+    assert_eq!(tmpl.indices.get(&y).unwrap(), &4);
+    assert_eq!(tmpl.indices.get(&z).unwrap(), &5);
+    assert_eq!(tmpl.witness.len(), 6);
+    assert_eq!(tmpl.witness[4], y);
+    assert_eq!(tmpl.witness[5], z);
   }
 
   #[test]
-  fn test_gate_build_mul() {
-    let f = &Field::new(&3911u16);
-    let input = "x * 4 == 9";
-    let eq = Parser::parse(f, input).unwrap();
-    let gates = &Gate::build(f, &eq);
-    assert_eq!(gates.len(), 2);
-
-    // x = (4 + t1) * 1
-    assert_eq!(gates[0].a, Term::Var("x".to_string()));
-    assert_eq!(gates[0].b, Term::Num(f.elem(&4u8)));
-    assert_eq!(gates[0].c, Term::TmpVar(1));
-
-    // out = t1 * 1
-    assert_eq!(gates[1].a, Term::TmpVar(1));
-    assert_eq!(gates[1].c, Term::Out);
-  }
-
-  #[test]
-  fn test_gate_build_div() {
-    let f = &Field::new(&3911u16);
-    let input = "x / 4 == 2";
-    let eq = Parser::parse(f, input).unwrap();
-    let gates = &Gate::build(f, &eq);
-    assert_eq!(gates.len(), 2);
-
-    // x = 4 * t1
-    assert_eq!(gates[0].a, Term::Num(f.elem(&4u8)));
-    assert_eq!(gates[0].b, Term::TmpVar(1));
-    assert_eq!(gates[0].c, Term::Var("x".to_string()));
-
-    // out = t1 * 1
-    assert_eq!(gates[1].a, Term::TmpVar(1));
-    assert_eq!(gates[1].c, Term::Out);
-  }
-
-  #[test]
-  fn test_gate_build_combined() {
-    let f = &Field::new(&3911u16);
-    let input = "(3 * x + 4) / 2 == 11";
-    println!("Equation: {}", input);
-    let eq = Parser::parse(f, input).unwrap();
-    let gates = &Gate::build(f, &eq);
-    assert_eq!(gates.len(), 4);
-
-    // t1 = 3 * x
-    assert_eq!(gates[0].a, Term::Num(f.elem(&3u8)));
-    assert_eq!(gates[0].b, Term::Var("x".to_string()));
-    assert_eq!(gates[0].c, Term::TmpVar(1));
-
-    // t2 = (t1 + 4) * 1
-    assert_eq!(gates[1].a, Term::Sum(Box::new(Term::TmpVar(1)), Box::new(Term::Num(f.elem(&4u8)))));
-    assert_eq!(gates[1].b, Term::One);
-    assert_eq!(gates[1].c, Term::TmpVar(2));
-
-    // t2 = 2 * t3
-    assert_eq!(gates[2].a, Term::Num(f.elem(&2u8)));
-    assert_eq!(gates[2].b, Term::TmpVar(3));
-    assert_eq!(gates[2].c, Term::TmpVar(2));
-
-    // out = t3 * 1
-    assert_eq!(gates[3].a, Term::TmpVar(3));
-    assert_eq!(gates[3].b, Term::One);
-    assert_eq!(gates[3].c, Term::Out);
-  }
-
-  #[test]
-  fn test_r1cs_from_gates() {
+  fn test_build_from_gates() {
     let f = &Field::new(&3911u16);
     let input = "(3 * x + 4) / 2 == 11";
     let eq = Parser::parse(f, input).unwrap();
@@ -214,7 +233,7 @@ mod tests {
   }
 
   #[test]
-  fn test_r1cs_build_template() {
+  fn test_bulding_witness() {
     let f = &Field::new(&3911u16);
     let input = "(3 * x + 4) / 2 == 11";
     let eq = Parser::parse(f, input).unwrap();
@@ -225,12 +244,9 @@ mod tests {
     let h = r1cs.indices;
     let w = [
       Term::One,
-      Term::Num(f.elem(&3u8)),
       Term::Var("x".to_string()),
       Term::TmpVar(1),
-      Term::Num(f.elem(&4u8)),
       Term::TmpVar(2),
-      Term::Num(f.elem(&2u8)),
       Term::TmpVar(3),
       Term::Out,
     ];
@@ -246,11 +262,11 @@ mod tests {
     indices.sort();  // sort to make indices order deterministic
     let s = indices.iter().map(|i| {
       match &tmpl.witness[*i] {
-        Term::Num(n) => n.to_string(),
         Term::Var(s) => s.clone(),
         Term::TmpVar(i) => format!("t{}", i),
-        Term::One => "1".to_string(),
+        Term::One => format!("{:?}", &vec.get(i).n),
         Term::Out => "out".to_string(),
+        // not handling Term::Sum since it's not used in tests
         _ => "?".to_string(),
       }
     }).collect::<Vec<String>>().join(" + ");
@@ -276,7 +292,7 @@ mod tests {
 
     assert_eq!(res.len(), 3);
     assert_eq!(res[0], ("3".to_string(), "x".to_string(), "t1".to_string()));
-    assert_eq!(res[1], ("t1 + 4".to_string(), "1".to_string(), "t2".to_string()));
+    assert_eq!(res[1], ("4 + t1".to_string(), "1".to_string(), "t2".to_string()));
     assert_eq!(res[2], ("t2".to_string(), "1".to_string(), "out".to_string()));
   }
  }

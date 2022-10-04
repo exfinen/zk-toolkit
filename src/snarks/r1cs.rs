@@ -9,43 +9,55 @@ use std::collections::HashMap;
 
 pub struct R1CS {
   pub constraints: Vec<Constraint>,
-  pub solution_vec: SparseVec,
+  pub witness: SparseVec,
 }
 
 impl R1CS {
-  fn build_solution_vec(
+  fn build_witness(
     f: &Field,
     tmpl: &R1CSTmpl,
-    var_assignments: &HashMap<Term, FieldElem>,
+    val_assignments: &HashMap<Term, FieldElem>,
   ) -> Result<SparseVec, String> {
     // generate SparseVec from the witness
-    let mut solution_vec = SparseVec::new(tmpl.witness.len());
+    let mut witness = SparseVec::new(tmpl.witness.len());
+
+    let add = |i: usize, term: &Term, witness: &mut SparseVec| -> Result<(), String> {
+      match val_assignments.get(term) {
+        Some(v) => {
+          witness.set(i, v.clone());
+          Ok(())
+        },
+        None => Err(format!("Witness for '{:?}' is missing", term)),
+      }
+    };
 
     for (i, term) in tmpl.witness.iter().enumerate() {
       match term {
         Term::One => {
-          solution_vec.set(i, f.elem(&1u8));
+          witness.set(i, f.elem(&1u8));
         },
-        Term::Sum(_a, _b) => { assert!(false, "Sum should not be included"); }
-        term => {
-          match var_assignments.get(term) {
-            Some(v) => solution_vec.set(i, v.clone()),
-            None => {
-              return Err(format!("Witness for '{:?}' is missing", term));
-            }
-          }
+        Term::Sum(_a, _b) => { assert!(false, "Sum shouldn't have been included"); }
+        Term::Num(n) => {
+          witness.set(i, n.clone());
         },
+        Term::Var(_) => if let Err(err) = add(i, term, &mut witness) { return Err(err) },
+        Term::TmpVar(_) => if let Err(err) = add(i, term, &mut witness) { return Err(err) },
+        Term::Out => if let Err(err) = add(i, term, &mut witness) { return Err(err) },
       }
     }
-    Ok(solution_vec)
+    Ok(witness)
   }
 
   // evaluate all constraints and confirm they all hold
   pub fn validate(&self) -> Result<(), String> {
     for constraint in &self.constraints {
-      let a = &(&constraint.a * &self.solution_vec).sum();
-      let b = &(&constraint.b * &self.solution_vec).sum();
-      let c = &(&constraint.c * &self.solution_vec).sum();
+      println!("Constraint: {:?}", constraint);
+      let a = &(&constraint.a * &self.witness).sum();
+      println!("A = {:?}", a);
+      let b = &(&constraint.b * &self.witness).sum();
+      println!("B = {:?}", b);
+      let c = &(&constraint.c * &self.witness).sum();
+      println!("C = {:?}", c);
 
       if &(a * b) != c {
         return Err(format!("Constraint a ({:?}) * b ({:?}) = c ({:?}) doesn't hold", a, b, c));
@@ -54,11 +66,11 @@ impl R1CS {
     Ok(())
   }
 
-  pub fn new(f: &Field, tmpl: &R1CSTmpl, var_assignments: &HashMap<Term, FieldElem>) -> Result<R1CS, String> {
-    let solution_vec = R1CS::build_solution_vec(&f, tmpl, var_assignments)?;
+  pub fn new(f: &Field, tmpl: &R1CSTmpl, val_assignments: &HashMap<Term, FieldElem>) -> Result<R1CS, String> {
+    let witness = R1CS::build_witness(&f, tmpl, val_assignments)?;
     let r1cs = R1CS {
       constraints: tmpl.constraints.clone(),
-      solution_vec,
+      witness,
     };
     Ok(r1cs)
   }
@@ -85,15 +97,22 @@ mod tests {
       println!("{:?}", gate);
     }
     let tmpl = &R1CSTmpl::from_gates(f, gates);
+    println!("witness w/ vars: {:?}", &tmpl.witness);
 
-    let mut vars = HashMap::<Term, FieldElem>::new();
-    vars.insert(Term::Var("x".to_string()), f.elem(&3u8));
-    vars.insert(Term::Var("y".to_string()), f.elem(&2u8));
-    vars.insert(Term::TmpVar(1), f.elem(&8u8));
-    vars.insert(Term::TmpVar(2), f.elem(&11u8));
-    vars.insert(Term::Out, eq.rhs);
+    let mut val_assignments = HashMap::<Term, FieldElem>::new();
+    val_assignments.insert(Term::Var("x".to_string()), f.elem(&3u8));
+    val_assignments.insert(Term::Var("y".to_string()), f.elem(&2u8));
+    val_assignments.insert(Term::TmpVar(1), f.elem(&8u8));
+    val_assignments.insert(Term::TmpVar(2), f.elem(&11u8));
+    val_assignments.insert(Term::Out, eq.rhs);
 
-    let r1cs = R1CS::new(f, tmpl, &vars).unwrap();
+    let r1cs = R1CS::new(f, tmpl, &val_assignments).unwrap();
+    let mut keys = r1cs.witness.indices().to_vec();
+    keys.sort();
+    for key in &keys {
+      println!("{}: witness => {:?}", key, r1cs.witness.get(key));
+    }
+
     r1cs.validate().unwrap();
   }
 }
