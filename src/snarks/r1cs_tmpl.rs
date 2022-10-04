@@ -279,9 +279,4 @@ mod tests {
     assert_eq!(res[1], ("t1 + 4".to_string(), "1".to_string(), "t2".to_string()));
     assert_eq!(res[2], ("t2".to_string(), "1".to_string(), "out".to_string()));
   }
-
-  #[test]
-  fn test_r1cs_validate_witness() {
-    //assert!(false);
-  }
  }

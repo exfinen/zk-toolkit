@@ -12,15 +12,14 @@ pub enum Term {
 }
 
 impl std::fmt::Debug for Term {
-  fn fmt(&self, _f: &mut std::fmt::Formatter) -> std::fmt::Result {
+  fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
       match self {
-        Term::Num(n) => print!("{:?}", n.n),
-        Term::One => print!("1"),
-        Term::Out => print!("out"),
-        Term::Sum(a, b) => print!("({:?} + {:?})", a, b),
-        Term::TmpVar(n) => print!("t{}", n),
-        Term::Var(s) => print!("{}", s),
-      };
-      Ok(())
+        Term::Num(n) => write!(f, "{:?}", n.n),
+        Term::One => write!(f, "1"),
+        Term::Out => write!(f, "out"),
+        Term::Sum(a, b) => write!(f, "({:?} + {:?})", a, b),
+        Term::TmpVar(n) => write!(f, "t{:?}", n),
+        Term::Var(s) => write!(f, "{:?}", s),
+      }
   }
 }

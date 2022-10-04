@@ -31,7 +31,7 @@ impl R1CS {
           match var_assignments.get(term) {
             Some(v) => solution_vec.set(i, v.clone()),
             None => {
-              return Err(format!("Witness for {:?} is missing", term));
+              return Err(format!("Witness for '{:?}' is missing", term));
             }
           }
         },
@@ -77,7 +77,7 @@ mod tests {
   #[test]
   fn test_validate() {
     let f = &Field::new(&3911u16);
-    let input = "x + 4 * y = 11";
+    let input = "x + 4 * y == 11";
     let eq = Parser::parse(f, input).unwrap();
 
     let gates = &Gate::build(f, &eq);
@@ -85,8 +85,15 @@ mod tests {
       println!("{:?}", gate);
     }
     let tmpl = &R1CSTmpl::from_gates(f, gates);
-    let var_assignments = HashMap::<Term, FieldElem>::new();
-    let r1cs = R1CS::new(f, tmpl, &var_assignments).unwrap();
+
+    let mut vars = HashMap::<Term, FieldElem>::new();
+    vars.insert(Term::Var("x".to_string()), f.elem(&3u8));
+    vars.insert(Term::Var("y".to_string()), f.elem(&2u8));
+    vars.insert(Term::TmpVar(1), f.elem(&8u8));
+    vars.insert(Term::TmpVar(2), f.elem(&11u8));
+    vars.insert(Term::Out, eq.rhs);
+
+    let r1cs = R1CS::new(f, tmpl, &vars).unwrap();
     r1cs.validate().unwrap();
   }
 }

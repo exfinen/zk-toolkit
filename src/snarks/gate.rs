@@ -11,9 +11,8 @@ pub struct Gate {
 }
 
 impl std::fmt::Debug for Gate {
-  fn fmt(&self, _f: &mut std::fmt::Formatter) -> std::fmt::Result {
-      print!("{:?} = {:?} * {:?}", self.c, self.a, self.b);
-      Ok(())
+  fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+      write!(f, "{:?} = {:?} * {:?}", self.c, self.a, self.b)
   }
 }
 
