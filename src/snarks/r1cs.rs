@@ -51,13 +51,9 @@ impl R1CS {
   // evaluate all constraints and confirm they all hold
   pub fn validate(&self) -> Result<(), String> {
     for constraint in &self.constraints {
-      println!("Constraint: {:?}", constraint);
       let a = &(&constraint.a * &self.witness).sum();
-      println!("A = {:?}", a);
       let b = &(&constraint.b * &self.witness).sum();
-      println!("B = {:?}", b);
       let c = &(&constraint.c * &self.witness).sum();
-      println!("C = {:?}", c);
 
       if &(a * b) != c {
         return Err(format!("Constraint a ({:?}) * b ({:?}) = c ({:?}) doesn't hold", a, b, c));
@@ -93,11 +89,7 @@ mod tests {
     let eq = Parser::parse(f, input).unwrap();
 
     let gates = &Gate::build(f, &eq);
-    for gate in gates {
-      println!("{:?}", gate);
-    }
     let tmpl = &R1CSTmpl::from_gates(f, gates);
-    println!("witness w/ vars: {:?}", &tmpl.witness);
 
     let mut val_assignments = HashMap::<Term, FieldElem>::new();
     val_assignments.insert(Term::Var("x".to_string()), f.elem(&3u8));
@@ -109,9 +101,6 @@ mod tests {
     let r1cs = R1CS::new(f, tmpl, &val_assignments).unwrap();
     let mut keys = r1cs.witness.indices().to_vec();
     keys.sort();
-    for key in &keys {
-      println!("{}: witness => {:?}", key, r1cs.witness.get(key));
-    }
 
     r1cs.validate().unwrap();
   }
