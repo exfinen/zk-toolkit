@@ -4,10 +4,19 @@ use crate::building_block::field::FieldElem;
 type Index = usize;
 type Value = FieldElem;
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct SparseVec {
   pub size: usize,
   elems: HashMap<Index, Value>,
+}
+
+impl std::fmt::Debug for SparseVec {
+  fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    let mut keys: Vec<Index> = self.elems.keys().cloned().collect();
+    keys.sort();
+    let xs: Vec<String> = keys.iter().map(|k| { format!("{}->{:?}", k, self.elems.get(k).unwrap().n) }).collect();
+    write!(f, "[{}]", xs.join(","))
+  }
 }
 
 impl SparseVec {
