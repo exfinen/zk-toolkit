@@ -266,7 +266,7 @@ mod tests {
         Term::TmpVar(i) => format!("t{}", i),
         Term::One => format!("{:?}", &vec.get(i).n),
         Term::Out => "out".to_string(),
-        // not handling Term::Sum since it's not used in tests
+        // currently not handling Term::Sum since it's not used in tests
         _ => "?".to_string(),
       }
     }).collect::<Vec<String>>().join(" + ");
