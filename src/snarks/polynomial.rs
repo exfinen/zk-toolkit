@@ -92,7 +92,8 @@ impl Polynomial {
         coeffs.push(larger[i].clone());
       }
     }
-    Polynomial { f: self.f.clone(), coeffs, _private: () }
+    let x = Polynomial { f: self.f.clone(), coeffs, _private: () };
+    x.normalize()  // normalizing b/c addition can make term coefficect zero
   }
 
   pub fn mul(&self, rhs: &Polynomial) -> Polynomial {
@@ -159,6 +160,7 @@ mod tests {
   #[test]
   #[should_panic]
   fn test_new_empty_vec() {
+    std::panic::set_hook(Box::new(|_| {}));
     let f = &Field::new(&3299u16);
     Polynomial::new(f, vec![]);
   }
@@ -345,6 +347,41 @@ mod tests {
       ]);
       let c = Polynomial::new(f, vec![
         f.elem(&112u8),
+      ]);
+      let res = a.add(&b);
+      assert!(&res == &c);
+    }
+  }
+
+  #[test]
+  fn test_add_zero_terms() {
+    let f = &Field::new(&7u8);
+    // 1st term only and it becomes zero
+    {
+      let a = Polynomial::new(f, vec![
+        f.elem(&3u8),
+      ]);
+      let b = Polynomial::new(f, vec![
+        f.elem(&4u8),
+      ]);
+      let c = Polynomial::new(f, vec![
+        f.elem(&0u8),
+      ]);
+      let res = a.add(&b);
+      assert!(&res == &c);
+    }
+    // adding 2-term polynomials and 2nd term becomes zero
+    {
+      let a = Polynomial::new(f, vec![
+        f.elem(&1u8),
+        f.elem(&3u8),
+      ]);
+      let b = Polynomial::new(f, vec![
+        f.elem(&2u8),
+        f.elem(&4u8),
+      ]);
+      let c = Polynomial::new(f, vec![
+        f.elem(&3u8),
       ]);
       let res = a.add(&b);
       assert!(&res == &c);
