@@ -114,12 +114,52 @@ impl Polynomial {
     }
     Polynomial { f: self.f.clone(), coeffs, _private: () }
   }
+
+  pub fn div(&self, _rhs: &Polynomial) -> Result<Polynomial, String> {
+    let p = Polynomial { f: self.f.clone(), coeffs: self.coeffs.clone(), _private: () };
+    Ok(p)
+  }
 }
 
 #[cfg(test)]
 mod tests {
   use super::*;
   use crate::building_block::field::Field;
+
+  #[test]
+  fn test_div_0_0() {
+    let f = &Field::new(&3299u16);
+    // divisible
+    {
+      let a = Polynomial::new(f, vec![
+        f.elem(&12u8),
+      ]);
+      let b = Polynomial::new(f, vec![
+        f.elem(&3u8),
+      ]);
+      assert!(a.div(&b).is_ok());
+    }
+    // not divisible
+    {
+      let a = Polynomial::new(f, vec![
+        f.elem(&12u8),
+      ]);
+      let b = Polynomial::new(f, vec![
+        f.elem(&5u8),
+      ]);
+      assert!(a.div(&b).is_err());
+    }
+  }
+
+  #[test]
+  fn test_div_1_0() {
+
+  }
+
+  #[test]
+  fn test_div_1_1() {
+
+  }
 
   #[test]
   fn test_debug_print() {
