@@ -115,7 +115,9 @@ impl Polynomial {
     Polynomial { f: self.f.clone(), coeffs, _private: () }
   }
 
-  pub fn div(&self, _rhs: &Polynomial) -> Result<Polynomial, String> {
+  // when divisible, quotient is returned as a parameter of Ok
+  // when not divisible, reminder is returned as a parameter of Err
+  pub fn div(&self, _rhs: &Polynomial) -> Result<Polynomial, Polynomial> {
     let p = Polynomial { f: self.f.clone(), coeffs: self.coeffs.clone(), _private: () };
     Ok(p)
   }
