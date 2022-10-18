@@ -162,6 +162,7 @@ impl Polynomial {
     let divisor = rhs.clone();
     let quotient_degree = dividend.len() - divisor.len();
     let divisor_coeff = &divisor[divisor.len() - 1];
+    assert!(!divisor_coeff.n.is_zero(), "found zero coeff at highest index. use Polynomial constructor");
 
     let mut quotient_coeffs = vec![self.f.elem(&0u8); quotient_degree + 1];
 
