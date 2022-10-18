@@ -74,6 +74,12 @@ impl Debug for Polynomial {
   }
 }
 
+#[derive(Debug)]
+pub enum DivResult {
+  Quotient(Polynomial),
+  QuotientRemainder((Polynomial, Polynomial)),
+}
+
 impl Polynomial {
   pub fn new(f: &Field, coeffs: Vec<FieldElem>) -> Self {
     if coeffs.len() == 0 { panic!("coeffs is empty"); }
@@ -151,46 +157,38 @@ impl Polynomial {
     p.normalize()
   }
 
-  // when divisible, quotient is returned as a parameter of Ok
-  // when not divisible, reminder is returned as a parameter of Err
-  pub fn div(&self, rhs: &Polynomial) -> Result<Polynomial, (Polynomial, Polynomial)> {
+  pub fn div(&self, rhs: &Polynomial) -> DivResult {
     let mut dividend = self.clone();
     let divisor = rhs.clone();
     let quotient_degree = dividend.len() - divisor.len();
+    let divisor_coeff = &divisor[divisor.len() - 1];
+
     let mut quotient_coeffs = vec![self.f.elem(&0u8); quotient_degree + 1];
 
     while !dividend.is_zero() && dividend.len() >= divisor.len() {
-      println!("==> Initially: Dividend = {:?}, Divisor = {:?}", &dividend, &divisor);
-      let dividend_head_coeff = &dividend[dividend.len() - 1];
-      let divisor_head_coeff = &divisor[divisor.len() - 1];
-      // println!("dend head coeff = {:?}, sor head coeff = {:?}", dividend_head_coeff.n, divisor_head_coeff.n);
+      let dividend_coeff = &dividend[dividend.len() - 1];
 
-      // create polynomial to multiply with divisor
-      let tmp_coeff = dividend_head_coeff / divisor_head_coeff;
-      // println!("tmp_coeff = {:?}", tmp_coeff.n);
-      let tmp_degree = dividend.len() - divisor.len();
-      // println!("tmp_degree = {:?}", tmp_degree);
-      let mut tmp_vec = vec![self.f.elem(&0u8); tmp_degree + 1];
-      tmp_vec[tmp_degree] = tmp_coeff.clone();
-      let tmp_poly = Polynomial::new(&self.f, tmp_vec);
-      println!("tmp_poly = {:?}", tmp_poly);
+      // create a term to multiply with divisor
+      let term_coeff = dividend_coeff / divisor_coeff;
+      let term_degree = dividend.len() - divisor.len();
+      let mut term_vec = vec![self.f.elem(&0u8); term_degree + 1];
+      term_vec[term_degree] = term_coeff.clone();
+      let term_poly = Polynomial::new(&self.f, term_vec);
 
-      // update quotient with the tmp_coeff
-      quotient_coeffs[tmp_degree] = tmp_coeff;
+      // reflect term coeff to result quotient
+      quotient_coeffs[term_degree] = term_coeff;
 
-      let reducer_poly = divisor.mul(&tmp_poly);
-      println!("==> reducer_poly = {:?}", reducer_poly);
+      let poly2subtract = divisor.mul(&term_poly);
 
-      // reduce dividend
-      dividend = dividend.sub(&reducer_poly);
-
-      println!("==> After sub: Dividend = {:?}, Divisor = {:?}", &dividend, &divisor);
+      // update dividend for the next round
+      dividend = dividend.sub(&poly2subtract);
     }
+
     if dividend.is_zero() {
-      Ok(Polynomial { f: self.f.clone(), coeffs: quotient_coeffs, _private: () })
+      DivResult::Quotient(Polynomial { f: self.f.clone(), coeffs: quotient_coeffs, _private: () })
     } else {
       let quotient = Polynomial { f: self.f.clone(), coeffs: quotient_coeffs, _private: () };
-      Err((quotient, dividend))
+      DivResult::QuotientRemainder((quotient, dividend))
     }
   }
 }
@@ -199,6 +197,8 @@ impl Polynomial {
 mod tests {
   use super::*;
   use crate::building_block::field::Field;
+  use rand::Rng;
+  use super::DivResult::{Quotient, QuotientRemainder};
 
   #[test]
   fn test_div_3_2_no_remainder() {
@@ -230,9 +230,9 @@ mod tests {
       ]);
       let res = dividend.div(&divisor);
       println!("result = {:?}", &res);
-      if let Err(x) = res {
+      if let QuotientRemainder(x) = res {
         panic!("expected no remainder, but got {:?}", x);
-      } else if let Ok(q) = res {
+      } else if let Quotient(q) = res {
         assert!(q == quotient);
       } else {
         panic!("should not be visited");
@@ -268,10 +268,10 @@ mod tests {
       ]);
       let res = dividend.div(&divisor);
       println!("result = {:?}", &res);
-      if let Err((q, r)) = res {
+      if let QuotientRemainder((q, r)) = res {
         assert!(q == quotient);
         assert!(r == remainder);
-      } else if let Ok(q) = res {
+      } else if let Quotient(q) = res {
         panic!("expected remainder, but got quotient {:?} w/ no remainder", q);
       } else {
         panic!("should not be visited");
@@ -307,10 +307,10 @@ mod tests {
       ]);
       let res = dividend.div(&divisor);
       println!("result = {:?}", &res);
-      if let Err((q, r)) = res {
+      if let QuotientRemainder((q, r)) = res {
         assert!(q == quotient);
         assert!(r == remainder);
-      } else if let Ok(q) = res {
+      } else if let Quotient(q) = res {
         panic!("expected remainder, but got quotient {:?} w/ no remainder", q);
       } else {
         panic!("should not be visited");
@@ -341,9 +341,9 @@ mod tests {
       ]);
       let res = dividend.div(&divisor);
       println!("result = {:?}", &res);
-      if let Err(x) = res {
+      if let QuotientRemainder(x) = res {
         panic!("expected no remainder, but got {:?}", x);
-      } else if let Ok(q) = res {
+      } else if let Quotient(q) = res {
         assert!(q == quotient);
       } else {
         panic!("should not be visited");
@@ -373,8 +373,8 @@ mod tests {
         f.elem(&1u8), // 4
       ]);
       let quotient = Polynomial::new(f, vec![
-        f.elem(&1u8),  // 0
-        f.elem(&2u8),  // 1
+        f.elem(&1u8), // 0
+        f.elem(&2u8), // 1
         f.elem(&3u8), // 2
       ]);
       let remainder = Polynomial::new(f, vec![
@@ -385,14 +385,50 @@ mod tests {
       ]);
       let res = dividend.div(&divisor);
       println!("result = {:?}", &res);
-      if let Err((q, r)) = res {
+      if let QuotientRemainder((q, r)) = res {
         assert!(q == quotient);
         assert!(r == remainder);
-      } else if let Ok(q) = res {
+      } else if let Quotient(q) = res {
         panic!("expected remainder, but got quotient {:?} w/ no remainder", q);
       } else {
         panic!("should not be visited");
       }
+    }
+  }
+
+  fn gen_random_polynomial(f: &Field, degree: usize, max_coeff: u32) -> Polynomial {
+    let mut coeffs = vec![];
+
+    for _ in 0..degree {
+      let coeff: u32 = rand::thread_rng().gen_range(0..max_coeff);
+      coeffs.push(f.elem(&coeff));
+    }
+    Polynomial::new(f, coeffs)
+  }
+
+  #[test]
+  fn test_div_random_divisible() {
+    let f = &Field::new(&11u8);
+    let max_coeff = 100;
+    let min_divisor_degree = 30;
+    let max_divisor_degree = 100;
+
+    for _ in 0..10 {
+      let divisor_degree = rand::thread_rng().gen_range(min_divisor_degree..max_divisor_degree);
+      let quotient_degree = rand::thread_rng().gen_range(1..divisor_degree);
+
+      let divisor = gen_random_polynomial(f, divisor_degree, max_coeff);
+      let quotient = gen_random_polynomial(f, quotient_degree, max_coeff);
+      let dividend = divisor.mul(&quotient);
+
+      match &dividend.div(&divisor) {
+        Quotient(q) => {
+          assert!(q == &quotient);
+        },
+        QuotientRemainder(x) => {
+          panic!("unexpected remainder {:?}", x);
+        },
+      };
     }
   }
 
