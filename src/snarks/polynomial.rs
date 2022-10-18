@@ -229,7 +229,6 @@ mod tests {
         f.elem(&1u8),
       ]);
       let res = dividend.div(&divisor);
-      println!("result = {:?}", &res);
       if let QuotientRemainder(x) = res {
         panic!("expected no remainder, but got {:?}", x);
       } else if let Quotient(q) = res {
@@ -306,7 +305,6 @@ mod tests {
         f.elem(&3u8),
       ]);
       let res = dividend.div(&divisor);
-      println!("result = {:?}", &res);
       if let QuotientRemainder((q, r)) = res {
         assert!(q == quotient);
         assert!(r == remainder);
@@ -340,7 +338,6 @@ mod tests {
         f.elem(&5u8),
       ]);
       let res = dividend.div(&divisor);
-      println!("result = {:?}", &res);
       if let QuotientRemainder(x) = res {
         panic!("expected no remainder, but got {:?}", x);
       } else if let Quotient(q) = res {
@@ -384,7 +381,6 @@ mod tests {
         f.elem(&1u8),  // 3
       ]);
       let res = dividend.div(&divisor);
-      println!("result = {:?}", &res);
       if let QuotientRemainder((q, r)) = res {
         assert!(q == quotient);
         assert!(r == remainder);
