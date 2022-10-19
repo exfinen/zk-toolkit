@@ -7,5 +7,6 @@ pub mod gates;
 pub mod polynomial;
 pub mod sparse_vec;
 pub mod term;
+pub mod qap;
 pub mod r1cs;
 pub mod r1cs_tmpl;
