@@ -72,13 +72,13 @@ impl<'a> R1CSTmpl<'a> {
 
     // create a, b anc c vectors for each gate
     for gate in gates {
-      let mut a = SparseVec::new(vec_size);
+      let mut a = SparseVec::new(f, vec_size);
       tmpl.gate_to_vec(f, &mut a, &gate.a);
 
-      let mut b = SparseVec::new(vec_size);
+      let mut b = SparseVec::new(f, vec_size);
       tmpl.gate_to_vec(f, &mut b, &gate.b);
 
-      let mut c = SparseVec::new(vec_size);
+      let mut c = SparseVec::new(f, vec_size);
       tmpl.gate_to_vec(f, &mut c, &gate.c);
 
       let constraint = Constraint { a, b, c };
@@ -103,7 +103,7 @@ mod tests {
     ];
     for term in terms {
       let mut tmpl = R1CSTmpl::new(f);
-      let mut sv = SparseVec::new(2);
+      let mut sv = SparseVec::new(f, 2);
       tmpl.add_term(&term);
       tmpl.gate_to_vec(f, &mut sv, &term);
       let indices = sv.indices().to_vec();
@@ -116,7 +116,7 @@ mod tests {
     {
       // test Num term
       let mut tmpl = R1CSTmpl::new(f);
-      let mut sv = SparseVec::new(1);
+      let mut sv = SparseVec::new(f, 1);
       let n = f.elem(&4u8);
       let term = Term::Num(n.clone());
       tmpl.gate_to_vec(f, &mut sv, &term);
@@ -129,7 +129,7 @@ mod tests {
     {
       // test Sum term
       let mut tmpl = R1CSTmpl::new(f);
-      let mut sv = SparseVec::new(3);
+      let mut sv = SparseVec::new(f, 3);
       let y = Term::Var("y".to_string());
       let z = Term::Var("z".to_string());
       let term = Term::Sum(Box::new(y.clone()), Box::new(z.clone()));

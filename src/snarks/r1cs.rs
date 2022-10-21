@@ -19,7 +19,7 @@ impl R1CS {
     term_values: &HashMap<Term, FieldElem>,
   ) -> Result<SparseVec, String> {
     // generate SparseVec from the witness
-    let mut witness = SparseVec::new(tmpl.witness.len());
+    let mut witness = SparseVec::new(f, tmpl.witness.len());
 
     let add = |i: usize, term: &Term, witness: &mut SparseVec| -> Result<(), String> {
       match term_values.get(term) {
