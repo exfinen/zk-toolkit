@@ -16,7 +16,7 @@ pub struct R1CSTmpl<'a> {
 }
 
 impl<'a> R1CSTmpl<'a> {
-  fn new(f: &'a Field) -> Self {
+  pub fn new(f: &'a Field) -> Self {
     let mut tmpl = R1CSTmpl {
       f,
       constraints: vec![],
@@ -27,7 +27,7 @@ impl<'a> R1CSTmpl<'a> {
     tmpl
   }
 
-  fn add_term(&mut self, t: &Term) {
+  pub fn add_term(&mut self, t: &Term) {
     match t {
       Term::Sum(a, b) => {
         self.add_term(&a);
