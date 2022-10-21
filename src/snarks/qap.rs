@@ -1,4 +1,4 @@
-use crate::building_block::field::Field;
+use crate::building_block::field::{Field, FieldElem};
 use crate::snarks::{
   r1cs::R1CS,
   polynomial::Polynomial,
@@ -22,42 +22,44 @@ impl QAP {
   // e.g. (x - 2) * (x - 3) * 3 / ((1 - 2) * (1 - 3))
   fn build_polynomial_with_lagrange(
     f: &Field,
-    constraint_vec: &SparseVec,
-    constraint_idx: usize,
-    num_constraints: usize,
-    witness: &SparseVec,
+    target_vals: Vec<FieldElem>,
   ) -> Polynomial {
-    // get the target value
-    let target_val = (constraint_vec * witness).sum();
+    for (target_idx, target_val) in target_vals.into_iter().enumerate() {
 
-    let numerator_polys = vec![
-      Polynomial::new(f, vec![target_val]),
-    ];
-    let denominator = f.elem(&1u8);
+      let numerator_polys = vec![
+        Polynomial::new(f, vec![target_val]),
+      ];
+      let denominator = f.elem(&1u8);
 
-    for i in 0..num_constraints {
-      if i == constraint_idx {
-        continue;
+      for i in 0..target_vals.len() {
+        if i == target_idx {
+          continue;
+        }
+        // (x - i) to m`ake the polynomal zero at x = i
+        let numerator_poly = Polynomial::new(f, vec![
+          f.elem(&i),
+          f.elem(&1u8),
+        ]);
+        numerator_polys.push(numerator_poly);
+
+        // (target_idx - i) to cancel out the corresponding
+        // numerator_poly at x = target_idx
+        denominator = denominator * (target_val - f.elem(&i));
       }
-      let numerator_poly = Polynomial::new(f, vec![
-        f.elem(&i),
-        f.elem(&1u8),
-      ]);
-      numerator_polys.push(numerator_poly);
+      let denominator_poly = Polynomial::new(f, vec![denominator.inv()]);
 
-      denominator = denominator * (target_val - f.elem(&i));
+      let polys = numerator_polys;
+      polys.push(denominator_poly);
+
+      // aggregate polynomials
+      let acc_poly = Polynomial::new(f, vec![f.elem(&1u8)]);
+      for poly in polys {
+        acc_poly = acc_poly.mul(&poly);
+      }
+      acc_poly
+
     }
-    let denominator_poly = Polynomial::new(f, vec![denominator.inv()]);
-
-    let polys = numerator_polys;
-    polys.push(denominator_poly);
-
-    // aggregate polynomials
-    let acc_poly = Polynomial::new(f, vec![f.elem(&1u8)]);
-    for poly in polys {
-      acc_poly = acc_poly.mul(&poly);
-    }
-    acc_poly
+    Polynomial::new(f, vec![])
   }
 
   pub fn build(f: &Field, r1cs: R1CS) -> QAP {
@@ -68,15 +70,16 @@ impl QAP {
     let mut qap_b_cols = vec![];
     let mut qap_c_cols = vec![];
 
-    // there will be a polynomial for each witness for a, b, c
-    // 1 constrant to 6 rows of a,b,c
+    // vertical
     for row in 0..r1cs.witness.size {
+      // row selects a witness element
 
-    }
-    for (col_idx, constraint) in r1cs.constraints.iter().enumerate() {
-      qap_a_cols.push(QAP::build_polynomial_with_lagrange(f, &constraint.a, col_idx, r1cs.constraints.len(), &r1cs.witness));
-      qap_b_cols.push(QAP::build_polynomial_with_lagrange(f, &constraint.b, col_idx, r1cs.constraints.len(), &r1cs.witness));
-      qap_c_cols.push(QAP::build_polynomial_with_lagrange(f, &constraint.c, col_idx, r1cs.constraints.len(), &r1cs.witness));
+      let target_vals = r1cs.constraints.iter().map(|constraint| {
+        (&constraint.a * &r1cs.witness).get(&row)
+      }).collect();
+
+      qap_a_cols.push(QAP::build_polynomial_with_lagrange(f, &target_vals);
+
     }
 
     // flatten qap_polys
