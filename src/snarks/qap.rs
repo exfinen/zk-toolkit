@@ -20,10 +20,12 @@ impl QAP {
   // build a polynomial that returns target_val at x == index
   // and zero for x != index.
   // e.g. (x - 2) * (x - 3) * 3 / ((1 - 2) * (1 - 3))
-  fn build_polynomial_with_lagrange(
+  fn build_polynomial_for_target_values(
     f: &Field,
     target_vals: Vec<FieldElem>,
   ) -> Polynomial {
+    let target_val_polys = vec![];
+
     for (target_idx, target_val) in target_vals.into_iter().enumerate() {
 
       let numerator_polys = vec![
@@ -46,8 +48,8 @@ impl QAP {
         // numerator_poly at x = target_idx
         denominator = denominator * (target_val - f.elem(&i));
       }
+      // merge numerator and denominator
       let denominator_poly = Polynomial::new(f, vec![denominator.inv()]);
-
       let polys = numerator_polys;
       polys.push(denominator_poly);
 
@@ -56,10 +58,14 @@ impl QAP {
       for poly in polys {
         acc_poly = acc_poly.mul(&poly);
       }
-      acc_poly
-
+      target_val_polys.push(acc_poly);
     }
-    Polynomial::new(f, vec![])
+    // aggregate polynomials for all target values
+    let mut res = target_val_polys[0];
+    for x in &target_val_polys[1..] {
+      res = res.add(x);
+    }
+    res
   }
 
   pub fn build(f: &Field, r1cs: R1CS) -> QAP {
@@ -77,8 +83,7 @@ impl QAP {
       let target_vals = r1cs.constraints.iter().map(|constraint| {
         (&constraint.a * &r1cs.witness).get(&row)
       }).collect();
-
-      qap_a_cols.push(QAP::build_polynomial_with_lagrange(f, &target_vals);
+      qap_a_cols.push(QAP::build_polynomial_for_target_values(f, target_vals));
 
     }
 
