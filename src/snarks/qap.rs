@@ -68,6 +68,14 @@ impl QAP {
     let mut b_polys = vec![];
     let mut c_polys = vec![];
 
+    /*
+                    a1 a2
+    a1 [0 3 0 0] -> |0 0|
+    a2 [0 0 0 2]    |3 0| <- need polynomial that returns
+    +------^        |0 0|    3 at x=1 and 0 at x=2
+    r1cs selector * |0 2| <- here polynomail that retuns
+    witness        x=1 x=2   0 at x=1 and 2 at x=2
+    */
     for row in 0..r1cs.witness.size {
       let a_target_vals = r1cs.constraints.iter().map(|constraint| {
         (&constraint.a * &r1cs.witness).get(&row)
