@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use crate::building_block::field::{Field, FieldElem};
+use num_traits::Zero;
 
 type Index = usize;
 
@@ -31,29 +32,25 @@ impl SparseVec {
     }
   }
 
-  pub fn set(&mut self, index: Index, n: FieldElem) {
-    if index >= self.size {
+  pub fn set(&mut self, index: &Index, n: FieldElem) {
+    if index >= &self.size {
       panic!("Index {} is out of range. The size of vector is {}", index, self.size);
     }
-    self.elems.insert(index, n);
-  }
-
-  pub fn safe_get(&self, index: &Index) -> Option<&FieldElem> {
-    if index >= &self.size {
-      None
-    } else {
-      self.elems.get(index)
-    }
+    self.elems.insert(*index, n);
   }
 
   pub fn get(&self, index: &Index) -> FieldElem {
     if index >= &self.size {
       panic!("Index {} is out of range. The size of vector is {}", index, self.size);
     }
-    self.elems.get(index).unwrap().clone()
+    if self.elems.contains_key(index) {
+      self.elems.get(index).unwrap().clone()
+    } else {
+      self.f.elem(&0u8)
+    }
   }
 
-  pub fn indices(&self) -> Vec<usize> {
+  pub fn indices_with_value(&self) -> Vec<usize> {
     let mut vec = vec![];
     for x in self.elems.keys() {
       vec.push(*x);
@@ -98,13 +95,11 @@ impl std::ops::Mul<&SparseVec> for &SparseVec {
 
       let mut ret = SparseVec::new(&self.f, self.size);
       for index in self.elems.keys() {
-        match rhs.safe_get(index) {
-          Some(r) => {
-            let l = self.get(index);
-            ret.set(*index, l * r);
-          },
-          None => (),
-        };
+        let l = self.get(index);
+        let r = rhs.get(index);
+        if !l.n.is_zero() && !r.n.is_zero() {
+          ret.set(index, l * r);
+        }
       }
       ret
     }
@@ -133,7 +128,7 @@ mod tests {
     assert_eq!(vec.elems.len(), 0);
 
     let f = &Field::new(&3911u16);
-    vec.set(3, f.elem(&2u8));
+    vec.set(&3, f.elem(&2u8));
   }
 
   #[test]
@@ -143,63 +138,51 @@ mod tests {
     assert_eq!(vec.elems.len(), 0);
 
     let f = &Field::new(&3911u16);
-    vec.set(2, f.elem(&2u8));
+    vec.set(&2, f.elem(&2u8));
     assert_eq!(vec.elems.len(), 1);
     assert_eq!(vec.elems.get(&2).unwrap(), &f.elem(&2u8));
 
     // setting the same index should overwrite
-    vec.set(2, f.elem(&3u8));
+    vec.set(&2, f.elem(&3u8));
     assert_eq!(vec.elems.len(), 1);
     assert_eq!(vec.elems.get(&2).unwrap(), &f.elem(&3u8));
   }
 
   #[test]
-  #[should_panic]
-  fn test_bad_get() {
-    std::panic::set_hook(Box::new(|_| {}));  // suppress stack trace
-
+  fn test_good_get() {
     let f = &Field::new(&3911u16);
-    let vec = SparseVec::new(f, 3);
-    vec.get(&3);
+    let one = f.elem(&1u8);
+    let two = f.elem(&2u8);
+    let three = f.elem(&3u8);
+    let mut vec = SparseVec::new(f, 3);
+    vec.set(&0, one.clone());
+    vec.set(&1, two.clone());
+    vec.set(&2, one.clone());
+    assert_eq!(vec.get(&0), one);
+    assert_eq!(vec.get(&1), two);
+    assert_eq!(vec.get(&2), three);
   }
-
   #[test]
   #[should_panic]
-  fn test_get_non_existing_index() {
+  fn test_get_index_out_of_range() {
     std::panic::set_hook(Box::new(|_| {}));  // suppress stack trace
 
     let f = &Field::new(&3911u16);
-    let vec = SparseVec::new(f, 3);
+    let vec = SparseVec::new(f, 1);
     vec.get(&2);
   }
 
   #[test]
-  fn test_safe_get_out_of_range_index() {
+  #[should_panic]
+  fn test_get_index_without_value() {
+    std::panic::set_hook(Box::new(|_| {}));  // suppress stack trace
+
     let f = &Field::new(&3911u16);
+    let zero = f.elem(&0u8);
     let vec = SparseVec::new(f, 3);
-    assert_eq!(vec.safe_get(&3), None);
-  }
-
-  #[test]
-  fn test_safe_get_non_existing_index() {
-    let f = &Field::new(&3911u16);
-    let mut vec = SparseVec::new(f, 3);
-    assert_eq!(vec.safe_get(&2), None);
-
-    let f = &Field::new(&3911u16);
-    vec.set(1, f.elem(&2u8));
-
-    assert_eq!(vec.safe_get(&2), None);
-  }
-
-  #[test]
-  fn test_safe_get_existing_index() {
-    let f = &Field::new(&3911u16);
-    let mut vec = SparseVec::new(f, 3);
-    let f = &Field::new(&3911u16);
-
-    vec.set(1, f.elem(&2u8));
-    assert_eq!(vec.safe_get(&1), Some(&f.elem(&2u8)));
+    assert_eq!(vec.get(&0), zero);
+    assert_eq!(vec.get(&1), zero);
+    assert_eq!(vec.get(&2), zero);
   }
 
   #[test]
@@ -208,8 +191,8 @@ mod tests {
     let mut vec = SparseVec::new(f, 3);
     let f = &Field::new(&3911u16);
 
-    vec.set(1, f.elem(&2u8));
-    vec.set(2, f.elem(&4u8));
+    vec.set(&1, f.elem(&2u8));
+    vec.set(&2, f.elem(&4u8));
 
     let indices = vec.indices();
 
@@ -224,8 +207,8 @@ mod tests {
     let mut vec_a = SparseVec::new(f, 3);
     let mut vec_b = SparseVec::new(f, 3);
 
-    vec_a.set(1, f.elem(&2u8));
-    vec_b.set(2, f.elem(&3u8));
+    vec_a.set(&1, f.elem(&2u8));
+    vec_b.set(&2, f.elem(&3u8));
 
     let vec_c = &vec_a * &vec_b;
 
@@ -237,9 +220,9 @@ mod tests {
     let f = &Field::new(&3911u16);
     let mut vec_a = SparseVec::new(f, 3);
     let mut vec_b = SparseVec::new(f, 3);
-
-    vec_a.set(1, f.elem(&2u8));
-    vec_b.set(1, f.elem(&3u8));
+&
+    vec_a.set(&1, f.elem(&2u8));
+    vec_b.set(&1, f.elem(&3u8));
 
     let vec_c = &vec_a * &vec_b;
 
@@ -253,10 +236,10 @@ mod tests {
     let mut vec_a = SparseVec::new(f, 3);
     let mut vec_b = SparseVec::new(f, 3);
 
-    vec_a.set(1, f.elem(&2u8));
-    vec_a.set(2, f.elem(&3u8));
-    vec_b.set(1, f.elem(&4u8));
-    vec_b.set(2, f.elem(&5u8));
+    vec_a.set(&1, f.elem(&2u8));
+    vec_a.set(&2, f.elem(&3u8));
+    vec_b.set(&1, f.elem(&4u8));
+    vec_b.set(&2, f.elem(&5u8));
 
     let vec_c = &vec_a * &vec_b;
 
@@ -270,10 +253,10 @@ mod tests {
     let f = &Field::new(&3911u16);
     let mut vec_a = SparseVec::new(f, 3);
     let mut vec_b = SparseVec::new(f, 3);
-
-    vec_a.set(1, f.elem(&2u8));
-    vec_a.set(2, f.elem(&5u8));
-    vec_b.set(1, f.elem(&3u8));
+&
+    vec_a.set(&1, f.elem(&2u8));
+    vec_a.set(&2, f.elem(&5u8));
+    vec_b.set(&1, f.elem(&3u8));
 
     let vec_c = &vec_a * &vec_b;
 
@@ -286,8 +269,8 @@ mod tests {
     let f = &Field::new(&3911u16);
     let mut vec = SparseVec::new(f, 3);
 
-    vec.set(1, f.elem(&2u8));
-    vec.set(2, f.elem(&4u8));
+    vec.set(&1, f.elem(&2u8));
+    vec.set(&2, f.elem(&4u8));
 
     let sum = vec.sum();
     assert_eq!(sum, f.elem(&6u8));
@@ -315,8 +298,8 @@ mod tests {
     let mut vec_a = SparseVec::new(f, 3);
     let mut vec_b = SparseVec::new(f, 3);
 
-    vec_a.set(1, f.elem(&92u8));
-    vec_b.set(1, f.elem(&92u8));
+    vec_a.set(&1, f.elem(&92u8));
+    vec_b.set(&1, f.elem(&92u8));
     assert_eq!(vec_a, vec_b);
   }
 
@@ -326,8 +309,8 @@ mod tests {
     let mut vec_a = SparseVec::new(f, 3);
     let mut vec_b = SparseVec::new(f, 3);
 
-    vec_a.set(1, f.elem(&92u8));
-    vec_b.set(1, f.elem(&13u8));
+    vec_a.set(&1, f.elem(&92u8));
+    vec_b.set(&1, f.elem(&13u8));
     assert_ne!(vec_a, vec_b);
   }
 }
