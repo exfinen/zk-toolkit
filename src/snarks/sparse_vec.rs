@@ -169,9 +169,9 @@ mod tests {
     vec.set(&0, one.clone());
     vec.set(&1, two.clone());
     vec.set(&2, one.clone());
-    assert_eq!(vec.get(&0), one);
-    assert_eq!(vec.get(&1), two);
-    assert_eq!(vec.get(&2), three);
+    assert_eq!(vec.get(&0), &one);
+    assert_eq!(vec.get(&1), &two);
+    assert_eq!(vec.get(&2), &three);
   }
   #[test]
   #[should_panic]
@@ -189,7 +189,7 @@ mod tests {
     std::panic::set_hook(Box::new(|_| {}));  // suppress stack trace
 
     let f = &Field::new(&3911u16);
-    let zero = f.elem(&0u8);
+    let zero = &f.elem(&0u8);
     let vec = SparseVec::new(f, 3);
     assert_eq!(vec.get(&0), zero);
     assert_eq!(vec.get(&1), zero);
@@ -231,14 +231,14 @@ mod tests {
     let f = &Field::new(&3911u16);
     let mut vec_a = SparseVec::new(f, 3);
     let mut vec_b = SparseVec::new(f, 3);
-&
+
     vec_a.set(&1, f.elem(&2u8));
     vec_b.set(&1, f.elem(&3u8));
 
     let vec_c = &vec_a * &vec_b;
 
     assert_eq!(vec_c.elems.len(), 1);
-    assert_eq!(vec_c.get(&1), f.elem(&6u8));
+    assert_eq!(vec_c.get(&1), &f.elem(&6u8));
   }
 
   #[test]
@@ -255,8 +255,8 @@ mod tests {
     let vec_c = &vec_a * &vec_b;
 
     assert_eq!(vec_c.elems.len(), 2);
-    assert_eq!(vec_c.get(&1), f.elem(&8u8));
-    assert_eq!(vec_c.get(&2), f.elem(&15u8));
+    assert_eq!(vec_c.get(&1), &f.elem(&8u8));
+    assert_eq!(vec_c.get(&2), &f.elem(&15u8));
   }
 
   #[test]
@@ -264,7 +264,7 @@ mod tests {
     let f = &Field::new(&3911u16);
     let mut vec_a = SparseVec::new(f, 3);
     let mut vec_b = SparseVec::new(f, 3);
-&
+
     vec_a.set(&1, f.elem(&2u8));
     vec_a.set(&2, f.elem(&5u8));
     vec_b.set(&1, f.elem(&3u8));
@@ -272,7 +272,7 @@ mod tests {
     let vec_c = &vec_a * &vec_b;
 
     assert_eq!(vec_c.elems.len(), 1);
-    assert_eq!(vec_c.get(&1), f.elem(&6u8));
+    assert_eq!(vec_c.get(&1), &f.elem(&6u8));
   }
 
   #[test]

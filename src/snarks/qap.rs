@@ -76,16 +76,22 @@ impl QAP {
     r1cs selector * |0 2| <- here polynomail that retuns
     witness        x=1 x=2   0 at x=1 and 2 at x=2
     */
+    println!("# of witnesses={}",
     for row in 0..r1cs.witness.size {
+      println!("row={}", row);
+      println!("# of constraints={}", r1cs.constraints.len());
       let a_target_vals = r1cs.constraints.iter().map(|constraint| {
         (&constraint.a * &r1cs.witness)[&row].clone()
-      }).collect();
+      }).collect::<Vec<FieldElem>>();
       let b_target_vals = r1cs.constraints.iter().map(|constraint| {
         (&constraint.b * &r1cs.witness)[&row].clone()
-      }).collect();
+      }).collect::<Vec<FieldElem>>();
       let c_target_vals = r1cs.constraints.iter().map(|constraint| {
         (&constraint.c * &r1cs.witness)[&row].clone()
-      }).collect();
+      }).collect::<Vec<FieldElem>>();
+      println!("a_target_vals={:?}", a_target_vals.len());
+      println!("b_target_vals={:?}", b_target_vals.len());
+      println!("c_target_vals={:?}", c_target_vals.len());
 
       a_polys.push(QAP::build_polynomial_for_target_values(f, a_target_vals));
       b_polys.push(QAP::build_polynomial_for_target_values(f, b_target_vals));

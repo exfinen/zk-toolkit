@@ -12,7 +12,7 @@ pub struct R1CSTmpl<'a> {
   pub f: &'a Field,
   pub constraints: Vec<Constraint>,
   pub witness: Vec<Term>,
-  pub indices: HashMap<Term, usize>,
+  pub indices: HashMap<Term, usize>,  // Term's index in witness vector
 }
 
 impl<'a> R1CSTmpl<'a> {
@@ -23,17 +23,17 @@ impl<'a> R1CSTmpl<'a> {
       witness: vec![],
       indices: HashMap::<Term, usize>::new(),
     };
-    tmpl.add_term(&Term::One);
+    tmpl.add_witness_term(&Term::One);
     tmpl
   }
 
-  pub fn add_term(&mut self, t: &Term) {
+  pub fn add_witness_term(&mut self, t: &Term) {
     match t {
       Term::Sum(a, b) => {
-        self.add_term(&a);
-        self.add_term(&b);
+        self.add_witness_term(&a);
+        self.add_witness_term(&b);
       },
-      Term::Num(_) => {},  // num should not be included to witness
+      Term::Num(_) => {},  // represent Num as multiple of Term::One, not adding to witness
       t => {
         if self.indices.contains_key(t) { return };
         self.witness.push(t.clone());
@@ -42,14 +42,14 @@ impl<'a> R1CSTmpl<'a> {
     }
   }
 
-  fn gate_to_vec(&mut self, f: &Field, vec: &mut SparseVec, term: &Term) {
+  fn build_constraint_vec(&mut self, f: &Field, vec: &mut SparseVec, term: &Term) {
     match term {
       Term::Sum(a, b) => {
-        self.gate_to_vec(f, vec, &a);
-        self.gate_to_vec(f, vec, &b);
+        self.build_constraint_vec(f, vec, &a);
+        self.build_constraint_vec(f, vec, &b);
       },
       Term::Num(n) => {
-        vec.set(&0, n.clone());  // Num is represented by multiplying the number by 1
+        vec.set(&0, n.clone());  // Num is represented as Term::One times n
       },
       x => {
         let index = self.indices.get(&x).unwrap();
@@ -63,9 +63,9 @@ impl<'a> R1CSTmpl<'a> {
 
     // build witness vector
     for gate in gates {
-      tmpl.add_term(&gate.a);
-      tmpl.add_term(&gate.b);
-      tmpl.add_term(&gate.c);
+      tmpl.add_witness_term(&gate.a);
+      tmpl.add_witness_term(&gate.b);
+      tmpl.add_witness_term(&gate.c);
     }
 
     let vec_size = tmpl.witness.len();
@@ -73,13 +73,13 @@ impl<'a> R1CSTmpl<'a> {
     // create a, b anc c vectors for each gate
     for gate in gates {
       let mut a = SparseVec::new(f, vec_size);
-      tmpl.gate_to_vec(f, &mut a, &gate.a);
+      tmpl.build_constraint_vec(f, &mut a, &gate.a);
 
       let mut b = SparseVec::new(f, vec_size);
-      tmpl.gate_to_vec(f, &mut b, &gate.b);
+      tmpl.build_constraint_vec(f, &mut b, &gate.b);
 
       let mut c = SparseVec::new(f, vec_size);
-      tmpl.gate_to_vec(f, &mut c, &gate.c);
+      tmpl.build_constraint_vec(f, &mut c, &gate.c);
 
       let constraint = Constraint { a, b, c };
       tmpl.constraints.push(constraint)
@@ -104,22 +104,22 @@ mod tests {
     for term in terms {
       let mut tmpl = R1CSTmpl::new(f);
       let mut sv = SparseVec::new(f, 2);
-      tmpl.add_term(&term);
-      tmpl.gate_to_vec(f, &mut sv, &term);
+      tmpl.add_witness_term(&term);
+      tmpl.build_constraint_vec(f, &mut sv, &term);
       let indices = sv.indices_with_value().to_vec();
 
       // should be stored at index 1 in witness vector
       assert_eq!(indices[0], 1);
       // and the multiplier should be 1
-      assert_eq!(sv.get(&1), f.elem(&1u8));
+      assert_eq!(sv.get(&1), &f.elem(&1u8));
     }
     {
       // test Num term
       let mut tmpl = R1CSTmpl::new(f);
       let mut sv = SparseVec::new(f, 1);
-      let n = f.elem(&4u8);
+      let n = &f.elem(&4u8);
       let term = Term::Num(n.clone());
-      tmpl.gate_to_vec(f, &mut sv, &term);
+      tmpl.build_constraint_vec(f, &mut sv, &term);
       let indices = sv.indices_with_value().to_vec();
 
       // term should map to index 0 of witness that stores One term
@@ -133,8 +133,8 @@ mod tests {
       let y = Term::Var("y".to_string());
       let z = Term::Var("z".to_string());
       let term = Term::Sum(Box::new(y.clone()), Box::new(z.clone()));
-      tmpl.add_term(&term);
-      tmpl.gate_to_vec(f, &mut sv, &term);
+      tmpl.add_witness_term(&term);
+      tmpl.build_constraint_vec(f, &mut sv, &term);
       let mut indices = sv.indices_with_value().to_vec();
       indices.sort();
 
@@ -143,13 +143,13 @@ mod tests {
       assert_eq!(indices[1], 2);
 
       // and both of the multipliers should be 1
-      assert_eq!(sv.get(&1), f.elem(&1u8));
-      assert_eq!(sv.get(&2), f.elem(&1u8));
+      assert_eq!(sv.get(&1), &f.elem(&1u8));
+      assert_eq!(sv.get(&2), &f.elem(&1u8));
     }
   }
 
   #[test]
-  fn test_add_term() {
+  fn test_add_witness_term() {
     let f = &Field::new(&3911u16);
     let mut tmpl = R1CSTmpl::new(f);
     assert_eq!(tmpl.indices.len(), 1);
@@ -160,50 +160,50 @@ mod tests {
     assert_eq!(tmpl.witness[0], Term::One);
 
     // Num term should not be added to witness
-    tmpl.add_term(&Term::Num(f.elem(&9u8)));
+    tmpl.add_witness_term(&Term::Num(f.elem(&9u8)));
     assert_eq!(tmpl.indices.len(), 1);
     assert_eq!(tmpl.witness.len(), 1);
 
     // One term should not be added twice
-    tmpl.add_term(&Term::One);
+    tmpl.add_witness_term(&Term::One);
     assert_eq!(tmpl.indices.len(), 1);
     assert_eq!(tmpl.witness.len(), 1);
 
     // Var term should be added
     let x = Term::Var("x".to_string());
-    tmpl.add_term(&x);
+    tmpl.add_witness_term(&x);
     assert_eq!(tmpl.witness.len(), 2);
     assert_eq!(tmpl.indices.get(&x).unwrap(), &1);
     assert_eq!(tmpl.witness[1], x);
 
     // same Var term should not be added twice
-    tmpl.add_term(&x);
+    tmpl.add_witness_term(&x);
     assert_eq!(tmpl.indices.len(), 2);
     assert_eq!(tmpl.witness.len(), 2);
 
     // TmpVar term should be added
     let x = Term::TmpVar(1);
-    tmpl.add_term(&x);
+    tmpl.add_witness_term(&x);
     assert_eq!(tmpl.indices.len(), 3);
     assert_eq!(tmpl.indices.get(&x).unwrap(), &2);
     assert_eq!(tmpl.witness.len(), 3);
     assert_eq!(tmpl.witness[2], x);
 
     // same TmpVar term should not be added twice
-    tmpl.add_term(&x);
+    tmpl.add_witness_term(&x);
     assert_eq!(tmpl.indices.len(), 3);
     assert_eq!(tmpl.witness.len(), 3);
 
     // Out term should be added
     let x = Term::Out;
-    tmpl.add_term(&x);
+    tmpl.add_witness_term(&x);
     assert_eq!(tmpl.indices.len(), 4);
     assert_eq!(tmpl.indices.get(&x).unwrap(), &3);
     assert_eq!(tmpl.witness.len(), 4);
     assert_eq!(tmpl.witness[3], x);
 
     // Out term should not be added twice
-    tmpl.add_term(&x);
+    tmpl.add_witness_term(&x);
     assert_eq!(tmpl.indices.len(), 4);
     assert_eq!(tmpl.witness.len(), 4);
 
@@ -211,7 +211,7 @@ mod tests {
     let y = Term::Var("y".to_string());
     let z = Term::Var("z".to_string());
     let sum = Term::Sum(Box::new(y.clone()), Box::new(z.clone()));
-    tmpl.add_term(&sum);
+    tmpl.add_witness_term(&sum);
     assert_eq!(tmpl.indices.len(), 6);
     assert_eq!(tmpl.indices.get(&y).unwrap(), &4);
     assert_eq!(tmpl.indices.get(&z).unwrap(), &5);
