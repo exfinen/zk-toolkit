@@ -1,19 +1,21 @@
 use std::collections::HashMap;
 use crate::building_block::field::{Field, FieldElem};
 use num_traits::Zero;
+use core::ops::Index;
 
-type Index = usize;
+type SvIndex = usize;
 
 #[derive(Clone)]
 pub struct SparseVec {
   f: Field,
+  zero: FieldElem,
   pub size: usize,
-  elems: HashMap<Index, FieldElem>,
+  elems: HashMap<SvIndex, FieldElem>,
 }
 
 impl std::fmt::Debug for SparseVec {
   fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
-    let mut keys: Vec<Index> = self.elems.keys().cloned().collect();
+    let mut keys: Vec<SvIndex> = self.elems.keys().cloned().collect();
     keys.sort();
     let xs: Vec<String> = keys.iter().map(|k| { format!("{}->{:?}", k, self.elems.get(k).unwrap().n) }).collect();
     write!(fmt, "[{}]", xs.join(","))
@@ -27,26 +29,27 @@ impl SparseVec {
     }
     SparseVec {
       f: f.clone(),
+      zero: f.elem(&0u8),
       size,
-      elems: HashMap::<Index, FieldElem>::new(),
+      elems: HashMap::<SvIndex, FieldElem>::new(),
     }
   }
 
-  pub fn set(&mut self, index: &Index, n: FieldElem) {
+  pub fn set(&mut self, index: &SvIndex, n: FieldElem) {
     if index >= &self.size {
       panic!("Index {} is out of range. The size of vector is {}", index, self.size);
     }
     self.elems.insert(*index, n);
   }
 
-  pub fn get(&self, index: &Index) -> FieldElem {
+  pub fn get(&self, index: &SvIndex) -> &FieldElem {
     if index >= &self.size {
       panic!("Index {} is out of range. The size of vector is {}", index, self.size);
     }
     if self.elems.contains_key(index) {
-      self.elems.get(index).unwrap().clone()
+      self.elems.get(index).unwrap()
     } else {
-      self.f.elem(&0u8)
+      &self.zero
     }
   }
 
@@ -81,6 +84,14 @@ impl PartialEq for SparseVec {
       if this_elem != other_elem { return false; }
     }
     true
+  }
+}
+
+impl Index<&usize> for SparseVec {
+  type Output = FieldElem;
+
+  fn index(&self, index: &usize) -> &Self::Output {
+    &self.get(index)
   }
 }
 
@@ -194,7 +205,7 @@ mod tests {
     vec.set(&1, f.elem(&2u8));
     vec.set(&2, f.elem(&4u8));
 
-    let indices = vec.indices();
+    let indices = vec.indices_with_value();
 
     assert_eq!(indices.len(), 2);
     assert!(indices.contains(&1));

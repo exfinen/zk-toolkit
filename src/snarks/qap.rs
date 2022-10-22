@@ -78,13 +78,13 @@ impl QAP {
     */
     for row in 0..r1cs.witness.size {
       let a_target_vals = r1cs.constraints.iter().map(|constraint| {
-        (&constraint.a * &r1cs.witness).get(&row)
+        (&constraint.a * &r1cs.witness)[&row].clone()
       }).collect();
       let b_target_vals = r1cs.constraints.iter().map(|constraint| {
-        (&constraint.b * &r1cs.witness).get(&row)
+        (&constraint.b * &r1cs.witness)[&row].clone()
       }).collect();
       let c_target_vals = r1cs.constraints.iter().map(|constraint| {
-        (&constraint.c * &r1cs.witness).get(&row)
+        (&constraint.c * &r1cs.witness)[&row].clone()
       }).collect();
 
       a_polys.push(QAP::build_polynomial_for_target_values(f, a_target_vals));
