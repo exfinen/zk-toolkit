@@ -7,6 +7,12 @@ pub struct Constraint {
   pub c: SparseVec,
 }
 
+impl Constraint {
+  pub fn new(a: SparseVec, b: SparseVec, c: SparseVec) -> Self {
+    Constraint { a, b, c }
+  }
+}
+
 impl std::fmt::Debug for Constraint {
   fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
     write!(f, "{:?} * {:?} = {:?}", self.a, self.b, self.c)

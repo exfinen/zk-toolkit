@@ -76,7 +76,8 @@ impl QAP {
     r1cs selector * |0 2| <- here polynomail that retuns
     witness        x=1 x=2   0 at x=1 and 2 at x=2
     */
-    println!("# of witnesses={}",
+    println!("# of witnesses={}", r1cs.witness.size);
+
     for row in 0..r1cs.witness.size {
       println!("row={}", row);
       println!("# of constraints={}", r1cs.constraints.len());
@@ -106,51 +107,85 @@ impl QAP {
 mod tests {
   use super::*;
   use crate::snarks::{
-    r1cs_tmpl::R1CSTmpl,
-    term::Term,
+    sparse_vec::SparseVec,
+    constraint::Constraint,
   };
-  use std::collections::HashMap;
-
-  /*
-  Witness
-      x  out t1 y   t2
-  [1, 3, 35, 9, 27, 30]
-
-  A
-  [0, 1, 0, 0, 0, 0]
-  [0, 0, 0, 1, 0, 0]
-  [0, 1, 0, 0, 1, 0]
-  [5, 0, 0, 0, 0, 1]
-  B
-  [0, 1, 0, 0, 0, 0]
-  [0, 1, 0, 0, 0, 0]
-  [1, 0, 0, 0, 0, 0]
-  [1, 0, 0, 0, 0, 0]
-  C
-  [0, 0, 0, 1, 0, 0]
-  [0, 0, 0, 0, 1, 0]
-  [0, 0, 0, 0, 0, 1]
-  [0, 0, 1, 0, 0, 0]
-  */
 
   #[test]
   fn test1() {
     let f = &Field::new(&3911u16);
 
-    let term_values = HashMap::<Term, FieldElem>::from([
-      (Term::Var("x".to_string()), f.elem(&3u8)),
-      (Term::Out, f.elem(&35u8)),
-      (Term::TmpVar(1), f.elem(&9u8)),
-      (Term::Var("y".to_string()), f.elem(&27u8)),
-      (Term::TmpVar(2), f.elem(&30u8)),
+    //     x  out t1 y   t2
+    // [1, 3, 35, 9, 27, 30]
+    let witness = SparseVec::of_vec(f, vec![
+      f.elem(&3u8),
+      f.elem(&35u8),
+      f.elem(&9u8),
+      f.elem(&27u8),
+      f.elem(&30u8),
     ]);
 
-    let mut tmpl = R1CSTmpl::new(f);
-    for term in term_values.keys() {
-      tmpl.add_term(term);
-    }
+    // A
+    // [0, 1, 0, 0, 0, 0]
+    // [0, 0, 0, 1, 0, 0]
+    // [0, 1, 0, 0, 1, 0]
+    // [5, 0, 0, 0, 0, 1]
+    let mut a1 = SparseVec::new(f, witness.size);
+    a1.set(&1, f.elem(&1u8));
 
-    let r1cs = R1CS::new(f, &tmpl, &term_values).unwrap();
+    let mut a2 = SparseVec::new(f, witness.size);
+    a2.set(&3, f.elem(&1u8));
+
+    let mut a3 = SparseVec::new(f, witness.size);
+    a3.set(&1, f.elem(&1u8));
+    a3.set(&4, f.elem(&1u8));
+
+    let mut a4 = SparseVec::new(f, witness.size);
+    a4.set(&0, f.elem(&5u8));
+    a4.set(&5, f.elem(&1u8));
+
+    // B
+    // [0, 1, 0, 0, 0, 0]
+    // [0, 1, 0, 0, 0, 0]
+    // [1, 0, 0, 0, 0, 0]
+    // [1, 0, 0, 0, 0, 0]
+    let mut b1 = SparseVec::new(f, witness.size);
+    b1.set(&1, f.elem(&1u8));
+
+    let mut b2 = SparseVec::new(f, witness.size);
+    b2.set(&1, f.elem(&1u8));
+
+    let mut b3 = SparseVec::new(f, witness.size);
+    b3.set(&0, f.elem(&1u8));
+
+    let mut b4 = SparseVec::new(f, witness.size);
+    b4.set(&0, f.elem(&1u8));
+
+    // C
+    // [0, 0, 0, 1, 0, 0]
+    // [0, 0, 0, 0, 1, 0]
+    // [0, 0, 0, 0, 0, 1]
+    // [0, 0, 1, 0, 0, 0]
+    let mut c1 = SparseVec::new(f, witness.size);
+    c1.set(&3, f.elem(&1u8));
+
+    let mut c2 = SparseVec::new(f, witness.size);
+    c2.set(&4, f.elem(&1u8));
+
+    let mut c3 = SparseVec::new(f, witness.size);
+    c3.set(&5, f.elem(&1u8));
+
+    let mut c4 = SparseVec::new(f, witness.size);
+    c4.set(&2, f.elem(&1u8));
+
+    let constraints = vec![
+      Constraint::new(a1, b1, c1),
+      Constraint::new(a2, b2, c2),
+      Constraint::new(a3, b3, c3),
+      Constraint::new(a4, b4, c4),
+    ];
+    let r1cs = R1CS { constraints, witness };
+
     let _qap = QAP::build(f, r1cs);
   }
 }

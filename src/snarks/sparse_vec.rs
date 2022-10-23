@@ -35,6 +35,23 @@ impl SparseVec {
     }
   }
 
+  pub fn of_vec(f: &Field, vec: Vec<FieldElem>) -> Self {
+    let size = vec.len();
+    if size == 0 {
+      panic!("Size must be greater than 0");
+    }
+    let mut elems = HashMap::<SvIndex, FieldElem>::new();
+    for (i, x) in vec.into_iter().enumerate() {
+      elems.insert(i, x);
+    }
+    SparseVec {
+      f: f.clone(),
+      zero: f.elem(&0u8),
+      size,
+      elems,
+    }
+  }
+
   pub fn set(&mut self, index: &SvIndex, n: FieldElem) {
     if index >= &self.size {
       panic!("Index {} is out of range. The size of vector is {}", index, self.size);
@@ -123,10 +140,30 @@ mod tests {
 
   #[test]
   #[should_panic]
-  fn test_empty_vec() {
+  fn test_new_empty_vec() {
     std::panic::set_hook(Box::new(|_| {}));  // suppress stack trace
     let f = &Field::new(&3911u16);
     SparseVec::new(f, 0);
+  }
+
+  #[test]
+  #[should_panic]
+  fn test_of_vec_empty_vec() {
+    std::panic::set_hook(Box::new(|_| {}));  // suppress stack trace
+    let f = &Field::new(&3911u16);
+    SparseVec::of_vec(f, vec![]);
+  }
+
+  #[test]
+  fn test_of_vec() {
+    let f = &Field::new(&3911u16);
+    let two = f.elem(&2u8);
+    let three = f.elem(&3u8);
+    let vec = vec![two.clone(), three.clone()];
+    let sv = SparseVec::of_vec(f, vec);
+    assert_eq!(sv.size, 2);
+    assert_eq!(sv[&0], two);
+    assert_eq!(sv[&1], three);
   }
 
   #[test]

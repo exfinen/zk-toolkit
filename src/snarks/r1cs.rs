@@ -13,7 +13,7 @@ pub struct R1CS {
 }
 
 impl R1CS {
-  fn build_witness(
+  fn build_witness_vec(
     f: &Field,
     tmpl: &R1CSTmpl,
     term_values: &HashMap<Term, FieldElem>,
@@ -62,8 +62,8 @@ impl R1CS {
     Ok(())
   }
 
-  pub fn new(f: &Field, tmpl: &R1CSTmpl, term_values: &HashMap<Term, FieldElem>) -> Result<R1CS, String> {
-    let witness = R1CS::build_witness(&f, tmpl, term_values)?;
+  pub fn from_tmpl(f: &Field, tmpl: &R1CSTmpl, witness: &HashMap<Term, FieldElem>) -> Result<R1CS, String> {
+    let witness = R1CS::build_witness_vec(&f, tmpl, witness)?;
     let r1cs = R1CS {
       constraints: tmpl.constraints.clone(),
       witness,
@@ -91,14 +91,14 @@ mod tests {
     let gates = &Gate::build(f, &eq);
     let tmpl = &R1CSTmpl::from_gates(f, gates);
 
-    let term_values = HashMap::<Term, FieldElem>::from([
+    let witness = HashMap::<Term, FieldElem>::from([
       (Term::Var("x".to_string()), f.elem(&3u8)),
       (Term::Var("y".to_string()), f.elem(&2u8)),
       (Term::TmpVar(1), f.elem(&8u8)),
       (Term::TmpVar(2), f.elem(&11u8)),
       (Term::Out, eq.rhs),
     ]);
-    let r1cs = R1CS::new(f, tmpl, &term_values).unwrap();
+    let r1cs = R1CS::from_tmpl(f, tmpl, &witness).unwrap();
     r1cs.validate().unwrap();
   }
 }
