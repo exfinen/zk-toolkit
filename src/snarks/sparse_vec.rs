@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use crate::building_block::field::{Field, FieldElem};
 use num_traits::Zero;
-use core::ops::Index;
+use core::ops::{Index, IndexMut};
 
 type SvIndex = usize;
 
@@ -90,6 +90,18 @@ impl SparseVec {
     }
     sum
   }
+
+  pub fn pretty_print(&self) -> String {
+    let mut s = "[".to_string();
+    for i in 0..self.size {
+      s += &format!("{:?}", self.get(&i).n);
+      if i < self.size - 1 {
+        s += ",";
+      }
+    }
+    s += "]";
+    s
+  }
 }
 
 impl PartialEq for SparseVec {
@@ -109,6 +121,15 @@ impl Index<&usize> for SparseVec {
 
   fn index(&self, index: &usize) -> &Self::Output {
     &self.get(index)
+  }
+}
+
+impl IndexMut<&usize> for SparseVec {
+  fn index_mut(&mut self, index: &usize) -> &mut Self::Output {
+    if !self.elems.contains_key(index) {
+      self.elems.insert(*index, self.f.elem(&0u8));
+    }
+    self.elems.get_mut(index).unwrap()
   }
 }
 
@@ -192,6 +213,27 @@ mod tests {
 
     // setting the same index should overwrite
     vec.set(&2, f.elem(&3u8));
+    assert_eq!(vec.elems.len(), 1);
+    assert_eq!(vec.elems.get(&2).unwrap(), &f.elem(&3u8));
+  }
+
+  #[test]
+  fn test_assign() {
+    let f = &Field::new(&3911u16);
+    let mut vec = SparseVec::new(f, 3);
+    assert_eq!(vec.elems.len(), 0);
+
+    let f = &Field::new(&3911u16);
+    vec[&2usize] = f.elem(&2u8);
+    assert_eq!(vec.elems.len(), 1);
+    assert_eq!(vec.elems.get(&2).unwrap(), &f.elem(&2u8));
+
+    let indices = vec.indices_with_value();
+    assert_eq!(indices.len(), 1);
+    assert_eq!(indices[0], 2);
+
+    // setting the same index should overwrite
+    vec[&2usize] = f.elem(&3u8);
     assert_eq!(vec.elems.len(), 1);
     assert_eq!(vec.elems.get(&2).unwrap(), &f.elem(&3u8));
   }

@@ -21,18 +21,21 @@ impl QAP {
   ) -> Polynomial {
     let mut target_val_polys = vec![];
     let num_target_vals = target_vals.len();
-    for (target_idx, target_val) in target_vals.iter().enumerate() {
+
+    for (target_x, target_val) in target_vals.iter().enumerate() {
+      let target_x = target_x + 1;  // make target_x one-based
 
       let mut numerator_polys = vec![
         Polynomial::new(f, vec![target_val.clone()]),
       ];
       let mut denominator = f.elem(&1u8);
 
-      for i in 0..num_target_vals {
-        if i == target_idx {
+      for i in 1..=num_target_vals {
+        if i == target_x {
           continue;
         }
-        // (x - i) to m`ake the polynomal zero at x = i
+
+        // (x - i) to make the polynomal zero at x = i
         let numerator_poly = Polynomial::new(f, vec![
           f.elem(&i),
           f.elem(&1u8),
@@ -41,8 +44,9 @@ impl QAP {
 
         // (target_idx - i) to cancel out the corresponding
         // numerator_poly at x = target_idx
-        denominator = denominator * (target_val - f.elem(&i));
+        denominator = denominator * (f.elem(&target_x) - f.elem(&i));
       }
+
       // merge numerator and denominator
       let denominator_poly = Polynomial::new(f, vec![denominator.inv()]);
       let mut polys = numerator_polys;
@@ -69,30 +73,42 @@ impl QAP {
     let mut c_polys = vec![];
 
     /*
-                    a1 a2
-    a1 [0 3 0 0] -> |0 0|
-    a2 [0 0 0 2]    |3 0| <- need polynomial that returns
-    +------^        |0 0|    3 at x=1 and 0 at x=2
-    r1cs selector * |0 2| <- here polynomail that retuns
-    witness        x=1 x=2   0 at x=1 and 2 at x=2
+                 4 Polynomials
+                     a1 a2
+    a1 [0 3 0 0] ->  |0 0|
+    a2 [0 0 0 2]     |3 0| <- need polynomial that returns
+    +------^         |0 0|    3 at x=1 and 0 at x=2
+    r1cs selector *  |0 2| <- here polynomial that retuns
+    witness         x=1 x=2   0 at x=1 and 2 at x=2
     */
     println!("# of witnesses={}", r1cs.witness.size);
 
-    for row in 0..r1cs.witness.size {
-      println!("row={}", row);
+    for witness_idx in 0..r1cs.witness.size {
+      println!("witness_idx={}", witness_idx);
       println!("# of constraints={}", r1cs.constraints.len());
+      for i in 0..r1cs.constraints.len() {
+        println!("a[{}] * w ={}", i, (&r1cs.constraints[i].a * &r1cs.witness).pretty_print());
+      }
+      for i in 0..r1cs.constraints.len() {
+        println!("b[{}] * w ={}", i, (&r1cs.constraints[i].b * &r1cs.witness).pretty_print());
+      }
+      for i in 0..r1cs.constraints.len() {
+        println!("c[{}] * w ={}", i, (&r1cs.constraints[i].c * &r1cs.witness).pretty_print());
+      }
+
       let a_target_vals = r1cs.constraints.iter().map(|constraint| {
-        (&constraint.a * &r1cs.witness)[&row].clone()
+        (&constraint.a * &r1cs.witness)[&witness_idx].clone()
       }).collect::<Vec<FieldElem>>();
       let b_target_vals = r1cs.constraints.iter().map(|constraint| {
-        (&constraint.b * &r1cs.witness)[&row].clone()
+        (&constraint.b * &r1cs.witness)[&witness_idx].clone()
       }).collect::<Vec<FieldElem>>();
       let c_target_vals = r1cs.constraints.iter().map(|constraint| {
-        (&constraint.c * &r1cs.witness)[&row].clone()
+        (&constraint.c * &r1cs.witness)[&witness_idx].clone()
       }).collect::<Vec<FieldElem>>();
-      println!("a_target_vals={:?}", a_target_vals.len());
-      println!("b_target_vals={:?}", b_target_vals.len());
-      println!("c_target_vals={:?}", c_target_vals.len());
+      use num_bigint::BigUint;
+      println!("a_target_vals={:?}", a_target_vals.iter().map(|x| x.n.clone()).collect::<Vec<BigUint>>());
+      println!("b_target_vals={:?}", b_target_vals.iter().map(|x| x.n.clone()).collect::<Vec<BigUint>>());
+      println!("c_target_vals={:?}", c_target_vals.iter().map(|x| x.n.clone()).collect::<Vec<BigUint>>());
 
       a_polys.push(QAP::build_polynomial_for_target_values(f, a_target_vals));
       b_polys.push(QAP::build_polynomial_for_target_values(f, b_target_vals));
@@ -118,6 +134,7 @@ mod tests {
     //     x  out t1 y   t2
     // [1, 3, 35, 9, 27, 30]
     let witness = SparseVec::of_vec(f, vec![
+      f.elem(&1u8),
       f.elem(&3u8),
       f.elem(&35u8),
       f.elem(&9u8),
@@ -126,6 +143,7 @@ mod tests {
     ]);
 
     // A
+    //  0  1  2  3  4  5
     // [0, 1, 0, 0, 0, 0]
     // [0, 0, 0, 1, 0, 0]
     // [0, 1, 0, 0, 1, 0]
@@ -145,6 +163,7 @@ mod tests {
     a4.set(&5, f.elem(&1u8));
 
     // B
+    //  0  1  2  3  4  5
     // [0, 1, 0, 0, 0, 0]
     // [0, 1, 0, 0, 0, 0]
     // [1, 0, 0, 0, 0, 0]
@@ -162,6 +181,7 @@ mod tests {
     b4.set(&0, f.elem(&1u8));
 
     // C
+    //  0  1  2  3  4  5
     // [0, 0, 0, 1, 0, 0]
     // [0, 0, 0, 0, 1, 0]
     // [0, 0, 0, 0, 0, 1]
