@@ -37,9 +37,10 @@ impl QAP {
 
         // (x - i) to make the polynomal zero at x = i
         let numerator_poly = Polynomial::new(f, vec![
-          f.elem(&i),
+          -f.elem(&i),
           f.elem(&1u8),
         ]);
+        println!("numerator_poly: {:?}", numerator_poly);
         numerator_polys.push(numerator_poly);
 
         // (target_idx - i) to cancel out the corresponding
@@ -133,6 +134,7 @@ mod tests {
     let f = &Field::new(&3911u16);
 
     //     x  out t1 y   t2
+    //  0  1   2  3   4   5
     // [1, 3, 35, 9, 27, 30]
     let witness = SparseVec::of_vec(f, vec![
       f.elem(&1u8),
@@ -207,6 +209,27 @@ mod tests {
     ];
     let r1cs = R1CS { constraints, witness };
 
-    let _qap = QAP::build(f, r1cs);
+    let qap = QAP::build(f, r1cs);
+    let a_poly = &qap.a_polys[3];
+    let v = a_poly.eval_at(&2u8);
+    println!("a_poly={:?}", v.n);
+
+    for (poly_idx, poly) in qap.a_polys.iter().enumerate() {
+      for i in 1u8..=4 {
+        println!("a[{}] at x={}: {:?} = {:?}", poly_idx, i, poly, poly.eval_at(&i).n);
+      }
+    }
+    println!("");
+    for (poly_idx, poly) in qap.b_polys.iter().enumerate() {
+      for i in 1u8..=4 {
+        println!("b[{}] at x={}: {:?} = {:?}", poly_idx, i, poly, poly.eval_at(&i).n);
+      }
+    }
+    println!("");
+    for (poly_idx, poly) in qap.c_polys.iter().enumerate() {
+      for i in 1u8..=4 {
+        println!("c[{}] at x={}: {:?} = {:?}", poly_idx, i, poly, poly.eval_at(&i).n);
+      }
+    }
   }
 }

@@ -1,4 +1,7 @@
-use crate::building_block::field::{Field, FieldElem};
+use crate::building_block::{
+  field::{Field, FieldElem},
+  to_biguint::ToBigUint,
+};
 use num_bigint::BigUint;
 use num_traits::One;
 use std::{
@@ -193,9 +196,10 @@ impl Polynomial {
     }
   }
 
-  pub fn eval_at(&self, x: &FieldElem) -> FieldElem {
+  pub fn eval_at(&self, x: &impl ToBigUint) -> FieldElem {
     let mut multiplier = self.f.elem(&1u8);
     let mut sum = self.f.elem(&0u8);
+    let x = &self.f.elem(x);
 
     for coeff in &self.coeffs {
       sum = sum + coeff * &multiplier;
@@ -216,21 +220,21 @@ mod tests {
   fn test_eval_at() {
     let f = &Field::new(&3911u16);
     { // 8
-      let zero = &f.elem(&0u8);
+      let zero = &0u8;
       let eight = &f.elem(&8u8);
       let p = Polynomial::new(f, vec![
         eight.clone(),
       ]);
-      assert_eq!(&p.eval_at(&zero), eight);
+      assert_eq!(&p.eval_at(zero), eight);
     }
     { // 3x + 8
       let p = &Polynomial::new(f, vec![
         f.elem(&8u8),
         f.elem(&3u8),
       ]);
-      assert_eq!(p.eval_at(&f.elem(&0u8)), f.elem(&8u8));
-      assert_eq!(p.eval_at(&f.elem(&1u8)), f.elem(&11u8));
-      assert_eq!(p.eval_at(&f.elem(&2u8)), f.elem(&14u8));
+      assert_eq!(p.eval_at(&0u8), f.elem(&8u8));
+      assert_eq!(p.eval_at(&1u8), f.elem(&11u8));
+      assert_eq!(p.eval_at(&2u8), f.elem(&14u8));
     }
     { // 2x^2 + 3x + 8
       let p = &Polynomial::new(f, vec![
@@ -238,9 +242,9 @@ mod tests {
         f.elem(&3u8),
         f.elem(&2u8),
       ]);
-      assert_eq!(p.eval_at(&f.elem(&0u8)), f.elem(&8u8));
-      assert_eq!(p.eval_at(&f.elem(&1u8)), f.elem(&13u8));
-      assert_eq!(p.eval_at(&f.elem(&2u8)), f.elem(&22u8));
+      assert_eq!(p.eval_at(&0u8), f.elem(&8u8));
+      assert_eq!(p.eval_at(&1u8), f.elem(&13u8));
+      assert_eq!(p.eval_at(&2u8), f.elem(&22u8));
     }
   }
 
