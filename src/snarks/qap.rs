@@ -64,6 +64,7 @@ impl QAP {
     for x in &target_val_polys[1..] {
       res = res.add(x);
     }
+    println!("poly={:?}", &res);
     res
   }
 

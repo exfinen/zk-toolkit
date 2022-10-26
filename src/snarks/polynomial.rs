@@ -192,6 +192,17 @@ impl Polynomial {
       DivResult::QuotientRemainder((quotient, dividend))
     }
   }
+
+  pub fn eval_at(&self, x: &FieldElem) -> FieldElem {
+    let mut multiplier = self.f.elem(&1u8);
+    let mut sum = self.f.elem(&0u8);
+
+    for coeff in &self.coeffs {
+      sum = sum + coeff * &multiplier;
+      multiplier = &multiplier * x;
+    }
+    sum
+  }
 }
 
 #[cfg(test)]
@@ -200,6 +211,38 @@ mod tests {
   use crate::building_block::field::Field;
   use rand::Rng;
   use super::DivResult::{Quotient, QuotientRemainder};
+
+  #[test]
+  fn test_eval_at() {
+    let f = &Field::new(&3911u16);
+    { // 8
+      let zero = &f.elem(&0u8);
+      let eight = &f.elem(&8u8);
+      let p = Polynomial::new(f, vec![
+        eight.clone(),
+      ]);
+      assert_eq!(&p.eval_at(&zero), eight);
+    }
+    { // 3x + 8
+      let p = &Polynomial::new(f, vec![
+        f.elem(&8u8),
+        f.elem(&3u8),
+      ]);
+      assert_eq!(p.eval_at(&f.elem(&0u8)), f.elem(&8u8));
+      assert_eq!(p.eval_at(&f.elem(&1u8)), f.elem(&11u8));
+      assert_eq!(p.eval_at(&f.elem(&2u8)), f.elem(&14u8));
+    }
+    { // 2x^2 + 3x + 8
+      let p = &Polynomial::new(f, vec![
+        f.elem(&8u8),
+        f.elem(&3u8),
+        f.elem(&2u8),
+      ]);
+      assert_eq!(p.eval_at(&f.elem(&0u8)), f.elem(&8u8));
+      assert_eq!(p.eval_at(&f.elem(&1u8)), f.elem(&13u8));
+      assert_eq!(p.eval_at(&f.elem(&2u8)), f.elem(&22u8));
+    }
+  }
 
   #[test]
   fn test_div_3_2_no_remainder() {
