@@ -152,18 +152,18 @@ mod tests {
     // [0, 1, 0, 0, 1, 0]
     // [5, 0, 0, 0, 0, 1]
     let mut a1 = SparseVec::new(f, witness.size);
-    a1.set(&1, f.elem(&1u8));
+    a1[&1] = f.elem(&1u8);
 
     let mut a2 = SparseVec::new(f, witness.size);
-    a2.set(&3, f.elem(&1u8));
+    a2[&3] = f.elem(&1u8);
 
     let mut a3 = SparseVec::new(f, witness.size);
-    a3.set(&1, f.elem(&1u8));
-    a3.set(&4, f.elem(&1u8));
+    a3[&1] = f.elem(&1u8);
+    a3[&4] = f.elem(&1u8);
 
     let mut a4 = SparseVec::new(f, witness.size);
-    a4.set(&0, f.elem(&5u8));
-    a4.set(&5, f.elem(&1u8));
+    a4[&0] = f.elem(&5u8);
+    a4[&5] = f.elem(&1u8);
 
     // B
     //  0  1  2  3  4  5
@@ -172,16 +172,16 @@ mod tests {
     // [1, 0, 0, 0, 0, 0]
     // [1, 0, 0, 0, 0, 0]
     let mut b1 = SparseVec::new(f, witness.size);
-    b1.set(&1, f.elem(&1u8));
+    b1[&1] = f.elem(&1u8);
 
     let mut b2 = SparseVec::new(f, witness.size);
-    b2.set(&1, f.elem(&1u8));
+    b2[&1] = f.elem(&1u8);
 
     let mut b3 = SparseVec::new(f, witness.size);
-    b3.set(&0, f.elem(&1u8));
+    b3[&0] = f.elem(&1u8);
 
     let mut b4 = SparseVec::new(f, witness.size);
-    b4.set(&0, f.elem(&1u8));
+    b4[&0] = f.elem(&1u8);
 
     // C
     //  0  1  2  3  4  5
@@ -190,16 +190,16 @@ mod tests {
     // [0, 0, 0, 0, 0, 1]
     // [0, 0, 1, 0, 0, 0]
     let mut c1 = SparseVec::new(f, witness.size);
-    c1.set(&3, f.elem(&1u8));
+    c1[&3] = f.elem(&1u8);
 
     let mut c2 = SparseVec::new(f, witness.size);
-    c2.set(&4, f.elem(&1u8));
+    c2[&4] = f.elem(&1u8);
 
     let mut c3 = SparseVec::new(f, witness.size);
-    c3.set(&5, f.elem(&1u8));
+    c3[&5] = f.elem(&1u8);
 
     let mut c4 = SparseVec::new(f, witness.size);
-    c4.set(&2, f.elem(&1u8));
+    c4[&2] = f.elem(&1u8);
 
     let constraints = vec![
       Constraint::new(a1, b1, c1),
