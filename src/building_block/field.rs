@@ -160,6 +160,10 @@ impl FieldElem {
     }
   }
 
+  pub fn inc(&mut self) -> () {
+    self.n = self.plus(&1u8).n;
+  }
+
   pub fn plus(&self, rhs: &impl ToBigUint) -> FieldElem {
     let mut n = self.n.clone();
     n += &rhs.to_biguint();
@@ -395,7 +399,7 @@ impl Field {
       let mut rand = RandomNumber::new();
       rand.gen.fill_bytes(&mut buf);
       let x = FieldElem::new(&self, &BigUint::from_bytes_be(&buf));
-      if !exclude_zero || x.n != BigUint::zero() { 
+      if !exclude_zero || x.n != BigUint::zero() {
         return x;
       }
     }
@@ -582,6 +586,22 @@ mod tests {
     let f = Field::new(&11u32);
     let a = FieldElem::new(&f, &13u32);
     assert_eq!(a.n, BigUint::from(2u32));
+  }
+
+  #[test]
+  fn inc_below_order() {
+    let f = Field::new(&11u8);
+    let mut a = FieldElem::new(&f, &1u8);
+    a.inc();
+    assert_eq!(a, f.elem(&2u8));
+  }
+
+  #[test]
+  fn inc_above_order() {
+    let f = Field::new(&11u8);
+    let mut a = FieldElem::new(&f, &10u8);
+    a.inc();
+    assert_eq!(a, f.elem(&0u8));
   }
 
   #[test]

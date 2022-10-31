@@ -1,6 +1,7 @@
 use std::{
   collections::HashMap,
   convert::From,
+  ops::Mul,
 };
 use crate::building_block::field::{Field, FieldElem};
 use num_traits::Zero;
@@ -140,7 +141,7 @@ impl From<&Vec<FieldElem>> for SparseVec {
 }
 
 // returns Hadamard product
-impl std::ops::Mul<&SparseVec> for &SparseVec {
+impl Mul<&SparseVec> for &SparseVec {
     type Output = SparseVec;
 
     fn mul(self, rhs: &SparseVec) -> Self::Output {

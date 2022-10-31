@@ -1,9 +1,12 @@
+use num_traits::Zero;
+
 use crate::building_block::field::{Field, FieldElem};
 use crate::building_block::to_biguint::ToBigUint;
 use crate::snarks::sparse_vec::SparseVec;
 use std::{
   collections::HashMap,
   convert::From,
+  ops::Mul,
 };
 
 pub struct SparseMatrix {
@@ -56,6 +59,37 @@ impl SparseMatrix {
       self.rows.get(&y).unwrap().get(&x)
     }
   }
+
+  pub fn get_row(&self, y: &FieldElem) -> SparseVec {
+    assert!(y < &self.height);
+    let mut row = SparseVec::new(&self.f, &self.width);
+
+    if !self.rows.contains_key(y) {
+      return row;
+    }
+    let src_row = self.rows.get(y).unwrap();
+    for x in src_row.indices() {
+      let v = src_row.get(&x);
+      if !v.n.is_zero() {
+        row.set(&x, v);
+      }
+    }
+    row
+  }
+
+  pub fn get_column(&self, x: &FieldElem) -> SparseVec {
+    assert!(x < &self.width);
+    let mut col = SparseVec::new(&self.f, &self.height);
+
+    for y in self.rows.keys() {
+      let src_row = self.rows.get(&y).unwrap();
+      let v = src_row.get(x);
+      if !v.n.is_zero() {
+        col.set(y, v);
+      }
+    }
+    col
+  }
 }
 
 // coverts rows of vectors to a matrix
@@ -75,6 +109,35 @@ impl From<&Vec<SparseVec>> for SparseMatrix {
     }
     m
   }
+}
+
+impl Mul<&SparseMatrix> for &SparseMatrix {
+    type Output = SparseMatrix;
+
+    fn mul(self, rhs: &SparseMatrix) -> Self::Output {
+      if self.width != rhs.height {
+        panic!("Can only multiply matrix with height {:?}, but the height is {:?}",
+          self.width.n, rhs.height.n);
+      }
+      let mut res = SparseMatrix::new(&self.f, &rhs.height, &self.height);
+
+      let mut y = self.f.elem(&0u8);
+      while y < self.height {
+        let mut x = self.f.elem(&0u8);
+        while x < self.height {
+          let lhs = &self.get_row(&y);
+          let rhs = &rhs.get_column(&x);
+          let v = (lhs * rhs).sum();
+          if !v.n.is_zero() {
+            res.set(&x, &y, &v);
+          }
+          x.inc();
+        }
+        y.inc();
+      }
+
+      res
+    }
 }
 
 #[cfg(test)]
@@ -143,6 +206,19 @@ mod tests {
   }
 
   #[test]
+  fn test_mul() {
+    let f = &Field::new(&3911u16);
+    let zero = &f.elem(&0u8);
+
+    let m = SparseMatrix::new(f, &2u8, &3u8);
+    for x in 0u8..2 {
+      for y in 0u8..3 {
+        assert_eq!(m.get(&x, &y), zero);
+      }
+    }
+  }
+
+  #[test]
   fn test_get_existing_and_non_existing_cells() {
     let f = &Field::new(&3911u16);
     let zero = &f.elem(&0u8);
@@ -191,5 +267,35 @@ mod tests {
     assert_eq!(m.get(zero, zero), one);
     assert_eq!(m.get(one, one), two);
     assert_eq!(m.get(zero, two), three);
+  }
+
+  #[test]
+  fn test_get_row_x_out_of_range() {
+    let f = &Field::new(&3911u16);
+  }
+
+  #[test]
+  fn test_get_row_x_within_range() {
+    let f = &Field::new(&3911u16);
+  }
+
+  #[test]
+  fn test_get_column_out_of_range() {
+    let f = &Field::new(&3911u16);
+  }
+
+  #[test]
+  fn test_get_column_within_range() {
+    let f = &Field::new(&3911u16);
+  }
+
+  #[test]
+  fn test_mul_incompatible_matrices() {
+    let f = &Field::new(&3911u16);
+  }
+
+  #[test]
+  fn test_mul_compatible_matrices() {
+    let f = &Field::new(&3911u16);
   }
 }
