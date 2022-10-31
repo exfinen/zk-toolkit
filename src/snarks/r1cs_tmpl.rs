@@ -49,11 +49,11 @@ impl<'a> R1CSTmpl<'a> {
         self.build_constraint_vec(f, vec, &b);
       },
       Term::Num(n) => {
-        vec.set(&0u8, n.clone());  // Num is represented as Term::One times n
+        vec.set(&0u8, n);  // Num is represented as Term::One times n
       },
       x => {
         let index = self.indices.get(&x).unwrap();
-        vec.set(index, f.elem(&1u8));
+        vec.set(index, &1u8);
       },
     }
   }
@@ -106,7 +106,7 @@ mod tests {
       let mut sv = SparseVec::new(f, &2u8);
       tmpl.add_witness_term(&term);
       tmpl.build_constraint_vec(f, &mut sv, &term);
-      let indices = sv.indices_with_value().to_vec();
+      let indices = sv.indices().to_vec();
 
       // should be stored at index 1 in witness vector
       assert_eq!(indices[0], f.elem(&1u8));
@@ -120,7 +120,7 @@ mod tests {
       let n = &f.elem(&4u8);
       let term = Term::Num(n.clone());
       tmpl.build_constraint_vec(f, &mut sv, &term);
-      let indices = sv.indices_with_value().to_vec();
+      let indices = sv.indices().to_vec();
 
       // term should map to index 0 of witness that stores One term
       assert_eq!(indices[0], f.elem(&0u8));
@@ -135,7 +135,7 @@ mod tests {
       let term = Term::Sum(Box::new(y.clone()), Box::new(z.clone()));
       tmpl.add_witness_term(&term);
       tmpl.build_constraint_vec(f, &mut sv, &term);
-      let mut indices = sv.indices_with_value().to_vec();
+      let mut indices = sv.indices().to_vec();
       indices.sort();
 
       // y and z should be stored at index 1 and 2 of witness vector respectively
@@ -258,7 +258,7 @@ mod tests {
   }
 
   fn term_to_str(tmpl: &R1CSTmpl, vec: &SparseVec) -> String {
-    let mut indices = vec.indices_with_value().to_vec();
+    let mut indices = vec.indices().to_vec();
     indices.sort();  // sort to make indices order deterministic
     let s = indices.iter().map(|i| {
       let i_usize: usize = i.n.clone().try_into().unwrap();

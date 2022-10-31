@@ -137,7 +137,7 @@ mod tests {
     //     x  out t1 y   t2
     //  0  1   2  3   4   5
     // [1, 3, 35, 9, 27, 30]
-    let witness = SparseVec::of_vec(f, vec![
+    let witness = SparseVec::from(&vec![
       f.elem(&1u8),
       f.elem(&3u8),
       f.elem(&35u8),
@@ -154,18 +154,18 @@ mod tests {
     // [0, 1, 0, 0, 1, 0]
     // [5, 0, 0, 0, 0, 1]
     let mut a1 = SparseVec::new(f, witness_size);
-    a1.set(&1u8, f.elem(&1u8));
+    a1.set(&1u8, &1u8);
 
     let mut a2 = SparseVec::new(f, witness_size);
-    a2.set(&3u8, f.elem(&1u8));
+    a2.set(&3u8, &1u8);
 
     let mut a3 = SparseVec::new(f, witness_size);
-    a3.set(&1u8, f.elem(&1u8));
-    a3.set(&4u8, f.elem(&1u8));
+    a3.set(&1u8, &1u8);
+    a3.set(&4u8, &1u8);
 
     let mut a4 = SparseVec::new(f, witness_size);
-    a4.set(&0u8, f.elem(&5u8));
-    a4.set(&5u8, f.elem(&1u8));
+    a4.set(&0u8, &5u8);
+    a4.set(&5u8, &1u8);
 
     // B
     //  0  1  2  3  4  5
@@ -174,16 +174,16 @@ mod tests {
     // [1, 0, 0, 0, 0, 0]
     // [1, 0, 0, 0, 0, 0]
     let mut b1 = SparseVec::new(f, witness_size);
-    b1.set(&1u8, f.elem(&1u8));
+    b1.set(&1u8, &1u8);
 
     let mut b2 = SparseVec::new(f, witness_size);
-    b2.set(&1u8, f.elem(&1u8));
+    b2.set(&1u8, &1u8);
 
     let mut b3 = SparseVec::new(f, witness_size);
-    b3.set(&0u8, f.elem(&1u8));
+    b3.set(&0u8, &1u8);
 
     let mut b4 = SparseVec::new(f, witness_size);
-    b4.set(&0u8, f.elem(&1u8));
+    b4.set(&0u8, &1u8);
 
     // C
     //  0  1  2  3  4  5
@@ -192,16 +192,16 @@ mod tests {
     // [0, 0, 0, 0, 0, 1]
     // [0, 0, 1, 0, 0, 0]
     let mut c1 = SparseVec::new(f, witness_size);
-    c1.set(&3u8, f.elem(&1u8));
+    c1.set(&3u8, &1u8);
 
     let mut c2 = SparseVec::new(f, witness_size);
-    c2.set(&4u8, f.elem(&1u8));
+    c2.set(&4u8, &1u8);
 
     let mut c3 = SparseVec::new(f, witness_size);
-    c3.set(&5u8, f.elem(&1u8));
+    c3.set(&5u8, &1u8);
 
     let mut c4 = SparseVec::new(f, witness_size);
-    c4.set(&2u8, f.elem(&1u8));
+    c4.set(&2u8, &1u8);
 
     let constraints = vec![
       Constraint::new(a1, b1, c1),

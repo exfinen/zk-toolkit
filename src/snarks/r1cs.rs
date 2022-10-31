@@ -24,7 +24,7 @@ impl R1CS {
     let add = |i: &usize, term: &Term, witness: &mut SparseVec| -> Result<(), String> {
       match term_values.get(term) {
         Some(v) => {
-          witness.set(i, v.clone());
+          witness.set(i, v);
           Ok(())
         },
         None => Err(format!("Witness for '{:?}' is missing", term)),
@@ -34,11 +34,11 @@ impl R1CS {
     for (i, term) in tmpl.witness.iter().enumerate() {
       match term {
         Term::One => {
-          witness.set(&i, f.elem(&1u8));
+          witness.set(&i, &1u8);
         },
         Term::Sum(_a, _b) => { assert!(false, "Sum shouldn't have been included"); }
         Term::Num(n) => {
-          witness.set(&i, n.clone());
+          witness.set(&i, n);
         },
         Term::Var(_) => if let Err(err) = add(&i, term, &mut witness) { return Err(err) },
         Term::TmpVar(_) => if let Err(err) = add(&i, term, &mut witness) { return Err(err) },
