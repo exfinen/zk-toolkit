@@ -49,7 +49,7 @@ impl<'a> R1CSTmpl<'a> {
         self.build_constraint_vec(f, vec, &b);
       },
       Term::Num(n) => {
-        vec.set(&0, n.clone());  // Num is represented as Term::One times n
+        vec.set(&0u8, n.clone());  // Num is represented as Term::One times n
       },
       x => {
         let index = self.indices.get(&x).unwrap();
@@ -68,7 +68,7 @@ impl<'a> R1CSTmpl<'a> {
       tmpl.add_witness_term(&gate.c);
     }
 
-    let vec_size = tmpl.witness.len();
+    let vec_size = &tmpl.witness.len();
 
     // create a, b anc c vectors for each gate
     for gate in gates {
@@ -103,33 +103,33 @@ mod tests {
     ];
     for term in terms {
       let mut tmpl = R1CSTmpl::new(f);
-      let mut sv = SparseVec::new(f, 2);
+      let mut sv = SparseVec::new(f, &2u8);
       tmpl.add_witness_term(&term);
       tmpl.build_constraint_vec(f, &mut sv, &term);
       let indices = sv.indices_with_value().to_vec();
 
       // should be stored at index 1 in witness vector
-      assert_eq!(indices[0], 1);
+      assert_eq!(indices[0], f.elem(&1u8));
       // and the multiplier should be 1
-      assert_eq!(sv.get(&1), &f.elem(&1u8));
+      assert_eq!(sv.get(&1u8), &f.elem(&1u8));
     }
     {
       // test Num term
       let mut tmpl = R1CSTmpl::new(f);
-      let mut sv = SparseVec::new(f, 1);
+      let mut sv = SparseVec::new(f, &1u8);
       let n = &f.elem(&4u8);
       let term = Term::Num(n.clone());
       tmpl.build_constraint_vec(f, &mut sv, &term);
       let indices = sv.indices_with_value().to_vec();
 
       // term should map to index 0 of witness that stores One term
-      assert_eq!(indices[0], 0);
-      assert_eq!(sv.get(&0), n);
+      assert_eq!(indices[0], f.elem(&0u8));
+      assert_eq!(sv.get(&0u8), n);
     }
     {
       // test Sum term
       let mut tmpl = R1CSTmpl::new(f);
-      let mut sv = SparseVec::new(f, 3);
+      let mut sv = SparseVec::new(f, &3u8);
       let y = Term::Var("y".to_string());
       let z = Term::Var("z".to_string());
       let term = Term::Sum(Box::new(y.clone()), Box::new(z.clone()));
@@ -139,12 +139,12 @@ mod tests {
       indices.sort();
 
       // y and z should be stored at index 1 and 2 of witness vector respectively
-      assert_eq!(indices[0], 1);
-      assert_eq!(indices[1], 2);
+      assert_eq!(indices[0], f.elem(&1u8));
+      assert_eq!(indices[1], f.elem(&2u8));
 
       // and both of the multipliers should be 1
-      assert_eq!(sv.get(&1), &f.elem(&1u8));
-      assert_eq!(sv.get(&2), &f.elem(&1u8));
+      assert_eq!(sv.get(&1u8), &f.elem(&1u8));
+      assert_eq!(sv.get(&2u8), &f.elem(&1u8));
     }
   }
 
@@ -261,7 +261,8 @@ mod tests {
     let mut indices = vec.indices_with_value().to_vec();
     indices.sort();  // sort to make indices order deterministic
     let s = indices.iter().map(|i| {
-      match &tmpl.witness[*i] {
+      let i_usize: usize = i.n.clone().try_into().unwrap();
+      match &tmpl.witness[i_usize] {
         Term::Var(s) => s.clone(),
         Term::TmpVar(i) => format!("t{}", i),
         Term::One => format!("{:?}", &vec.get(i).n),

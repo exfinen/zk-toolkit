@@ -83,9 +83,9 @@ impl QAP {
     r1cs selector *  |0 2| <- here polynomial that retuns
     witness         x=1 x=2   0 at x=1 and 2 at x=2
     */
-    println!("# of witnesses={}", r1cs.witness.size);
-
-    for witness_idx in 0..r1cs.witness.size {
+    println!("# of witnesses={:?}", r1cs.witness.size.n);
+    let witness_size: usize = r1cs.witness.size.n.clone().try_into().unwrap();
+    for witness_idx in 0..witness_size.clone() {
       println!("witness_idx={}", witness_idx);
       println!("# of constraints={}", r1cs.constraints.len());
       for i in 0..r1cs.constraints.len() {
@@ -98,14 +98,15 @@ impl QAP {
         println!("c[{}] * w ={}", i, (&r1cs.constraints[i].c * &r1cs.witness).pretty_print());
       }
 
+      let witness_idx = &f.elem(&witness_idx);
       let a_target_vals = r1cs.constraints.iter().map(|constraint| {
-        (&constraint.a * &r1cs.witness)[&witness_idx].clone()
+        (&constraint.a * &r1cs.witness)[witness_idx].clone()
       }).collect::<Vec<FieldElem>>();
       let b_target_vals = r1cs.constraints.iter().map(|constraint| {
-        (&constraint.b * &r1cs.witness)[&witness_idx].clone()
+        (&constraint.b * &r1cs.witness)[witness_idx].clone()
       }).collect::<Vec<FieldElem>>();
       let c_target_vals = r1cs.constraints.iter().map(|constraint| {
-        (&constraint.c * &r1cs.witness)[&witness_idx].clone()
+        (&constraint.c * &r1cs.witness)[witness_idx].clone()
       }).collect::<Vec<FieldElem>>();
       use num_bigint::BigUint;
       println!("a_target_vals={:?}", a_target_vals.iter().map(|x| x.n.clone()).collect::<Vec<BigUint>>());
@@ -144,6 +145,7 @@ mod tests {
       f.elem(&27u8),
       f.elem(&30u8),
     ]);
+    let witness_size = &witness.size;
 
     // A
     //  0  1  2  3  4  5
@@ -151,19 +153,19 @@ mod tests {
     // [0, 0, 0, 1, 0, 0]
     // [0, 1, 0, 0, 1, 0]
     // [5, 0, 0, 0, 0, 1]
-    let mut a1 = SparseVec::new(f, witness.size);
-    a1[&1] = f.elem(&1u8);
+    let mut a1 = SparseVec::new(f, witness_size);
+    a1.set(&1u8, f.elem(&1u8));
 
-    let mut a2 = SparseVec::new(f, witness.size);
-    a2[&3] = f.elem(&1u8);
+    let mut a2 = SparseVec::new(f, witness_size);
+    a2.set(&3u8, f.elem(&1u8));
 
-    let mut a3 = SparseVec::new(f, witness.size);
-    a3[&1] = f.elem(&1u8);
-    a3[&4] = f.elem(&1u8);
+    let mut a3 = SparseVec::new(f, witness_size);
+    a3.set(&1u8, f.elem(&1u8));
+    a3.set(&4u8, f.elem(&1u8));
 
-    let mut a4 = SparseVec::new(f, witness.size);
-    a4[&0] = f.elem(&5u8);
-    a4[&5] = f.elem(&1u8);
+    let mut a4 = SparseVec::new(f, witness_size);
+    a4.set(&0u8, f.elem(&5u8));
+    a4.set(&5u8, f.elem(&1u8));
 
     // B
     //  0  1  2  3  4  5
@@ -171,17 +173,17 @@ mod tests {
     // [0, 1, 0, 0, 0, 0]
     // [1, 0, 0, 0, 0, 0]
     // [1, 0, 0, 0, 0, 0]
-    let mut b1 = SparseVec::new(f, witness.size);
-    b1[&1] = f.elem(&1u8);
+    let mut b1 = SparseVec::new(f, witness_size);
+    b1.set(&1u8, f.elem(&1u8));
 
-    let mut b2 = SparseVec::new(f, witness.size);
-    b2[&1] = f.elem(&1u8);
+    let mut b2 = SparseVec::new(f, witness_size);
+    b2.set(&1u8, f.elem(&1u8));
 
-    let mut b3 = SparseVec::new(f, witness.size);
-    b3[&0] = f.elem(&1u8);
+    let mut b3 = SparseVec::new(f, witness_size);
+    b3.set(&0u8, f.elem(&1u8));
 
-    let mut b4 = SparseVec::new(f, witness.size);
-    b4[&0] = f.elem(&1u8);
+    let mut b4 = SparseVec::new(f, witness_size);
+    b4.set(&0u8, f.elem(&1u8));
 
     // C
     //  0  1  2  3  4  5
@@ -189,17 +191,17 @@ mod tests {
     // [0, 0, 0, 0, 1, 0]
     // [0, 0, 0, 0, 0, 1]
     // [0, 0, 1, 0, 0, 0]
-    let mut c1 = SparseVec::new(f, witness.size);
-    c1[&3] = f.elem(&1u8);
+    let mut c1 = SparseVec::new(f, witness_size);
+    c1.set(&3u8, f.elem(&1u8));
 
-    let mut c2 = SparseVec::new(f, witness.size);
-    c2[&4] = f.elem(&1u8);
+    let mut c2 = SparseVec::new(f, witness_size);
+    c2.set(&4u8, f.elem(&1u8));
 
-    let mut c3 = SparseVec::new(f, witness.size);
-    c3[&5] = f.elem(&1u8);
+    let mut c3 = SparseVec::new(f, witness_size);
+    c3.set(&5u8, f.elem(&1u8));
 
-    let mut c4 = SparseVec::new(f, witness.size);
-    c4[&2] = f.elem(&1u8);
+    let mut c4 = SparseVec::new(f, witness_size);
+    c4.set(&2u8, f.elem(&1u8));
 
     let constraints = vec![
       Constraint::new(a1, b1, c1),

@@ -1,5 +1,8 @@
-use std::rc::Rc;
-use std::ops;
+use std::{
+  rc::Rc,
+  ops,
+  cmp::{PartialOrd, Ord, Ordering},
+};
 use num_bigint::{BigUint, BigInt, ToBigInt, Sign};
 use num_traits::{Zero, One};
 use core::ops::Rem;
@@ -17,6 +20,18 @@ use std::ops::{Index, RangeFrom, RangeTo, Deref};
 pub struct FieldElem {
   pub f: Field,
   pub n: BigUint,
+}
+
+impl Ord for FieldElem {
+  fn cmp(&self, other: &Self) -> Ordering {
+    self.n.cmp(&other.n)
+  }
+}
+
+impl PartialOrd for FieldElem {
+  fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+    self.n.partial_cmp(&other.n)
+  }
 }
 
 impl Deref for FieldElem {
