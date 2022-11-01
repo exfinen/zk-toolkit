@@ -167,7 +167,6 @@ impl Mul<&SparseMatrix> for &SparseMatrix {
         }
         y.inc();
       }
-
       res
     }
 }
