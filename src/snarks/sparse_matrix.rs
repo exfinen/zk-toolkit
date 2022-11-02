@@ -102,6 +102,21 @@ impl SparseMatrix {
     }
     col
   }
+
+  pub fn transpose(&self) -> SparseMatrix {
+    let mut m = SparseMatrix::new(&self.f, &self.height, &self.width);
+    for y in self.rows.keys() {
+      let src_row = self.rows.get(&y).unwrap();
+
+      for x in src_row.indices() {
+        let v = src_row.get(&x);
+        if !v.n.is_zero() {
+          m.set(y, &x, v);
+        }
+      }
+    }
+    m
+  }
 }
 
 impl PartialEq for SparseMatrix {
@@ -477,5 +492,26 @@ mod tests {
     assert_eq!(&m3.height, two);
 
     assert!(&m1 == &m3);
+  }
+
+  #[test]
+  fn test_transpose() {
+    let m = &gen_test_3x2_matrix();
+    let mt = &m.transpose();
+
+    assert_eq!(m.height, mt.width);
+    assert_eq!(m.width, mt.height);
+
+    let mut x = m.f.elem(&0u8);
+    while x < m.width {
+      let mut y = m.f.elem(&0u8);
+      while y < m.height {
+        let m_v = m.get(&x, &y);
+        let mt_v = mt.get(&y, &x);
+        assert_eq!(m_v, mt_v);
+        y.inc();
+      }
+      x.inc();
+    }
   }
 }
