@@ -32,10 +32,19 @@ impl SparseMatrix {
 
   pub fn pretty_print(&self) -> String {
     let mut s = String::new();
-    let mut keys: Vec<&FieldElem> = self.rows.keys().collect();
-    keys.sort();
-    for key in keys {
-      s = format!("{}{}\n", s, self.rows.get(key).unwrap().pretty_print());
+    let empty_row = &SparseVec::new(&self.f, &self.width);
+
+    let mut y = self.f.elem(&0u8);
+    while y < self.height {
+      match self.rows.get(&y) {
+        Some(row) => {
+          s = format!("{}{}\n", s, row.pretty_print());
+        },
+        None => {
+          s = format!("{}{}\n", s, empty_row.pretty_print());
+        }
+      }
+      y.inc();
     }
     s
   }
@@ -46,7 +55,7 @@ impl SparseMatrix {
     let y = self.f.elem(y);
     if x >= self.width || y >= self.height {
       panic!("For {:?} x {:?} matrix, ({:?}, {:?}) is out of range",
-        self.width.n, self.height.n, x, y);
+        self.width.n, self.height.n, x.n, y.n);
     }
 
     if !self.rows.contains_key(&y) {
@@ -61,7 +70,7 @@ impl SparseMatrix {
     let y = self.f.elem(y);
     if x >= self.width || y >= self.height {
       panic!("For {:?} x {:?} matrix, ({:?}, {:?}) is out of range",
-        self.width.n, self.height.n, x, y);
+        self.width.n, self.height.n, x.n, y.n);
     }
     if !self.rows.contains_key(&y) {
       &self.zero
@@ -135,6 +144,17 @@ impl PartialEq for SparseMatrix {
         return false;
       }
     }
+    for key in other.rows.keys() {
+      if !self.rows.contains_key(key) {
+        return false;
+      }
+      let self_row = &self.rows[key];
+      let other_row = &other.rows[key];
+
+      if self_row != other_row {
+        return false;
+      }
+    }
     true
   }
 }
@@ -145,13 +165,22 @@ impl From<&Vec<SparseVec>> for SparseMatrix {
     assert!(rows.len() != 0, "Cannot build matrix from empty vector");
     let f = &rows[0].f;
     let width = &rows[0].size;
-    let height = &rows.len();
-    let mut m = SparseMatrix::new(f, width, height);
+    let height = rows.len();
+
+    for i in 1..height {
+      if width != &rows[i].size {
+        panic!("different row sizes found; size is {:?} at 0, but {:?} at {}",
+          width.n, &rows[i].size.n, i)
+      }
+    }
+    let mut m = SparseMatrix::new(f, width, &height);
 
     for (y, row) in rows.iter().enumerate() {
       for x in row.indices() {
         let v = row.get(&x);
-        m.set(&x, &y, v);
+        if !v.n.is_zero() {
+          m.set(&x, &y, v);
+        }
       }
     }
     m
@@ -340,13 +369,29 @@ mod tests {
 
   #[test]
   fn test_eq() {
-    let m1 = gen_test_2x2_identity_matrix();
-    let m2 = gen_test_2x2_matrix();
-    let m3 = gen_test_3x2_matrix();
+    {
+      let m1 = gen_test_2x2_identity_matrix();
+      let m2 = gen_test_2x2_matrix();
+      let m3 = gen_test_3x2_matrix();
 
-    assert!(&m1 == &m1);
-    assert!(&m2 == &m2);
-    assert!(&m3 == &m3);
+      assert!(&m1 == &m1);
+      assert!(&m2 == &m2);
+      assert!(&m3 == &m3);
+    }
+    {
+      let m1 = gen_test_3x2_matrix();
+      let m2 = gen_test_3x2_matrix();
+
+      assert!(&m1 == &m2);
+      assert!(&m2 == &m1);
+    }
+    { // case where one of the matrices has unnormalized empty row
+      let m1 = gen_test_3x2_matrix();
+      let m2 = gen_test_3x2_matrix();
+
+      assert!(&m1 == &m2);
+      assert!(&m2 == &m1);
+    }
   }
 
   #[test]
@@ -356,11 +401,22 @@ mod tests {
     let m3 = gen_test_3x2_matrix();
 
     assert!(&m1 != &m2);
-    assert!(&m1 != &m3);
     assert!(&m2 != &m1);
-    assert!(&m2 != &m3);
+
+    assert!(&m1 != &m3);
     assert!(&m3 != &m1);
+
+    assert!(&m2 != &m1);
+    assert!(&m1 != &m2);
+
+    assert!(&m2 != &m3);
     assert!(&m3 != &m2);
+
+    assert!(&m3 != &m1);
+    assert!(&m1 != &m3);
+
+    assert!(&m3 != &m2);
+    assert!(&m2 != &m3);
   }
 
   fn gen_test_3x2_matrix() -> SparseMatrix {

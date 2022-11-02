@@ -98,7 +98,9 @@ impl QAP {
         println!("c[{}] * w ={}", i, (&r1cs.constraints[i].c * &r1cs.witness).pretty_print());
       }
 
+      // TODO clean up
       let witness_idx = &f.elem(&witness_idx);
+
       let a_target_vals = r1cs.constraints.iter().map(|constraint| {
         (&constraint.a * &r1cs.witness)[witness_idx].clone()
       }).collect::<Vec<FieldElem>>();
@@ -108,6 +110,7 @@ impl QAP {
       let c_target_vals = r1cs.constraints.iter().map(|constraint| {
         (&constraint.c * &r1cs.witness)[witness_idx].clone()
       }).collect::<Vec<FieldElem>>();
+
       use num_bigint::BigUint;
       println!("a_target_vals={:?}", a_target_vals.iter().map(|x| x.n.clone()).collect::<Vec<BigUint>>());
       println!("b_target_vals={:?}", b_target_vals.iter().map(|x| x.n.clone()).collect::<Vec<BigUint>>());
@@ -127,7 +130,7 @@ mod tests {
   use super::*;
   use crate::snarks::{
     sparse_vec::SparseVec,
-    constraint::Constraint,
+    constraint::Constraint, sparse_matrix::SparseMatrix,
   };
 
   #[test]
@@ -204,34 +207,57 @@ mod tests {
     c4.set(&2u8, &1u8);
 
     let constraints = vec![
-      Constraint::new(a1, b1, c1),
-      Constraint::new(a2, b2, c2),
-      Constraint::new(a3, b3, c3),
-      Constraint::new(a4, b4, c4),
+      Constraint::new(&a1, &b1, &c1),
+      Constraint::new(&a2, &b2, &c2),
+      Constraint::new(&a3, &b3, &c3),
+      Constraint::new(&a4, &b4, &c4),
     ];
-    let r1cs = R1CS { constraints, witness };
-
+    let r1cs = R1CS { constraints, witness: witness.clone() };
     let qap = QAP::build(f, r1cs);
-    let a_poly = &qap.a_polys[3];
-    let v = a_poly.eval_at(&2u8);
-    println!("a_poly={:?}", v.n);
+    let four = &f.elem(&4u8);
 
-    for (poly_idx, poly) in qap.a_polys.iter().enumerate() {
-      for i in 1u8..=4 {
-        println!("a[{}] at x={}: {:?} = {:?}", poly_idx, i, poly, poly.eval_at(&i).n);
-      }
+    // check A
+    {
+      let exp = SparseMatrix::from(&vec![
+        &a1 * &witness,
+        &a2 * &witness,
+        &a3 * &witness,
+        &a4 * &witness,
+      ]).transpose();
+
+      let act = SparseMatrix::from(&qap.a_polys.iter().map(|p| p.eval_from_1_to_n(four)).collect::<Vec<SparseVec>>());
+      println!("exp:\n{}", exp.pretty_print());
+      println!("act:\n{}", act.pretty_print());
+      assert!(exp == act);
     }
-    println!("");
-    for (poly_idx, poly) in qap.b_polys.iter().enumerate() {
-      for i in 1u8..=4 {
-        println!("b[{}] at x={}: {:?} = {:?}", poly_idx, i, poly, poly.eval_at(&i).n);
-      }
+
+    // check B
+    {
+      let exp = SparseMatrix::from(&vec![
+        &b1 * &witness,
+        &b2 * &witness,
+        &b3 * &witness,
+        &b4 * &witness,
+      ]).transpose();
+
+      let act = SparseMatrix::from(&qap.b_polys.iter().map(|p| p.eval_from_1_to_n(four)).collect::<Vec<SparseVec>>());
+      println!("exp:\n{}", exp.pretty_print());
+      println!("act:\n{}", act.pretty_print());
+      assert!(exp == act);
     }
-    println!("");
-    for (poly_idx, poly) in qap.c_polys.iter().enumerate() {
-      for i in 1u8..=4 {
-        println!("c[{}] at x={}: {:?} = {:?}", poly_idx, i, poly, poly.eval_at(&i).n);
-      }
+
+    // check C
+    {
+      let exp = SparseMatrix::from(&vec![
+        &c1 * &witness,
+        &c2 * &witness,
+        &c3 * &witness,
+        &c4 * &witness,
+      ]).transpose();
+      let act = SparseMatrix::from(&qap.c_polys.iter().map(|p| p.eval_from_1_to_n(four)).collect::<Vec<SparseVec>>());
+      println!("exp:\n{}", exp.pretty_print());
+      println!("act:\n{}", act.pretty_print());
+      assert!(exp == act);
     }
   }
 }

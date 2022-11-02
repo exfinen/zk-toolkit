@@ -8,7 +8,10 @@ pub struct Constraint {
 }
 
 impl Constraint {
-  pub fn new(a: SparseVec, b: SparseVec, c: SparseVec) -> Self {
+  pub fn new(a: &SparseVec, b: &SparseVec, c: &SparseVec) -> Self {
+    let a = a.clone();
+    let b = b.clone();
+    let c = c.clone();
     Constraint { a, b, c }
   }
 }

@@ -10,6 +10,8 @@ use std::{
 };
 use num_traits::identities::Zero;
 
+use super::sparse_vec::SparseVec;
+
 #[derive(Clone)]
 pub struct Polynomial {
   pub f: Field,
@@ -206,6 +208,20 @@ impl Polynomial {
       multiplier = &multiplier * x;
     }
     sum
+  }
+
+  pub fn eval_from_1_to_n(&self, n: &impl ToBigUint) -> SparseVec {
+    let n = &self.f.elem(n);
+    let one = &self.f.elem(&1u8);
+
+    let mut vec = SparseVec::new(&self.f, n);
+    let mut i = self.f.elem(&0u8);
+    while &i < n {
+      i.inc();
+      let res = self.eval_at(&i);
+      vec.set(&(&i - one), &res);
+    }
+    vec
   }
 }
 
@@ -913,6 +929,7 @@ mod tests {
       assert!(&res == &c);
     }
   }
+
   #[test]
   fn test_mul_deg_1_1() {
     let f = &Field::new(&3299u16);
@@ -936,6 +953,39 @@ mod tests {
       let res = a.mul(&b);
       println!("({:?})({:?}) = {:?}", a, b, res);
       assert!(&res == &c);
+    }
+  }
+
+  #[test]
+  fn test_eval_from_1_to_n() {
+    let f = &Field::new(&3299u16);
+    {
+      // evaluating for the same degree as the polynomial degree
+      let p = Polynomial::new(f, vec![
+          f.elem(&2u8),
+          f.elem(&3u8),
+          f.elem(&5u8),
+      ]);
+      let three = &f.elem(&3u8);
+      let vec = p.eval_from_1_to_n(three);
+      assert_eq!(vec.size, f.elem(three));
+      assert_eq!(vec.get(&0u8), &f.elem(&10u16));
+      assert_eq!(vec.get(&1u8), &f.elem(&28u16));
+      assert_eq!(vec.get(&2u8), &f.elem(&56u16));
+    }
+    {
+      // evaluating for larger degree than the polynomial degree
+      let zero = &f.elem(&0u8);
+      let three = &f.elem(&3u8);
+
+      let p = Polynomial::new(f, vec![
+          zero.clone(),
+      ]);
+      let vec = p.eval_from_1_to_n(three);
+      assert_eq!(vec.size, f.elem(three));
+      assert_eq!(vec.get(zero), zero);
+      assert_eq!(vec.get(&1u8), zero);
+      assert_eq!(vec.get(&2u8), zero);
     }
   }
 }

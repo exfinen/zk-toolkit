@@ -44,7 +44,10 @@ impl SparseVec {
     if index >= &self.size {
       panic!("Index {:?} is out of range. The size of vector is {:?}", index.n, self.size.n);
     }
-    self.elems.insert(index.clone(), self.f.elem(n));
+    let n = self.f.elem(n);
+    if !n.is_zero() {
+      self.elems.insert(index.clone(), n);
+    }
   }
 
   pub fn get(&self, index: &impl ToBigUint) -> &FieldElem {
@@ -100,7 +103,13 @@ impl SparseVec {
 impl PartialEq for SparseVec {
   fn eq(&self, other: &SparseVec) -> bool {
     if self.size != other.size { return false; }
+
     for index in self.elems.keys() {
+      let other_elem = other.get(index);
+      let this_elem = self.get(index);
+      if this_elem != other_elem { return false; }
+    }
+    for index in other.elems.keys() {
       let other_elem = other.get(index);
       let this_elem = self.get(index);
       if this_elem != other_elem { return false; }
@@ -134,7 +143,9 @@ impl From<&Vec<FieldElem>> for SparseVec {
     let mut vec = SparseVec::new(f, size);
 
     for (i, v) in elems.iter().enumerate() {
-      vec.set(&i, v);
+      if !v.n.is_zero() {
+        vec.set(&i, v);
+      }
     }
     vec
   }
@@ -175,7 +186,6 @@ mod tests {
 
   #[test]
   fn test_from_non_empty_list() {
-    std::panic::set_hook(Box::new(|_| {}));  // suppress stack trace
     let f = &Field::new(&3911u16);
     let zero = &f.elem(&0u8);
     let one = &f.elem(&1u8);
@@ -185,6 +195,17 @@ mod tests {
     assert_eq!(&vec.size, two);
     assert_eq!(&vec[&zero], one);
     assert_eq!(&vec[&one], two);
+  }
+
+  #[test]
+  fn test_from_non_empty_zero_only_list() {
+    let f = &Field::new(&3911u16);
+    let zero = &f.elem(&0u8);
+    let two = &f.elem(&2u8);
+    let elems = vec![zero.clone(), zero.clone()];
+    let vec = SparseVec::from(&elems);
+    assert_eq!(&vec.size, two);
+    assert_eq!(vec.elems.len(), 0);
   }
 
   #[test]
@@ -222,6 +243,11 @@ mod tests {
 
     // setting the same index should overwrite
     vec.set(&2u8, &f.elem(&3u8));
+    assert_eq!(vec.elems.len(), 1);
+    assert_eq!(vec.elems.get(two).unwrap(), &f.elem(&3u8));
+
+    // setting 0 should do nothing
+    vec.set(&2u8, &f.elem(&0u8));
     assert_eq!(vec.elems.len(), 1);
     assert_eq!(vec.elems.get(two).unwrap(), &f.elem(&3u8));
   }
@@ -380,6 +406,7 @@ mod tests {
     let vec_a = SparseVec::new(f, &3u8);
     let vec_b = SparseVec::new(f, &4u8);
     assert_ne!(vec_a, vec_b);
+    assert_ne!(vec_b, vec_a);
   }
 
   #[test]
@@ -388,6 +415,7 @@ mod tests {
     let vec_a = SparseVec::new(f, &3u8);
     let vec_b = SparseVec::new(f, &3u8);
     assert_eq!(vec_a, vec_b);
+    assert_eq!(vec_b, vec_a);
   }
 
   #[test]
@@ -399,6 +427,7 @@ mod tests {
     vec_a.set(&1u8, &92u8);
     vec_b.set(&1u8, &92u8);
     assert_eq!(vec_a, vec_b);
+    assert_eq!(vec_b, vec_a);
   }
 
   #[test]
@@ -410,5 +439,6 @@ mod tests {
     vec_a.set(&1u8, &92u8);
     vec_b.set(&1u8, &13u8);
     assert_ne!(vec_a, vec_b);
+    assert_ne!(vec_b, vec_a);
   }
 }
