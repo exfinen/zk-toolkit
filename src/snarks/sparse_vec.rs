@@ -7,6 +7,7 @@ use crate::building_block::field::{Field, FieldElem};
 use num_traits::Zero;
 use core::ops::{Index, IndexMut};
 use crate::building_block::to_biguint::ToBigUint;
+use crate::snarks::polynomial::Polynomial;
 
 #[derive(Clone)]
 pub struct SparseVec {
@@ -146,6 +147,17 @@ impl From<&Vec<FieldElem>> for SparseVec {
       if !v.n.is_zero() {
         vec.set(&i, v);
       }
+    }
+    vec
+  }
+}
+
+impl From<Polynomial> for SparseVec {
+  fn from(p: Polynomial) -> Self {
+    let mut vec = SparseVec::new(&p.f, &p.coeffs.len());
+
+    for (i, coeff) in p.coeffs.iter().enumerate() {
+      vec.set(&i, coeff);
     }
     vec
   }
@@ -440,5 +452,25 @@ mod tests {
     vec_b.set(&1u8, &13u8);
     assert_ne!(vec_a, vec_b);
     assert_ne!(vec_b, vec_a);
+  }
+
+  #[test]
+  fn test_from_polynomial() {
+    let f = &Field::new(&3911u16);
+    let zero = &f.elem(&0u8);
+    let one = &f.elem(&1u8);
+    let two = &f.elem(&2u8);
+    let three = &f.elem(&3u8);
+    // 2x + 3
+    let coeffs = vec![
+      f.elem(two),
+      f.elem(three),
+    ];
+    let p = Polynomial::new(f, coeffs);
+    let vec = SparseVec::from(p);
+
+    assert_eq!(&vec.size, two);
+    assert_eq!(vec.get(zero), two);
+    assert_eq!(vec.get(one), three);
   }
 }

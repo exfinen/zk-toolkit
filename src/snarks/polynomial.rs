@@ -7,6 +7,7 @@ use num_traits::One;
 use std::{
   fmt::{Debug, Formatter},
   ops::Deref,
+  convert::From,
 };
 use num_traits::identities::Zero;
 
@@ -24,6 +25,20 @@ impl Deref for Polynomial {
 
   fn deref(&self) -> &Self::Target {
     &self.coeffs
+  }
+}
+
+impl From<&SparseVec> for Polynomial {
+  fn from(vec: &SparseVec) -> Self {
+    let mut i = vec.f.elem(&0u8);
+    let mut coeffs = vec![];
+    while i < vec.size {
+      let v = vec.get(&i);
+      coeffs.push(v.clone());
+      i.inc();
+    }
+    let p = Polynomial::new(&vec.f, coeffs);
+    p.normalize()
   }
 }
 
@@ -223,6 +238,13 @@ impl Polynomial {
     }
     vec
   }
+
+  pub fn degree(&self) -> FieldElem {
+    if self.coeffs.len() == 0 {
+      panic!("should have at least 1 coeff. check code");
+    }
+    self.f.elem(&(self.coeffs.len() - 1))
+  }
 }
 
 #[cfg(test)]
@@ -231,6 +253,59 @@ mod tests {
   use crate::building_block::field::Field;
   use rand::Rng;
   use super::DivResult::{Quotient, QuotientRemainder};
+
+  #[test]
+  fn test_degree() {
+    let f = &Field::new(&3911u16);
+    // degree 0
+    {
+      let p = Polynomial::new(f, vec![
+        f.elem(&2u8),
+      ]);
+      assert_eq!(p.degree(), f.elem(&0u8));
+
+      // 0 coeff case
+      let p = p.normalize();
+      assert_eq!(p.degree(), f.elem(&0u8));
+      assert!(false);
+    }
+    // degree 1
+    {
+      let p = Polynomial::new(f, vec![
+        f.elem(&2u8),
+        f.elem(&3u8),
+      ]);
+      assert_eq!(p.degree(), f.elem(&1u8));
+    }
+  }
+
+  #[test]
+  fn test_from_sparse_vec() {
+    let f = &Field::new(&3911u16);
+    let zero = &f.elem(&0u8);
+    let one = &f.elem(&1u8);
+    let two = &f.elem(&2u8);
+    let three = &f.elem(&3u8);
+    {
+      let mut vec = SparseVec::new(f, &2u8);
+      vec.set(zero, two);
+      vec.set(one, three);
+
+      let p = Polynomial::from(&vec);
+      assert_eq!(&p.degree(), one);
+      assert_eq!(&p.coeffs[0], two);
+      assert_eq!(&p.coeffs[1], three);
+    }
+    {
+      let mut vec = SparseVec::new(f, &2u8);
+      vec.set(zero, two);
+      vec.set(one, zero);
+
+      let p = Polynomial::from(&vec);
+      assert_eq!(&p.degree(), zero);
+      assert_eq!(&p.coeffs[0], two);
+    }
+  }
 
   #[test]
   fn test_eval_at() {

@@ -3,6 +3,7 @@ use crate::snarks::{
   constraint::Constraint,
   r1cs_tmpl::R1CSTmpl,
   sparse_vec::SparseVec,
+  sparse_matrix::SparseMatrix,
   term::Term,
 };
 use std::collections::HashMap;
@@ -10,6 +11,13 @@ use std::collections::HashMap;
 pub struct R1CS {
   pub constraints: Vec<Constraint>,
   pub witness: SparseVec,
+}
+
+// matrices made of constraint vectors each multiplied by witness
+pub struct ConstraintByWitnessMatrices {
+  pub a: SparseMatrix,
+  pub b: SparseMatrix,
+  pub c: SparseMatrix,
 }
 
 impl R1CS {
@@ -69,6 +77,24 @@ impl R1CS {
       witness,
     };
     Ok(r1cs)
+  }
+
+  pub fn to_constraint_by_witness_matrices(&self) -> ConstraintByWitnessMatrices {
+    let mut a = vec![];
+    let mut b = vec![];
+    let mut c = vec![];
+
+    for constraint in &self.constraints {
+      a.push(&constraint.a * &self.witness);
+      b.push(&constraint.b * &self.witness);
+      c.push(&constraint.c * &self.witness);
+    }
+
+    ConstraintByWitnessMatrices {
+      a: SparseMatrix::from(&a),
+      b: SparseMatrix::from(&b),
+      c: SparseMatrix::from(&c),
+    }
   }
 }
 

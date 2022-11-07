@@ -1,125 +1,118 @@
-use crate::building_block::field::{Field, FieldElem};
+use crate::building_block::field::Field;
 use crate::snarks::{
   r1cs::R1CS,
   polynomial::Polynomial,
+  sparse_vec::SparseVec,
+  sparse_matrix::SparseMatrix,
 };
 
 pub struct QAP {
   pub f: Field,
-  pub a_polys: Vec<Polynomial>,
-  pub b_polys: Vec<Polynomial>,
-  pub c_polys: Vec<Polynomial>,
+  pub a_polys: SparseMatrix,
+  pub b_polys: SparseMatrix,
+  pub c_polys: SparseMatrix,
 }
 
 impl QAP {
-  // build a polynomial that returns target_val at x == index
+  // build a polynomial that evaluates to target_val at x == index
   // and zero for x != index.
-  // e.g. (x - 2) * (x - 3) * 3 / ((1 - 2) * (1 - 3))
+  // e.g.
+  // (x - 2) * (x - 3) * 3 / ((1 - 2) * (1 - 3))
+  // where x in [1, 2, 3]; evaluates to 3 if x == 1 and 0 if x != 1
   fn build_polynomial_for_target_values(
     f: &Field,
-    target_vals: Vec<FieldElem>,
+    target_vals: &SparseVec,
   ) -> Polynomial {
     let mut target_val_polys = vec![];
-    let num_target_vals = target_vals.len();
 
-    for (target_x, target_val) in target_vals.iter().enumerate() {
-      let target_x = target_x + 1;  // make target_x one-based
-
+    let one = f.elem(&1u8);
+    let mut target_x = f.elem(&1u8);
+    while target_x <= target_vals.size {
+      let target_val = target_vals.get(&(&target_x - &one));
       let mut numerator_polys = vec![
         Polynomial::new(f, vec![target_val.clone()]),
       ];
       let mut denominator = f.elem(&1u8);
 
-      for i in 1..=num_target_vals {
+      let mut i = f.elem(&1u8);
+      while i <= target_vals.size {
         if i == target_x {
           continue;
         }
-
-        // (x - i) to make the polynomal zero at x = i
+        // (x - i) to let the polynomal evaluate to zero at x = i
         let numerator_poly = Polynomial::new(f, vec![
           -f.elem(&i),
           f.elem(&1u8),
         ]);
-        println!("numerator_poly: {:?}", numerator_poly);
         numerator_polys.push(numerator_poly);
 
         // (target_idx - i) to cancel out the corresponding
         // numerator_poly at x = target_idx
         denominator = denominator * (f.elem(&target_x) - f.elem(&i));
+
+        i.inc();
       }
 
-      // merge numerator and denominator
+      // merge denominator polynomial to numerator polynomial vector
       let denominator_poly = Polynomial::new(f, vec![denominator.inv()]);
       let mut polys = numerator_polys;
       polys.push(denominator_poly);
 
-      // aggregate polynomials
+      // aggregate numerator polynomial vector
       let mut acc_poly = Polynomial::new(f, vec![f.elem(&1u8)]);
       for poly in polys {
         acc_poly = acc_poly.mul(&poly);
       }
       target_val_polys.push(acc_poly);
+
+      target_x.inc();
     }
+
     // aggregate polynomials for all target values
     let mut res = target_val_polys[0].clone();
     for x in &target_val_polys[1..] {
       res = res.add(x);
     }
-    println!("poly={:?}", &res);
     res
   }
 
   pub fn build(f: &Field, r1cs: R1CS) -> QAP {
-    let mut a_polys = vec![];
-    let mut b_polys = vec![];
-    let mut c_polys = vec![];
-
     /*
-                 4 Polynomials
-                     a1 a2
+                      a^t
+           a         a1 a2
     a1 [0 3 0 0] ->  |0 0|
     a2 [0 0 0 2]     |3 0| <- need polynomial that returns
     +------^         |0 0|    3 at x=1 and 0 at x=2
     r1cs selector *  |0 2| <- here polynomial that retuns
     witness         x=1 x=2   0 at x=1 and 2 at x=2
+                    x-th col corresponds to x-th constraint
     */
-    println!("# of witnesses={:?}", r1cs.witness.size.n);
-    let witness_size: usize = r1cs.witness.size.n.clone().try_into().unwrap();
-    for witness_idx in 0..witness_size.clone() {
-      println!("witness_idx={}", witness_idx);
-      println!("# of constraints={}", r1cs.constraints.len());
-      for i in 0..r1cs.constraints.len() {
-        println!("a[{}] * w ={}", i, (&r1cs.constraints[i].a * &r1cs.witness).pretty_print());
-      }
-      for i in 0..r1cs.constraints.len() {
-        println!("b[{}] * w ={}", i, (&r1cs.constraints[i].b * &r1cs.witness).pretty_print());
-      }
-      for i in 0..r1cs.constraints.len() {
-        println!("c[{}] * w ={}", i, (&r1cs.constraints[i].c * &r1cs.witness).pretty_print());
-      }
+    let r1cs = r1cs.to_constraint_by_witness_matrices();
+    let a_t = r1cs.a.transpose();
+    let b_t = r1cs.b.transpose();
+    let c_t = r1cs.c.transpose();
 
-      // TODO clean up
-      let witness_idx = &f.elem(&witness_idx);
+    let mut a_coeffs: Vec<SparseVec> = vec![];
+    let mut b_coeffs: Vec<SparseVec> = vec![];
+    let mut c_coeffs: Vec<SparseVec> = vec![];
 
-      let a_target_vals = r1cs.constraints.iter().map(|constraint| {
-        (&constraint.a * &r1cs.witness)[witness_idx].clone()
-      }).collect::<Vec<FieldElem>>();
-      let b_target_vals = r1cs.constraints.iter().map(|constraint| {
-        (&constraint.b * &r1cs.witness)[witness_idx].clone()
-      }).collect::<Vec<FieldElem>>();
-      let c_target_vals = r1cs.constraints.iter().map(|constraint| {
-        (&constraint.c * &r1cs.witness)[witness_idx].clone()
-      }).collect::<Vec<FieldElem>>();
+    let mut y = f.elem(&0u8);
+    while y < a_t.height {
 
-      use num_bigint::BigUint;
-      println!("a_target_vals={:?}", a_target_vals.iter().map(|x| x.n.clone()).collect::<Vec<BigUint>>());
-      println!("b_target_vals={:?}", b_target_vals.iter().map(|x| x.n.clone()).collect::<Vec<BigUint>>());
-      println!("c_target_vals={:?}", c_target_vals.iter().map(|x| x.n.clone()).collect::<Vec<BigUint>>());
+      let a_row = a_t.get_row(&y);
+      let b_row = b_t.get_row(&y);
+      let c_row = c_t.get_row(&y);
 
-      a_polys.push(QAP::build_polynomial_for_target_values(f, a_target_vals));
-      b_polys.push(QAP::build_polynomial_for_target_values(f, b_target_vals));
-      c_polys.push(QAP::build_polynomial_for_target_values(f, c_target_vals));
+      a_coeffs.push(QAP::build_polynomial_for_target_values(f, &a_row).into());
+      b_coeffs.push(QAP::build_polynomial_for_target_values(f, &b_row).into());
+      c_coeffs.push(QAP::build_polynomial_for_target_values(f, &c_row).into());
+
+      y.inc();
     }
+
+    let a_polys = SparseMatrix::from(&a_coeffs);
+    let b_polys = SparseMatrix::from(&b_coeffs);
+    let c_polys = SparseMatrix::from(&c_coeffs);
 
     QAP { f: f.clone(), a_polys, b_polys, c_polys }
   }
@@ -225,7 +218,10 @@ mod tests {
         &a4 * &witness,
       ]).transpose();
 
-      let act = SparseMatrix::from(&qap.a_polys.iter().map(|p| p.eval_from_1_to_n(four)).collect::<Vec<SparseVec>>());
+      let act = qap.a_polys.row_transform(Box::new(|vec| {
+        let p = Polynomial::from(vec);
+        p.eval_from_1_to_n(&vec.size)
+      }));
       println!("exp:\n{}", exp.pretty_print());
       println!("act:\n{}", act.pretty_print());
       assert!(exp == act);
@@ -240,7 +236,10 @@ mod tests {
         &b4 * &witness,
       ]).transpose();
 
-      let act = SparseMatrix::from(&qap.b_polys.iter().map(|p| p.eval_from_1_to_n(four)).collect::<Vec<SparseVec>>());
+      let act = qap.b_polys.row_transform(Box::new(|vec| {
+        let p = Polynomial::from(vec);
+        p.eval_from_1_to_n(&vec.size)
+      }));
       println!("exp:\n{}", exp.pretty_print());
       println!("act:\n{}", act.pretty_print());
       assert!(exp == act);
@@ -254,7 +253,10 @@ mod tests {
         &c3 * &witness,
         &c4 * &witness,
       ]).transpose();
-      let act = SparseMatrix::from(&qap.c_polys.iter().map(|p| p.eval_from_1_to_n(four)).collect::<Vec<SparseVec>>());
+      let act = qap.c_polys.row_transform(Box::new(|vec| {
+        let p = Polynomial::from(vec);
+        p.eval_from_1_to_n(&vec.size)
+      }));
       println!("exp:\n{}", exp.pretty_print());
       println!("act:\n{}", act.pretty_print());
       assert!(exp == act);

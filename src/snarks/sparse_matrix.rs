@@ -126,6 +126,25 @@ impl SparseMatrix {
     }
     m
   }
+
+  pub fn row_transform(&self, transform: Box<dyn Fn(&SparseVec) -> SparseVec>) -> SparseMatrix {
+    let mut m = SparseMatrix::new(&self.f, &self.width, &self.height);
+
+    let mut y = self.f.elem(&0u8);
+    while y < self.height {
+      let in_row = self.get_row(&y);
+      let out_row = transform(&in_row);
+
+      let mut x = self.f.elem(&0u8);
+      while x < self.width {
+        let v = out_row.get(&x);
+        m.set(&x, &y, v);
+        x.inc();
+      }
+      y.inc();
+    }
+    m
+  }
 }
 
 impl PartialEq for SparseMatrix {
@@ -319,6 +338,8 @@ mod tests {
     let _ = SparseMatrix::from(&vec![]);
   }
 
+  // |1 0|
+  // |0 1|
   fn gen_test_2x2_identity_matrix() -> SparseMatrix {
     let f = &Field::new(&3911u16);
     let zero = &f.elem(&0u8);
@@ -332,6 +353,8 @@ mod tests {
     SparseMatrix::from(&vecs)
   }
 
+  // |1 2|
+  // |3 4|
   fn gen_test_2x2_matrix() -> SparseMatrix {
     let f = &Field::new(&3911u16);
     let zero = &f.elem(&0u8);
@@ -350,6 +373,9 @@ mod tests {
     SparseMatrix::from(&vecs)
   }
 
+  // |1 0|
+  // |0 2|
+  // |3 0|
   fn gen_test_2x3_matrix() -> SparseMatrix {
     let f = &Field::new(&3911u16);
     let zero = &f.elem(&0u8);
@@ -364,6 +390,27 @@ mod tests {
     v2.set(one, two);
     v3.set(zero, three);
     let vecs = vec![v1, v2, v3];
+    SparseMatrix::from(&vecs)
+  }
+
+  // |1 2 3|
+  // |3 2 1|
+  fn gen_test_3x2_matrix() -> SparseMatrix {
+    let f = &Field::new(&3911u16);
+    let zero = &f.elem(&0u8);
+    let one = &f.elem(&1u8);
+    let two = &f.elem(&2u8);
+    let three = &f.elem(&3u8);
+
+    let mut v1 = SparseVec::new(f, &3u8);
+    let mut v2 = SparseVec::new(f, &3u8);
+    v1.set(zero, one);
+    v1.set(one, two);
+    v1.set(two, three);
+    v2.set(zero, three);
+    v2.set(one, two);
+    v2.set(two, one);
+    let vecs = vec![v1, v2];
     SparseMatrix::from(&vecs)
   }
 
@@ -417,25 +464,6 @@ mod tests {
 
     assert!(&m3 != &m2);
     assert!(&m2 != &m3);
-  }
-
-  fn gen_test_3x2_matrix() -> SparseMatrix {
-    let f = &Field::new(&3911u16);
-    let zero = &f.elem(&0u8);
-    let one = &f.elem(&1u8);
-    let two = &f.elem(&2u8);
-    let three = &f.elem(&3u8);
-
-    let mut v1 = SparseVec::new(f, &3u8);
-    let mut v2 = SparseVec::new(f, &3u8);
-    v1.set(zero, one);
-    v1.set(one, two);
-    v1.set(two, three);
-    v2.set(zero, three);
-    v2.set(one, two);
-    v2.set(two, one);
-    let vecs = vec![v1, v2];
-    SparseMatrix::from(&vecs)
   }
 
   #[test]
@@ -568,6 +596,43 @@ mod tests {
         y.inc();
       }
       x.inc();
+    }
+  }
+
+  #[test]
+  fn test_row_transform() {
+    // |1 2 3|
+    // |3 2 1|
+    let m = gen_test_3x2_matrix();
+
+    let transform = move |in_vec: &SparseVec| {
+      let one = in_vec.f.elem(&1u8);
+      let mut out_vec = SparseVec::new(&in_vec.f, &in_vec.size);
+      let mut i = in_vec.f.elem(&0u8);
+      while i < in_vec.size {
+        let v = in_vec.get(&i) + &one;
+        out_vec.set(&i, &v);
+        i.inc();
+      }
+      out_vec
+    };
+    let m = m.row_transform(Box::new(transform));
+
+    {
+      let zero = &m.f.elem(&0u8);
+      let one = &m.f.elem(&1u8);
+      let two = &m.f.elem(&2u8);
+      let three = &m.f.elem(&3u8);
+      let four = &m.f.elem(&4u8);
+
+      // |2 3 4|
+      // |4 3 2|
+      assert_eq!(m.get(zero, zero), two);
+      assert_eq!(m.get(one, zero), three);
+      assert_eq!(m.get(two, zero), four);
+      assert_eq!(m.get(zero, one), four);
+      assert_eq!(m.get(one, one), three);
+      assert_eq!(m.get(two, one), two);
     }
   }
 }
