@@ -7,7 +7,6 @@ use crate::building_block::field::{Field, FieldElem};
 use num_traits::Zero;
 use core::ops::{Index, IndexMut};
 use crate::building_block::to_biguint::ToBigUint;
-use crate::snarks::polynomial::Polynomial;
 
 #[derive(Clone)]
 pub struct SparseVec {
@@ -84,6 +83,16 @@ impl SparseVec {
     sum
   }
 
+  // empty if containing only zeros
+  pub fn is_empty(&self) -> bool {
+    for value in self.elems.values() {
+      if !value.n.is_zero() {
+        return false;
+      }
+    }
+    true
+  }
+
   pub fn pretty_print(&self) -> String {
     let one = self.f.elem(&1u8);
     let mut s = "[".to_string();
@@ -152,17 +161,6 @@ impl From<&Vec<FieldElem>> for SparseVec {
   }
 }
 
-impl From<Polynomial> for SparseVec {
-  fn from(p: Polynomial) -> Self {
-    let mut vec = SparseVec::new(&p.f, &p.coeffs.len());
-
-    for (i, coeff) in p.coeffs.iter().enumerate() {
-      vec.set(&i, coeff);
-    }
-    vec
-  }
-}
-
 // returns Hadamard product
 impl Mul<&SparseVec> for &SparseVec {
     type Output = SparseVec;
@@ -188,6 +186,40 @@ impl Mul<&SparseVec> for &SparseVec {
 mod tests {
   use super::*;
   use crate::building_block::field::Field;
+
+  #[test]
+  fn test_is_empty() {
+    let f = &Field::new(&3911u16);
+    let zero = &f.elem(&0u8);
+    let one = &f.elem(&1u8);
+
+    {
+      let vec = SparseVec::new(f, &0u8);
+      assert!(vec.is_empty() == true);
+    }
+    {
+      let mut vec = SparseVec::new(f, &1u8);
+      vec.set(zero, zero);
+      assert!(vec.is_empty() == true);
+    }
+    {
+      let mut vec = SparseVec::new(f, &1u8);
+      vec.set(zero, one);
+      assert!(vec.is_empty() == false);
+    }
+    {
+      let mut vec = SparseVec::new(f, &2u8);
+      vec.set(zero, zero);
+      vec.set(one, zero);
+      assert!(vec.is_empty() == true);
+    }
+    {
+      let mut vec = SparseVec::new(f, &2u8);
+      vec.set(zero, zero);
+      vec.set(one, one);
+      assert!(vec.is_empty() == false);
+    }
+  }
 
   #[test]
   #[should_panic]
@@ -452,25 +484,5 @@ mod tests {
     vec_b.set(&1u8, &13u8);
     assert_ne!(vec_a, vec_b);
     assert_ne!(vec_b, vec_a);
-  }
-
-  #[test]
-  fn test_from_polynomial() {
-    let f = &Field::new(&3911u16);
-    let zero = &f.elem(&0u8);
-    let one = &f.elem(&1u8);
-    let two = &f.elem(&2u8);
-    let three = &f.elem(&3u8);
-    // 2x + 3
-    let coeffs = vec![
-      f.elem(two),
-      f.elem(three),
-    ];
-    let p = Polynomial::new(f, coeffs);
-    let vec = SparseVec::from(p);
-
-    assert_eq!(&vec.size, two);
-    assert_eq!(vec.get(zero), two);
-    assert_eq!(vec.get(one), three);
   }
 }

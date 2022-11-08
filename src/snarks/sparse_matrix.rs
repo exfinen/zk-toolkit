@@ -57,6 +57,9 @@ impl SparseMatrix {
       panic!("For {:?} x {:?} matrix, ({:?}, {:?}) is out of range",
         self.width.n, self.height.n, x.n, y.n);
     }
+    if v.n.is_zero() {  // don't set if zero
+      return;
+    }
 
     if !self.rows.contains_key(&y) {
       let vec = SparseVec::new(&self.f, &self.width);
@@ -122,6 +125,18 @@ impl SparseMatrix {
         if !v.n.is_zero() {
           m.set(y, &x, v);
         }
+      }
+    }
+    m
+  }
+
+  // remove empty rows
+  pub fn normalize(&self) -> SparseMatrix {
+    let mut m = SparseMatrix::new(&self.f, &self.width, &self.height);
+    for row_key in self.rows.keys() {
+      let row = self.rows.get(row_key).unwrap();
+      if !row.is_empty() {
+        m.rows.insert(row_key.clone(), row.clone());
       }
     }
     m
@@ -202,7 +217,7 @@ impl From<&Vec<SparseVec>> for SparseMatrix {
         }
       }
     }
-    m
+    m.normalize()
   }
 }
 
@@ -230,7 +245,7 @@ impl Mul<&SparseMatrix> for &SparseMatrix {
         }
         y.inc();
       }
-      res
+      res.normalize()
     }
 }
 
@@ -414,6 +429,44 @@ mod tests {
     SparseMatrix::from(&vecs)
   }
 
+  // |1 2|
+  // |0 0|
+  fn gen_test_2x2_redundant_matrix(use_empty_row: bool) -> SparseMatrix {
+    let f = &Field::new(&3911u16);
+    let zero = &f.elem(&0u8);
+    let one = &f.elem(&1u8);
+    let two = &f.elem(&2u8);
+
+    let mut v1 = SparseVec::new(f, &2u8);
+    v1.set(zero, one);
+    v1.set(one, two);
+
+    if use_empty_row {
+      let mut rows = HashMap::<FieldElem, SparseVec>::new();
+      rows.insert(zero.clone(), v1.clone());
+      rows.insert(one.clone(), SparseVec::new(f, &2u8));
+
+      SparseMatrix {
+        width: two.clone(),
+        height: two.clone(),
+        f: f.clone(),
+        rows,
+        zero: zero.clone(),
+      }
+    } else {
+      let mut rows = HashMap::<FieldElem, SparseVec>::new();
+      rows.insert(zero.clone(), v1.clone());
+
+      SparseMatrix {
+        width: two.clone(),
+        height: two.clone(),
+        f: f.clone(),
+        rows,
+        zero: zero.clone(),
+      }
+    }
+  }
+
   #[test]
   fn test_eq() {
     {
@@ -432,13 +485,15 @@ mod tests {
       assert!(&m1 == &m2);
       assert!(&m2 == &m1);
     }
-    { // case where one of the matrices has unnormalized empty row
-      let m1 = gen_test_3x2_matrix();
-      let m2 = gen_test_3x2_matrix();
+  }
 
-      assert!(&m1 == &m2);
-      assert!(&m2 == &m1);
-    }
+  #[test]
+  fn test_eq_with_redundant_matrix() {
+      let m1 = gen_test_2x2_redundant_matrix(true);
+      let m2 = gen_test_2x2_redundant_matrix(false);
+
+      assert!(&m1 != &m2);
+      assert!(&m2 != &m1);
   }
 
   #[test]
@@ -464,6 +519,16 @@ mod tests {
 
     assert!(&m3 != &m2);
     assert!(&m2 != &m3);
+  }
+
+  #[test]
+  fn test_normalize() {
+      let m1 = gen_test_2x2_redundant_matrix(true);
+      let m2 = gen_test_2x2_redundant_matrix(false);
+      let m1 = m1.normalize();
+
+      assert!(&m1 == &m2);
+      assert!(&m2 == &m1);
   }
 
   #[test]

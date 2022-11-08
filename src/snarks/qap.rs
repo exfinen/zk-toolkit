@@ -37,6 +37,7 @@ impl QAP {
       let mut i = f.elem(&1u8);
       while i <= target_vals.size {
         if i == target_x {
+          i.inc();
           continue;
         }
         // (x - i) to let the polynomal evaluate to zero at x = i
@@ -97,19 +98,24 @@ impl QAP {
     let mut c_coeffs: Vec<SparseVec> = vec![];
 
     let mut y = f.elem(&0u8);
-    while y < a_t.height {
+    let height = &a_t.height;  // a_t, b_t and c_t are of the same dimention
+    let width = &a_t.width;
 
+    while &y < height {
       let a_row = a_t.get_row(&y);
       let b_row = b_t.get_row(&y);
       let c_row = c_t.get_row(&y);
 
-      a_coeffs.push(QAP::build_polynomial_for_target_values(f, &a_row).into());
-      b_coeffs.push(QAP::build_polynomial_for_target_values(f, &b_row).into());
-      c_coeffs.push(QAP::build_polynomial_for_target_values(f, &c_row).into());
+      a_coeffs.push(QAP::build_polynomial_for_target_values(f, &a_row).to_sparse_vec(width));
+      b_coeffs.push(QAP::build_polynomial_for_target_values(f, &b_row).to_sparse_vec(width));
+      c_coeffs.push(QAP::build_polynomial_for_target_values(f, &c_row).to_sparse_vec(width));
 
       y.inc();
     }
-
+println!("a_coeffs");
+for x in &a_coeffs {
+  println!("{}", x.pretty_print());
+}
     let a_polys = SparseMatrix::from(&a_coeffs);
     let b_polys = SparseMatrix::from(&b_coeffs);
     let c_polys = SparseMatrix::from(&c_coeffs);
@@ -127,7 +133,7 @@ mod tests {
   };
 
   #[test]
-  fn test1() {
+  fn test_r1cs_to_polynomial() {
     let f = &Field::new(&3911u16);
 
     //     x  out t1 y   t2
@@ -198,7 +204,6 @@ mod tests {
 
     let mut c4 = SparseVec::new(f, witness_size);
     c4.set(&2u8, &1u8);
-
     let constraints = vec![
       Constraint::new(&a1, &b1, &c1),
       Constraint::new(&a2, &b2, &c2),
@@ -207,7 +212,6 @@ mod tests {
     ];
     let r1cs = R1CS { constraints, witness: witness.clone() };
     let qap = QAP::build(f, r1cs);
-    let four = &f.elem(&4u8);
 
     // check A
     {

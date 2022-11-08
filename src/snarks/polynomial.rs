@@ -245,6 +245,16 @@ impl Polynomial {
     }
     self.f.elem(&(self.coeffs.len() - 1))
   }
+
+  pub fn to_sparse_vec(&self, size: &impl ToBigUint) -> SparseVec {
+    let size = self.f.elem(size);
+    let mut vec = SparseVec::new(&self.f, &size);
+
+    for (i, coeff) in self.coeffs.iter().enumerate() {
+      vec.set(&i, coeff);
+    }
+    vec
+  }
 }
 
 #[cfg(test)]
@@ -253,6 +263,30 @@ mod tests {
   use crate::building_block::field::Field;
   use rand::Rng;
   use super::DivResult::{Quotient, QuotientRemainder};
+
+  #[test]
+  fn test_to_sparse_vec() {
+    let f = &Field::new(&3911u16);
+    let zero = &f.elem(&0u8);
+    let one = &f.elem(&1u8);
+    let two = &f.elem(&2u8);
+    let three = &f.elem(&3u8);
+    let four = &f.elem(&4u8);
+
+    // 2x + 3
+    let coeffs = vec![
+      f.elem(two),
+      f.elem(three),
+    ];
+    let p = Polynomial::new(f, coeffs);
+    let vec = p.to_sparse_vec(four);
+
+    assert_eq!(&vec.size, four);
+    assert_eq!(vec.get(zero), two);
+    assert_eq!(vec.get(one), three);
+    assert_eq!(vec.get(two), zero);
+    assert_eq!(vec.get(three), zero);
+  }
 
   #[test]
   fn test_degree() {
