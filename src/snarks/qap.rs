@@ -150,14 +150,15 @@ impl QAP {
     acc_poly
   }
 
-  pub fn check_constraints(&self, witness: &SparseVec) -> bool {
+  pub fn check_constraints(&self, witness: &SparseVec, num_constraints: &impl ToBigUint) -> bool {
     // aggregate polynomials by calculating dot products with witness
     let a_poly: Polynomial = (&self.a_polys.multiply_column(witness).flatten_rows()).into();
     let b_poly: Polynomial = (&self.b_polys.multiply_column(witness).flatten_rows()).into();
     let c_poly: Polynomial = (&self.c_polys.multiply_column(witness).flatten_rows()).into();
 
     let t = a_poly * &b_poly - &c_poly;
-    let z = QAP::build_z(&self.f, &4u8);
+    let num_constraints = self.f.elem(num_constraints);
+    let z = QAP::build_z(&self.f, &num_constraints);
     match t.divide_by(&z) {
       DivResult::Quotient(_) => true,
       DivResult::QuotientRemainder(_) => false,
@@ -172,11 +173,6 @@ mod tests {
     sparse_vec::SparseVec,
     constraint::Constraint, sparse_matrix::SparseMatrix,
   };
-
-  #[test]
-  fn test_check_constraints() {
-    let f = &Field::new(&3911u16);
-  }
 
   #[test]
   fn test_build_z() {
@@ -272,8 +268,12 @@ mod tests {
       Constraint::new(&a3, &b3, &c3),
       Constraint::new(&a4, &b4, &c4),
     ];
+    let num_constraints = &constraints.len();
     let r1cs = R1CS { constraints, witness: witness.clone() };
     let qap = QAP::build(f, r1cs);
+
+    let is_passed = qap.check_constraints(&witness, num_constraints);
+    assert!(is_passed);
 
     // check A
     {
