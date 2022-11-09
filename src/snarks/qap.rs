@@ -1,7 +1,15 @@
-use crate::building_block::field::Field;
+use std::ops::Mul;
+
+use crate::building_block::{
+  field::Field,
+  to_biguint::ToBigUint,
+};
 use crate::snarks::{
   r1cs::R1CS,
-  polynomial::Polynomial,
+  polynomial::{
+    Polynomial,
+    DivResult,
+  },
   sparse_vec::SparseVec,
   sparse_matrix::SparseMatrix,
 };
@@ -72,7 +80,7 @@ impl QAP {
     // aggregate polynomials for all target values
     let mut res = target_val_polys[0].clone();
     for x in &target_val_polys[1..] {
-      res = res.add(x);
+      res = res + x;
     }
     res
   }
@@ -112,15 +120,48 @@ impl QAP {
 
       y.inc();
     }
-println!("a_coeffs");
-for x in &a_coeffs {
-  println!("{}", x.pretty_print());
-}
     let a_polys = SparseMatrix::from(&a_coeffs);
     let b_polys = SparseMatrix::from(&b_coeffs);
     let c_polys = SparseMatrix::from(&c_coeffs);
 
     QAP { f: f.clone(), a_polys, b_polys, c_polys }
+  }
+
+  // build polynomial (x-1)(x-2)..(x-num_constraints)
+  pub fn build_z(f: &Field, num_constraints: &impl ToBigUint) -> Polynomial {
+    let num_constraints = f.elem(num_constraints);
+    let mut i = f.elem(&1u8);
+    let mut polys = vec![];
+
+    // create (x-i) polynomials
+    while i <= num_constraints {
+      let poly = Polynomial::new(f, vec![
+        -f.elem(&i),
+        f.elem(&1u8),
+      ]);
+      polys.push(poly);
+      i.inc();
+    }
+    // aggregate (x-i) polynomial into a single polynomial
+    let mut acc_poly = Polynomial::new(f, vec![f.elem(&1u8)]);
+    for poly in polys {
+      acc_poly = acc_poly.mul(&poly);
+    }
+    acc_poly
+  }
+
+  pub fn check_constraints(&self, witness: &SparseVec) -> bool {
+    // aggregate polynomials by calculating dot products with witness
+    let a_poly: Polynomial = (&self.a_polys.multiply_column(witness).flatten_rows()).into();
+    let b_poly: Polynomial = (&self.b_polys.multiply_column(witness).flatten_rows()).into();
+    let c_poly: Polynomial = (&self.c_polys.multiply_column(witness).flatten_rows()).into();
+
+    let t = a_poly * &b_poly - &c_poly;
+    let z = QAP::build_z(&self.f, &4u8);
+    match t.divide_by(&z) {
+      DivResult::Quotient(_) => true,
+      DivResult::QuotientRemainder(_) => false,
+    }
   }
 }
 
@@ -131,6 +172,27 @@ mod tests {
     sparse_vec::SparseVec,
     constraint::Constraint, sparse_matrix::SparseMatrix,
   };
+
+  #[test]
+  fn test_check_constraints() {
+    let f = &Field::new(&3911u16);
+  }
+
+  #[test]
+  fn test_build_z() {
+    let f = &Field::new(&3911u16);
+
+    let one = &f.elem(&1u8);
+    let two = &f.elem(&2u8);
+    let neg_three = &f.elem(&3u8).negate();
+
+    let z = QAP::build_z(f, two);
+
+    assert_eq!(z.len(), 3);
+    assert_eq!(&z[0], two);
+    assert_eq!(&z[1], neg_three);
+    assert_eq!(&z[2], one);
+  }
 
   #[test]
   fn test_r1cs_to_polynomial() {
@@ -226,8 +288,6 @@ mod tests {
         let p = Polynomial::from(vec);
         p.eval_from_1_to_n(&vec.size)
       }));
-      println!("exp:\n{}", exp.pretty_print());
-      println!("act:\n{}", act.pretty_print());
       assert!(exp == act);
     }
 
@@ -244,8 +304,6 @@ mod tests {
         let p = Polynomial::from(vec);
         p.eval_from_1_to_n(&vec.size)
       }));
-      println!("exp:\n{}", exp.pretty_print());
-      println!("act:\n{}", act.pretty_print());
       assert!(exp == act);
     }
 
@@ -261,8 +319,6 @@ mod tests {
         let p = Polynomial::from(vec);
         p.eval_from_1_to_n(&vec.size)
       }));
-      println!("exp:\n{}", exp.pretty_print());
-      println!("act:\n{}", act.pretty_print());
       assert!(exp == act);
     }
   }

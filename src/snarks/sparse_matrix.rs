@@ -49,6 +49,43 @@ impl SparseMatrix {
     s
   }
 
+  pub fn multiply_column(&self, col: &SparseVec) -> Self {
+    if col.size != self.height {
+      panic!("column size is expected to be {:?}, but got {:?}",
+        self.height.n, col.size.n)
+    }
+    let mut m = SparseMatrix::new(&self.f, &self.width, &self.height);
+
+    let mut y = self.f.elem(&0u8);
+    while y < col.size {
+      let mut x = self.f.elem(&0u8);
+      let multiplier = col.get(&y);
+      while x < self.width {
+        let v = self.get(&x, &y) * multiplier;
+        m.set(&x, &y, &v);
+        x.inc();
+      }
+      y.inc();
+    }
+    m
+  }
+
+  pub fn flatten_rows(&self) -> SparseVec {
+    let mut vec = SparseVec::new(&self.f, &self.width);
+
+    let mut y = self.f.elem(&0u8);
+    while y < self.height {
+      let mut x = self.f.elem(&0u8);
+      while x < self.width {
+        let v = vec.get(&x) + self.get(&x, &y);
+        vec.set(&x, &v);
+        x.inc();
+      }
+      y.inc();
+    }
+    vec
+  }
+
   pub fn set(&mut self, x: &impl ToBigUint, y: &impl ToBigUint, v: &impl ToBigUint) -> () {
     let v = self.f.elem(v);
     let x = self.f.elem(x);
@@ -699,5 +736,57 @@ mod tests {
       assert_eq!(m.get(one, one), three);
       assert_eq!(m.get(two, one), two);
     }
+  }
+
+  #[test]
+  fn test_multiply_column() {
+    // |1 2 3|
+    // |3 2 1|
+    let m = gen_test_3x2_matrix();
+
+    let zero = &m.f.elem(&0u8);
+    let one = &m.f.elem(&1u8);
+    let two = &m.f.elem(&2u8);
+    let three = &m.f.elem(&3u8);
+    let four = &m.f.elem(&4u8);
+    let six = &m.f.elem(&6u8);
+    let nine = &m.f.elem(&9u8);
+
+    // |2|
+    // |3|
+    let mut col = SparseVec::new(&m.f, &m.height);
+    col.set(zero, two);
+    col.set(one, three);
+
+    let m = m.multiply_column(&col);
+
+    // |2 4 6|
+    // |9 6 3|
+    assert_eq!(m.get(zero, zero), two);
+    assert_eq!(m.get(one, zero), four);
+    assert_eq!(m.get(two, zero), six);
+
+    assert_eq!(m.get(zero, one), nine);
+    assert_eq!(m.get(one, one), six);
+    assert_eq!(m.get(two, one), three);
+  }
+
+  #[test]
+  fn test_flatten_rows() {
+    // |1 2 3|
+    // |3 2 1|
+    let m = gen_test_3x2_matrix();
+
+    let zero = &m.f.elem(&0u8);
+    let one = &m.f.elem(&1u8);
+    let two = &m.f.elem(&2u8);
+    let four = &m.f.elem(&4u8);
+
+    let row = m.flatten_rows();
+
+    // |4 2 4|
+    assert_eq!(row.get(zero), four);
+    assert_eq!(row.get(one), four);
+    assert_eq!(row.get(two), four);
   }
 }

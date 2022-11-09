@@ -6,7 +6,12 @@ use num_bigint::BigUint;
 use num_traits::One;
 use std::{
   fmt::{Debug, Formatter},
-  ops::Deref,
+  ops::{
+    Add,
+    Deref,
+    Mul,
+    Sub,
+  },
   convert::From,
 };
 use num_traits::identities::Zero;
@@ -127,7 +132,7 @@ impl Polynomial {
     Polynomial { f: self.f.clone(), coeffs: norm_coeffs, _private: () }
   }
 
-  pub fn add(&self, rhs: &Polynomial) -> Polynomial {
+  pub fn plus(&self, rhs: &Polynomial) -> Polynomial {
     let (smaller, larger) = if self.coeffs.len() < rhs.coeffs.len() {
       (&self.coeffs, &rhs.coeffs)
     } else {
@@ -146,7 +151,7 @@ impl Polynomial {
     x.normalize()  // normalizing b/c addition can make term coefficect zero
   }
 
-  pub fn mul(&self, rhs: &Polynomial) -> Polynomial {
+  pub fn multiply_by(&self, rhs: &Polynomial) -> Polynomial {
     // degree of polynomial is coeffs.len - 1
     let self_degree = self.coeffs.len() - 1;
     let rhs_degree = rhs.coeffs.len() - 1;
@@ -166,7 +171,7 @@ impl Polynomial {
   }
 
   // not supporting cases where rhs degree > lhs degree
-  pub fn sub(&self, rhs: &Polynomial) -> Polynomial {
+  pub fn minus(&self, rhs: &Polynomial) -> Polynomial {
     assert!(self.coeffs.len() >= rhs.coeffs.len());
     let mut coeffs = self.coeffs.clone();
 
@@ -177,9 +182,9 @@ impl Polynomial {
     p.normalize()
   }
 
-  pub fn div(&self, rhs: &Polynomial) -> DivResult {
+  pub fn divide_by(&self, rhs: &Polynomial) -> DivResult {
     let mut dividend = self.clone();
-    let divisor = rhs.clone();
+    let divisor = rhs;
     let quotient_degree = dividend.len() - divisor.len();
     let divisor_coeff = &divisor[divisor.len() - 1];
     assert!(!divisor_coeff.n.is_zero(), "found zero coeff at highest index. use Polynomial constructor");
@@ -199,7 +204,7 @@ impl Polynomial {
       // reflect term coeff to result quotient
       quotient_coeffs[term_degree] = term_coeff;
 
-      let poly2subtract = divisor.mul(&term_poly);
+      let poly2subtract = divisor.multiply_by(&term_poly);
 
       // update dividend for the next round
       dividend = dividend.sub(&poly2subtract);
@@ -254,6 +259,30 @@ impl Polynomial {
       vec.set(&i, coeff);
     }
     vec
+  }
+}
+
+impl<'a> Add<&Polynomial> for Polynomial {
+  type Output = Polynomial;
+
+  fn add(self, rhs: &Polynomial) -> Self::Output {
+    self.plus(rhs)
+  }
+}
+
+impl<'a> Mul<&Polynomial> for Polynomial {
+  type Output = Polynomial;
+
+  fn mul(self, rhs: &Polynomial) -> Self::Output {
+    self.multiply_by(rhs)
+  }
+}
+
+impl<'a> Sub<&Polynomial> for Polynomial {
+  type Output = Polynomial;
+
+  fn sub(self, rhs: &Polynomial) -> Self::Output {
+    self.minus(rhs)
   }
 }
 
@@ -401,7 +430,7 @@ mod tests {
         f.elem(&6u8),
         f.elem(&1u8),
       ]);
-      let res = dividend.div(&divisor);
+      let res = dividend.divide_by(&divisor);
       if let QuotientRemainder(x) = res {
         panic!("expected no remainder, but got {:?}", x);
       } else if let Quotient(q) = res {
@@ -438,7 +467,7 @@ mod tests {
       let remainder = Polynomial::new(f, vec![
         f.elem(&3u8),
       ]);
-      let res = dividend.div(&divisor);
+      let res = dividend.divide_by(&divisor);
       println!("result = {:?}", &res);
       if let QuotientRemainder((q, r)) = res {
         assert!(q == quotient);
@@ -477,7 +506,7 @@ mod tests {
       let remainder = Polynomial::new(f, vec![
         f.elem(&3u8),
       ]);
-      let res = dividend.div(&divisor);
+      let res = dividend.divide_by(&divisor);
       if let QuotientRemainder((q, r)) = res {
         assert!(q == quotient);
         assert!(r == remainder);
@@ -510,7 +539,7 @@ mod tests {
       let quotient = Polynomial::new(f, vec![
         f.elem(&5u8),
       ]);
-      let res = dividend.div(&divisor);
+      let res = dividend.divide_by(&divisor);
       if let QuotientRemainder(x) = res {
         panic!("expected no remainder, but got {:?}", x);
       } else if let Quotient(q) = res {
@@ -553,7 +582,7 @@ mod tests {
         f.elem(&10u8), // 2
         f.elem(&1u8),  // 3
       ]);
-      let res = dividend.div(&divisor);
+      let res = dividend.divide_by(&divisor);
       if let QuotientRemainder((q, r)) = res {
         assert!(q == quotient);
         assert!(r == remainder);
@@ -586,13 +615,13 @@ mod tests {
       let divisor_degree = rand::thread_rng().gen_range(min_divisor_degree..max_divisor_degree);
       let quotient_degree = rand::thread_rng().gen_range(1..divisor_degree);
 
-      let divisor = gen_random_polynomial(f, divisor_degree, max_coeff);
-      let quotient = gen_random_polynomial(f, quotient_degree, max_coeff);
-      let dividend = divisor.mul(&quotient);
+      let divisor = &gen_random_polynomial(f, divisor_degree, max_coeff);
+      let quotient = &gen_random_polynomial(f, quotient_degree, max_coeff);
+      let dividend = divisor.multiply_by(quotient);
 
-      match &dividend.div(&divisor) {
+      match &&dividend.divide_by(divisor) {
         Quotient(q) => {
-          assert!(q == &quotient);
+          assert!(q == quotient);
         },
         QuotientRemainder(x) => {
           panic!("unexpected remainder {:?}", x);
@@ -662,15 +691,15 @@ mod tests {
     }
     // subtract the same poly
     {
-      let a = Polynomial::new(f, vec![
+      let a = &Polynomial::new(f, vec![
         f.elem(&12u8),
         f.elem(&7u8),
       ]);
       let c = Polynomial::new(f, vec![
         f.elem(&0u8),
       ]);
-      println!("res = {:?}", a.sub(&a));
-      assert!(a.sub(&a) == c);
+      println!("res = {:?}", a.minus(a));
+      assert!(a.minus(&a) == c);
     }
   }
 
@@ -686,7 +715,7 @@ mod tests {
       f.elem(&3u8),
       f.elem(&4u8),
     ]);
-    a.sub(&b);
+    let _ = a.sub(&b);
   }
 
   #[test]
@@ -1044,24 +1073,24 @@ mod tests {
     let f = &Field::new(&3299u16);
     {
       // 2x + 3
-      let a = Polynomial::new(f, vec![
+      let a = &Polynomial::new(f, vec![
         f.elem(&3u8),
         f.elem(&2u8),
       ]);
       // 5x + 4
-      let b = Polynomial::new(f, vec![
+      let b = &Polynomial::new(f, vec![
         f.elem(&4u8),
         f.elem(&5u8),
       ]);
       // 10x^2 + 23x + 12
-      let c = Polynomial::new(f, vec![
+      let c = &Polynomial::new(f, vec![
         f.elem(&12u8),
         f.elem(&23u8),
         f.elem(&10u8),
       ]);
-      let res = a.mul(&b);
+      let res = a.multiply_by(&b);
       println!("({:?})({:?}) = {:?}", a, b, res);
-      assert!(&res == &c);
+      assert!(&res == c);
     }
   }
 
