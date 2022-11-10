@@ -14,6 +14,11 @@ use crate::snarks::{
   sparse_matrix::SparseMatrix,
 };
 
+pub enum ApplyWitness {
+  Beginning,
+  End,
+}
+
 pub struct QAP {
   pub f: Field,
   pub a_polys: SparseMatrix,
@@ -85,7 +90,11 @@ impl QAP {
     res
   }
 
-  pub fn build(f: &Field, r1cs: R1CS) -> QAP {
+  pub fn build(
+    f: &Field,
+    r1cs: R1CS,
+    apply_witness: &ApplyWitness,
+  ) -> QAP {
     /*
                       a^t
            a         a1 a2
@@ -96,7 +105,10 @@ impl QAP {
     witness         x=1 x=2   0 at x=1 and 2 at x=2
                     x-th col corresponds to x-th constraint
     */
-    let r1cs = r1cs.to_constraint_by_witness_matrices();
+    let r1cs = match apply_witness {
+      ApplyWitness::Beginning => r1cs.to_constraint_by_witness_matrices(),
+      ApplyWitness::End => r1cs.to_constraint_matrices(),
+    };
     let a_t = r1cs.a.transpose();
     let b_t = r1cs.b.transpose();
     let c_t = r1cs.c.transpose();
@@ -150,11 +162,25 @@ impl QAP {
     acc_poly
   }
 
-  pub fn check_constraints(&self, witness: &SparseVec, num_constraints: &impl ToBigUint) -> bool {
+  pub fn check_constraints(
+    &self,
+    witness: &SparseVec,
+    num_constraints: &impl ToBigUint,
+    apply_witness: &ApplyWitness,
+  ) -> bool {
     // aggregate polynomials by calculating dot products with witness
-    let a_poly: Polynomial = (&self.a_polys.multiply_column(witness).flatten_rows()).into();
-    let b_poly: Polynomial = (&self.b_polys.multiply_column(witness).flatten_rows()).into();
-    let c_poly: Polynomial = (&self.c_polys.multiply_column(witness).flatten_rows()).into();
+    let a_poly: Polynomial = match apply_witness {
+      ApplyWitness::Beginning => (&self.a_polys.flatten_rows()).into(),
+      ApplyWitness::End => (&self.a_polys.multiply_column(witness).flatten_rows()).into(),
+    };
+    let b_poly: Polynomial = match apply_witness {
+      ApplyWitness::Beginning => (&self.b_polys.flatten_rows()).into(),
+      ApplyWitness::End => (&self.b_polys.multiply_column(witness).flatten_rows()).into(),
+    };
+    let c_poly: Polynomial = match apply_witness {
+      ApplyWitness::Beginning => (&self.c_polys.flatten_rows()).into(),
+      ApplyWitness::End => (&self.c_polys.multiply_column(witness).flatten_rows()).into(),
+    };
 
     let t = a_poly * &b_poly - &c_poly;
     let num_constraints = self.f.elem(num_constraints);
@@ -171,24 +197,8 @@ mod tests {
   use super::*;
   use crate::snarks::{
     sparse_vec::SparseVec,
-    constraint::Constraint, sparse_matrix::SparseMatrix,
+    constraint::Constraint,
   };
-
-  #[test]
-  fn test_build_z() {
-    let f = &Field::new(&3911u16);
-
-    let one = &f.elem(&1u8);
-    let two = &f.elem(&2u8);
-    let neg_three = &f.elem(&3u8).negate();
-
-    let z = QAP::build_z(f, two);
-
-    assert_eq!(z.len(), 3);
-    assert_eq!(&z[0], two);
-    assert_eq!(&z[1], neg_three);
-    assert_eq!(&z[2], one);
-  }
 
   #[test]
   fn test_r1cs_to_polynomial() {
@@ -270,56 +280,28 @@ mod tests {
     ];
     let num_constraints = &constraints.len();
     let r1cs = R1CS { constraints, witness: witness.clone() };
-    let qap = QAP::build(f, r1cs);
 
-    let is_passed = qap.check_constraints(&witness, num_constraints);
-    assert!(is_passed);
-
-    // check A
-    {
-      let exp = SparseMatrix::from(&vec![
-        &a1 * &witness,
-        &a2 * &witness,
-        &a3 * &witness,
-        &a4 * &witness,
-      ]).transpose();
-
-      let act = qap.a_polys.row_transform(Box::new(|vec| {
-        let p = Polynomial::from(vec);
-        p.eval_from_1_to_n(&vec.size)
-      }));
-      assert!(exp == act);
-    }
-
-    // check B
-    {
-      let exp = SparseMatrix::from(&vec![
-        &b1 * &witness,
-        &b2 * &witness,
-        &b3 * &witness,
-        &b4 * &witness,
-      ]).transpose();
-
-      let act = qap.b_polys.row_transform(Box::new(|vec| {
-        let p = Polynomial::from(vec);
-        p.eval_from_1_to_n(&vec.size)
-      }));
-      assert!(exp == act);
-    }
-
-    // check C
-    {
-      let exp = SparseMatrix::from(&vec![
-        &c1 * &witness,
-        &c2 * &witness,
-        &c3 * &witness,
-        &c4 * &witness,
-      ]).transpose();
-      let act = qap.c_polys.row_transform(Box::new(|vec| {
-        let p = Polynomial::from(vec);
-        p.eval_from_1_to_n(&vec.size)
-      }));
-      assert!(exp == act);
+    for apply_witness in vec![ApplyWitness::Beginning, ApplyWitness::End] {
+      let qap = QAP::build(f, r1cs.clone(), &apply_witness);
+      let is_passed = qap.check_constraints(&witness, num_constraints, &apply_witness);
+      assert!(is_passed);
     }
   }
+
+  #[test]
+  fn test_build_z() {
+    let f = &Field::new(&3911u16);
+
+    let one = &f.elem(&1u8);
+    let two = &f.elem(&2u8);
+    let neg_three = &f.elem(&3u8).negate();
+
+    let z = QAP::build_z(f, two);
+
+    assert_eq!(z.len(), 3);
+    assert_eq!(&z[0], two);
+    assert_eq!(&z[1], neg_three);
+    assert_eq!(&z[2], one);
+  }
+
 }

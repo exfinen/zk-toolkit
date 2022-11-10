@@ -8,13 +8,14 @@ use crate::snarks::{
 };
 use std::collections::HashMap;
 
+#[derive(Clone)]
 pub struct R1CS {
   pub constraints: Vec<Constraint>,
   pub witness: SparseVec,
 }
 
 // matrices made of constraint vectors each multiplied by witness
-pub struct ConstraintByWitnessMatrices {
+pub struct ConstraintMatrices {
   pub a: SparseMatrix,
   pub b: SparseMatrix,
   pub c: SparseMatrix,
@@ -79,7 +80,7 @@ impl R1CS {
     Ok(r1cs)
   }
 
-  pub fn to_constraint_by_witness_matrices(&self) -> ConstraintByWitnessMatrices {
+  pub fn to_constraint_by_witness_matrices(&self) -> ConstraintMatrices {
     let mut a = vec![];
     let mut b = vec![];
     let mut c = vec![];
@@ -90,7 +91,25 @@ impl R1CS {
       c.push(&constraint.c * &self.witness);
     }
 
-    ConstraintByWitnessMatrices {
+    ConstraintMatrices {
+      a: SparseMatrix::from(&a),
+      b: SparseMatrix::from(&b),
+      c: SparseMatrix::from(&c),
+    }
+  }
+
+  pub fn to_constraint_matrices(&self) -> ConstraintMatrices {
+    let mut a = vec![];
+    let mut b = vec![];
+    let mut c = vec![];
+
+    for constraint in &self.constraints {
+      a.push(constraint.a.clone());
+      b.push(constraint.b.clone());
+      c.push(constraint.c.clone());
+    }
+
+    ConstraintMatrices {
       a: SparseMatrix::from(&a),
       b: SparseMatrix::from(&b),
       c: SparseMatrix::from(&c),
