@@ -12,7 +12,7 @@ To build a zk library from scratch keeping the implementation as easily understa
 - Generic HMAC
 - Ed25519 public key generation, signing and signature verification
 - Bulletproofs (inner product argument range proof)
-- Pinnocio (equation parser, R1CS)
+- Pinnocio (equation parser, R1CS, QAP)
 
 ## What's NOT implemented so far
 - Big number
