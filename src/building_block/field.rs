@@ -192,9 +192,6 @@ impl FieldElem {
     let mut n = self.n.clone();
     n *= &rhs.to_biguint();
     n %= &(*self.f.order);
-    if n < BigUint::zero() {
-      n += &(*self.f.order);
-    }
     FieldElem { f: self.f.clone(), n }
   }
 
