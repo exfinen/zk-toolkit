@@ -165,8 +165,9 @@ impl FieldElem {
   }
 
   pub fn plus(&self, rhs: &impl ToBigUint) -> FieldElem {
+    let rhs = rhs.to_biguint() % &*self.f.order;
     let mut n = self.n.clone();
-    n += &rhs.to_biguint();
+    n += &rhs;
     if n >= *self.f.order {
       n -= &(*self.f.order);
     }
@@ -174,7 +175,7 @@ impl FieldElem {
   }
 
   pub fn minus(&self, rhs: &impl ToBigUint) -> FieldElem {
-    let rhs = rhs.to_biguint();
+    let rhs = rhs.to_biguint() % &*self.f.order;
     let f = self.f.clone();
     if self.n < rhs {
       let diff = &rhs - &self.n;
@@ -576,15 +577,15 @@ mod tests {
 
   #[test]
   fn new_below_order() {
-    let f = Field::new(&11u32);
-    let a = FieldElem::new(&f, &7u32);
-    assert_eq!(a.n, BigUint::from(7u32));
+    let f = Field::new(&11u8);
+    let a = FieldElem::new(&f, &7u8);
+    assert_eq!(a.n, BigUint::from(7u8));
   }
 
   #[test]
   fn new_above_order() {
-    let f = Field::new(&11u32);
-    let a = FieldElem::new(&f, &13u32);
+    let f = Field::new(&11u8);
+    let a = FieldElem::new(&f, &13u8);
     assert_eq!(a.n, BigUint::from(2u32));
   }
 
@@ -606,83 +607,99 @@ mod tests {
 
   #[test]
   fn add_eq_order_result() {
-    let f = Field::new(&11u32);
-    let a = FieldElem::new(&f, &9u32);
-    let b = FieldElem::new(&f, &2u32);
+    let f = Field::new(&11u8);
+    let a = FieldElem::new(&f, &9u8);
+    let b = FieldElem::new(&f, &2u8);
     let c = a + &b;
-    assert_eq!(c.n, BigUint::from(0u32));
+    assert_eq!(c.n, BigUint::from(0u8));
   }
 
   #[test]
   fn add_below_order_result() {
-    let f = Field::new(&11u32);
-    let a = FieldElem::new(&f, &9u32);
-    let b = FieldElem::new(&f, &1u32);
+    let f = Field::new(&11u8);
+    let a = FieldElem::new(&f, &9u8);
+    let b = FieldElem::new(&f, &1u8);
     let c = a + &b;
-    assert_eq!(c.n, BigUint::from(10u32));
+    assert_eq!(c.n, BigUint::from(10u8));
   }
 
   #[test]
   fn add_above_order_result() {
-    let f = Field::new(&11u32);
-    let a = FieldElem::new(&f, &9u32);
-    let b = FieldElem::new(&f, &3u32);
+    let f = Field::new(&11u8);
+    let a = FieldElem::new(&f, &9u8);
+    let b = FieldElem::new(&f, &3u8);
     let c = a + b;
-    assert_eq!(c.n, BigUint::from(1u32));
+    assert_eq!(c.n, BigUint::from(1u8));
+  }
+
+  #[test]
+  fn plus_above_order_times_2_result() {
+    let f = Field::new(&11u8);
+    let a = FieldElem::new(&f, &3u8);
+    let c = a.plus(&24u8);
+    assert_eq!(c.n, BigUint::from(5u8));
   }
 
   #[test]
   fn sub_smaller_val() {
-    let f = Field::new(&11u32);
-    let a = FieldElem::new(&f, &9u32);
-    let b = FieldElem::new(&f, &2u32);
+    let f = Field::new(&11u8);
+    let a = FieldElem::new(&f, &9u8);
+    let b = FieldElem::new(&f, &2u8);
     let c = a - b;
-    assert_eq!(c.n, BigUint::from(7u32));
+    assert_eq!(c.n, BigUint::from(7u8));
   }
 
   #[test]
   fn sub_eq_val() {
-    let f = Field::new(&11u32);
-    let a = FieldElem::new(&f, &9u32);
-    let b = FieldElem::new(&f, &9u32);
+    let f = Field::new(&11u8);
+    let a = FieldElem::new(&f, &9u8);
+    let b = FieldElem::new(&f, &9u8);
     let c = a - b;
     assert_eq!(c.n, BigUint::zero());
   }
 
   #[test]
   fn sub_larger_val() {
-    let f = Field::new(&11u32);
-    let a = FieldElem::new(&f, &9u32);
-    let b = FieldElem::new(&f, &10u32);
+    let f = Field::new(&11u8);
+    let a = FieldElem::new(&f, &9u8);
+    let b = FieldElem::new(&f, &10u8);
     let c = a - b;
-    assert_eq!(c.n, BigUint::from(10u32));
+    assert_eq!(c.n, BigUint::from(10u8));
+  }
+
+  #[test]
+  fn minus_order_times_2() {
+    let f = Field::new(&11u8);
+    let a = FieldElem::new(&f, &3u8);
+    let c = a.minus(&24u8);
+    assert_eq!(c.n, BigUint::from(1u8));
   }
 
   #[test]
   fn mul_below_order_result() {
-    let f = Field::new(&11u32);
-    let a = FieldElem::new(&f, &2u32);
-    let b = FieldElem::new(&f, &5u32);
+    let f = Field::new(&11u8);
+    let a = FieldElem::new(&f, &2u8);
+    let b = FieldElem::new(&f, &5u8);
     let c = a * b;
-    assert_eq!(c.n, BigUint::from(10u32));
+    assert_eq!(c.n, BigUint::from(10u8));
   }
 
   #[test]
   fn mul_eq_order_result() {
-    let f = Field::new(&11u32);
-    let a = FieldElem::new(&f, &1u32);
-    let b = FieldElem::new(&f, &11u32);
+    let f = Field::new(&11u8);
+    let a = FieldElem::new(&f, &1u8);
+    let b = FieldElem::new(&f, &11u8);
     let c = a * b;
     assert_eq!(c.n, BigUint::from(0u32));
   }
 
   #[test]
   fn mul_above_order_result() {
-    let f = Field::new(&11u32);
-    let a = FieldElem::new(&f, &3u32);
-    let b = FieldElem::new(&f, &9u32);
+    let f = Field::new(&11u8);
+    let a = FieldElem::new(&f, &3u8);
+    let b = FieldElem::new(&f, &9u8);
     let c = a * b;
-    assert_eq!(c.n, BigUint::from(5u32));
+    assert_eq!(c.n, BigUint::from(5u8));
   }
 
   #[test]
@@ -878,9 +895,9 @@ mod tests {
 
   #[test]
   fn div() {
-    let f = Field::new(&11u32);
-    let a = FieldElem::new(&f, &4u32);
-    let b = FieldElem::new(&f, &2u32);
+    let f = Field::new(&11u8);
+    let a = FieldElem::new(&f, &4u8);
+    let b = FieldElem::new(&f, &2u8);
     let c = a.safe_div(&b).unwrap();
     assert_eq!(c.n, BigUint::from(2u32));
   }
@@ -899,9 +916,9 @@ mod tests {
 
   #[test]
   fn neg() {
-    let f = Field::new(&11u32);
-    let a = FieldElem::new(&f, &5u32);
-    assert_eq!(a.negate().n, BigUint::from(6u32));
+    let f = Field::new(&11u8);
+    let a = FieldElem::new(&f, &5u8);
+    assert_eq!(a.negate().n, BigUint::from(6u8));
 
     let neg_a = a.clone() + &a.negate();
     assert_eq!(neg_a.n, BigUint::from(0u32));
@@ -911,15 +928,15 @@ mod tests {
   fn cube() {
     {
       // when value is less than field order
-      let f = Field::new(&100u32);
-      let a = FieldElem::new(&f, &3u32);
+      let f = Field::new(&100u8);
+      let a = FieldElem::new(&f, &3u8);
       let b = a.cube();
       assert_eq!(b.n.to_u8().unwrap(), 27);
     }
     {
       // when value is larger than field order
-      let f = Field::new(&11u32);
-      let a = FieldElem::new(&f, &3u32);
+      let f = Field::new(&11u8);
+      let a = FieldElem::new(&f, &3u8);
       let b = a.cube();
       assert_eq!(b.n.to_u8().unwrap(), 5);
     }
@@ -929,8 +946,8 @@ mod tests {
   fn pow_seq() {
     {
       // when value is less than field order
-      let f = Field::new(&100u32);
-      let a = FieldElem::new(&f, &3u32);
+      let f = Field::new(&100u8);
+      let a = FieldElem::new(&f, &3u8);
       let xs = a.pow_seq(4);
       assert_eq!(xs.len(), 4);
       assert_eq!(xs[0].n.to_u8().unwrap(), 1);
@@ -940,8 +957,8 @@ mod tests {
     }
     {
       // when value is larger than field order
-      let f = Field::new(&11u32);
-      let a = FieldElem::new(&f, &3u32);
+      let f = Field::new(&11u8);
+      let a = FieldElem::new(&f, &3u8);
       let xs = a.pow_seq(4);
       assert_eq!(xs.len(), 4);
       assert_eq!(xs[0].n.to_u8().unwrap(), 1);
@@ -953,8 +970,8 @@ mod tests {
 
   #[test]
   fn repeat() {
-    let f = Field::new(&11u32);
-    let a = FieldElem::new(&f, &5u32);
+    let f = Field::new(&11u8);
+    let a = FieldElem::new(&f, &5u8);
     let xs = a.repeat(3);
     assert_eq!(xs.len(), 3);
     assert_eq!(xs[0].n.to_u8().unwrap(), 5);
@@ -987,56 +1004,56 @@ mod tests {
 
   #[test]
   fn pow_below_order() {
-    let f = Field::new(&11u32);
-    let a = FieldElem::new(&f, &2u32);
-    assert_eq!(a.pow(&3u32).n, BigUint::from(8u32));
+    let f = Field::new(&11u8);
+    let a = FieldElem::new(&f, &2u8);
+    assert_eq!(a.pow(&3u8).n, BigUint::from(8u8));
   }
 
   #[test]
   fn pow_above_order() {
-    let f = Field::new(&11u32);
-    let a = FieldElem::new(&f, &2u32);
-    assert_eq!(a.pow(&4u32).n, BigUint::from(5u32));
+    let f = Field::new(&11u8);
+    let a = FieldElem::new(&f, &2u8);
+    assert_eq!(a.pow(&4u8).n, BigUint::from(5u8));
   }
 
   #[test]
   fn sq_below_order() {
-    let f = Field::new(&11u32);
-    let a = FieldElem::new(&f, &2u32);
-    assert_eq!(a.sq().n, BigUint::from(4u32));
+    let f = Field::new(&11u8);
+    let a = FieldElem::new(&f, &2u8);
+    assert_eq!(a.sq().n, BigUint::from(4u8));
   }
 
   #[test]
   fn sq_above_order() {
-    let f = Field::new(&11u32);
-    let a = FieldElem::new(&f, &4u32);
-    assert_eq!(a.sq().n, BigUint::from(5u32));
+    let f = Field::new(&11u8);
+    let a = FieldElem::new(&f, &4u8);
+    assert_eq!(a.sq().n, BigUint::from(5u8));
   }
   #[test]
   fn new_elem_from_biguint() {
-    let f = Field::new(&11u32);
+    let f = Field::new(&11u8);
     let a = f.elem(&7u8);
-    assert_eq!(a.n, BigUint::from(7u32));
+    assert_eq!(a.n, BigUint::from(7u8));
   }
 
   #[test]
   fn new_elem_from_u8() {
-    let f = Field::new(&11u32);
+    let f = Field::new(&11u8);
     let a = f.elem(&7u8);
-    assert_eq!(a.n, BigUint::from(7u32));
+    assert_eq!(a.n, BigUint::from(7u8));
   }
 
   #[test]
   fn new_elem_from_pos_signed_int() {
-    let f = Field::new(&11u32);
+    let f = Field::new(&11u8);
     let a = f.elem_from_signed(&7);
-    assert_eq!(a.n, BigUint::from(7u32));
+    assert_eq!(a.n, BigUint::from(7u8));
   }
 
   #[test]
   fn new_elem_from_neg_signed_int() {
-    let f = Field::new(&11u32);
+    let f = Field::new(&11u8);
     let a = f.elem_from_signed(&-7);
-    assert_eq!(a.n, BigUint::from(4u32));
+    assert_eq!(a.n, BigUint::from(4u8));
   }
 }

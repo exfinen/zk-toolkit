@@ -41,7 +41,7 @@ impl WeierstrassEq {
     let f = Field::new(&p);
 
     let a = BigUint::from(0u32);
-    let b = BigUint::from(7u32);
+    let b = BigUint::from(7u8);
 
     // base point
     let gx = BigUint::parse_bytes(b"79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798", 16).unwrap();
