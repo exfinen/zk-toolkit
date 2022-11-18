@@ -283,7 +283,7 @@ impl FieldElem {
       let x2 = &x0 - &x1 * &q;
       let y2 = &y0 - &y1 * &q;
 
-      // do next calculattion based on new and previous equations
+      // do next calculation based on new and previous equations
       r0 = r1;
       r1 = r2;
       x0 = x1;
