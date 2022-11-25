@@ -6,7 +6,7 @@ pub enum Term {
   Num(FieldElem),
   One,
   Out,
-  Sum(Box<Term>, Box<Term>),  // Sum will only not contain Out and Sum itself
+  Sum(Box<Term>, Box<Term>),  // Sum will not contain Out and Sum itself
   TmpVar(SignalId),
   Var(String),
 }
