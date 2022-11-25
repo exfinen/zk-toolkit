@@ -1,5 +1,7 @@
 use std::ops::Mul;
 
+use num_traits::Zero;
+
 use crate::building_block::{
   field::Field,
   to_biguint::ToBigUint,
@@ -42,6 +44,14 @@ impl QAP {
     let mut target_x = f.elem(&1u8);
     while target_x <= target_vals.size {
       let target_val = target_vals.get(&(&target_x - &one));
+
+      // if target val is zero, simply add 0x^0
+      if target_val.n.is_zero() {
+        target_val_polys.push(Polynomial::new(f, vec![f.elem(&0u8)]));
+        target_x.inc();
+        continue;
+      }
+
       let mut numerator_polys = vec![
         Polynomial::new(f, vec![target_val.clone()]),
       ];
@@ -101,7 +111,7 @@ impl QAP {
     a1 [0 3 0 0] ->  |0 0|
     a2 [0 0 0 2]     |3 0| <- need polynomial that returns
     +------^         |0 0|    3 at x=1 and 0 at x=2
-    r1cs selector *  |0 2| <- here polynomial that retuns
+    r1cs selector *  |0 2| <- here polynomial that returns
     witness         x=1 x=2   0 at x=1 and 2 at x=2
                     x-th col corresponds to x-th constraint
     */
