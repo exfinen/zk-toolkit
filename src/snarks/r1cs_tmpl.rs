@@ -221,18 +221,6 @@ mod tests {
   }
 
   #[test]
-  fn test_build_from_gates() {
-    let f = &Field::new(&3911u16);
-    let input = "(3 * x + 4) / 2 == 11";
-    let eq = Parser::parse(f, input).unwrap();
-
-    let gates = &Gate::build(f, &eq);
-    for g in gates {
-      println!("{:?}", g);
-    }
-  }
-
-  #[test]
   fn test_bulding_witness() {
     let f = &Field::new(&3911u16);
     let input = "(3 * x + 4) / 2 == 11";
@@ -296,4 +284,15 @@ mod tests {
     assert_eq!(res[1], ("4 + t1".to_string(), "1".to_string(), "t2".to_string()));
     assert_eq!(res[2], ("t2".to_string(), "1".to_string(), "out".to_string()));
   }
- }
+
+  #[test]
+  fn execute_for_blog_post_1() {
+    let f = &Field::new(&3911u16);
+    let expr = "(x * x * x) + x + 5 == 35";
+    let eq = Parser::parse(f, expr).unwrap();
+    let gates = &Gate::build(f, &eq);
+    let r1cs = R1CSTmpl::from_gates(f, gates);
+
+    println!("{:?}", r1cs.witness);
+  }
+}

@@ -12,7 +12,7 @@ pub struct Gate {
 
 impl std::fmt::Debug for Gate {
   fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-      write!(f, "{:?} = {:?} * {:?}", self.c, self.a, self.b)
+      write!(f, "{:?} * {:?} = {:?}", self.a, self.b, self.c)
   }
 }
 
