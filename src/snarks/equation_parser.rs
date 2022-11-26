@@ -679,4 +679,16 @@ mod tests {
       Err(_) => panic!(),
     }
   }
+
+  #[test]
+  fn execute_for_blog_post_1() {
+    let f = &Field::new(&3911u16);
+    let expr = "(x * x * x) + x + 5 == 35";
+    match Parser::parse(f, expr) {
+      Ok(eq) => {
+        println!("{} -> {:?}", expr, eq);
+      },
+      Err(_) => panic!(),
+    }
+  }
 }

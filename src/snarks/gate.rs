@@ -160,10 +160,9 @@ mod tests {
   }
 
   #[test]
-  fn test_build_combined() {
+  fn test_build_combined1() {
     let f = &Field::new(&3911u16);
     let input = "(3 * x + 4) / 2 == 11";
-    println!("Equation: {}", input);
     let eq = Parser::parse(f, input).unwrap();
     let gates = &Gate::build(f, &eq);
     assert_eq!(gates.len(), 4);
@@ -174,7 +173,10 @@ mod tests {
     assert_eq!(gates[0].c, Term::TmpVar(1));
 
     // t2 = (t1 + 4) * 1
-    assert_eq!(gates[1].a, Term::Sum(Box::new(Term::TmpVar(1)), Box::new(Term::Num(f.elem(&4u8)))));
+    assert_eq!(gates[1].a, Term::Sum(
+      Box::new(Term::TmpVar(1)),
+      Box::new(Term::Num(f.elem(&4u8)))
+    ));
     assert_eq!(gates[1].b, Term::One);
     assert_eq!(gates[1].c, Term::TmpVar(2));
 
@@ -187,5 +189,57 @@ mod tests {
     assert_eq!(gates[3].a, Term::TmpVar(3));
     assert_eq!(gates[3].b, Term::One);
     assert_eq!(gates[3].c, Term::Out);
+  }
+
+  #[test]
+  fn test_build_combined2() {
+    let f = &Field::new(&3911u16);
+    let input = "(x * x * x) + x + 5 == 35";
+    println!("Equation: {}", input);
+
+    let eq = Parser::parse(f, input).unwrap();
+    let gates = &Gate::build(f, &eq);
+    println!("Gates: {:?}", gates);
+    assert_eq!(gates.len(), 5);
+
+    // t1 = x * x
+    assert_eq!(gates[0].a, Term::Var("x".to_string()));
+    assert_eq!(gates[0].b, Term::Var("x".to_string()));
+    assert_eq!(gates[0].c, Term::TmpVar(1));
+
+    // t2 = x * t1
+    assert_eq!(gates[1].a, Term::Var("x".to_string()));
+    assert_eq!(gates[1].b, Term::TmpVar(1));
+    assert_eq!(gates[1].c, Term::TmpVar(2));
+
+    // t3 = (x + 5) * 1
+    assert_eq!(gates[2].a, Term::Sum(
+      Box::new(Term::Var("x".to_string())),
+      Box::new(Term::Num(f.elem(&5u8)))
+    ));
+    assert_eq!(gates[2].b, Term::One);
+    assert_eq!(gates[2].c, Term::TmpVar(3));
+
+    // t4 = (t2 + t3) * 1
+    assert_eq!(gates[3].a, Term::Sum(
+      Box::new(Term::TmpVar(2)),
+      Box::new(Term::TmpVar(3))
+    ));
+    assert_eq!(gates[3].b, Term::One);
+    assert_eq!(gates[3].c, Term::TmpVar(4));
+
+    // out = t4 * 1
+    assert_eq!(gates[4].a, Term::TmpVar(4));
+    assert_eq!(gates[4].b, Term::One);
+    assert_eq!(gates[4].c, Term::Out);
+  }
+
+  #[test]
+  fn execute_for_blog_post_1() {
+    let f = &Field::new(&3911u16);
+    let expr = "(x * x * x) + x + 5 == 35";
+    let eq = Parser::parse(f, expr).unwrap();
+    let gates = &Gate::build(f, &eq);
+    println!("{:?}", gates);
   }
 }
