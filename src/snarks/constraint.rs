@@ -18,6 +18,6 @@ impl Constraint {
 
 impl std::fmt::Debug for Constraint {
   fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-    write!(f, "{:?} * {:?} = {:?}", self.a, self.b, self.c)
+    write!(f, "{:?} . w * {:?} . w - {:?} . w = 0", self.a, self.b, self.c)
   }
 }
