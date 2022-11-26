@@ -18,10 +18,12 @@ pub struct SparseVec {
 
 impl std::fmt::Debug for SparseVec {
   fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
-    let mut keys: Vec<FieldElem> = self.elems.keys().cloned().collect();
-    keys.sort();
-    let xs: Vec<String> = keys.iter().map(|k| { format!("{:?}->{:?}", k.n, self.elems.get(k).unwrap().n) }).collect();
-    write!(fmt, "[{}]", xs.join(","))
+    // let mut keys: Vec<FieldElem> = self.elems.keys().cloned().collect();
+    // keys.sort();
+    // let xs: Vec<String> = keys.iter().map(|k| { format!("{:?}->{:?}", k.n, self.elems.get(k).unwrap().n) }).collect();
+    let s = self.pretty_print();
+    //write!(fmt, "[{}]", xs.join(","))
+    write!(fmt, "{}", s)
   }
 }
 

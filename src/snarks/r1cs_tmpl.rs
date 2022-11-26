@@ -291,8 +291,20 @@ mod tests {
     let expr = "(x * x * x) + x + 5 == 35";
     let eq = Parser::parse(f, expr).unwrap();
     let gates = &Gate::build(f, &eq);
-    let r1cs = R1CSTmpl::from_gates(f, gates);
+    let r1cs_tmpl = R1CSTmpl::from_gates(f, gates);
 
-    println!("{:?}", r1cs.witness);
+    println!("{:?}", r1cs_tmpl.witness);
+  }
+
+  #[test]
+  fn execute_for_blog_post_1_2() {
+    let f = &Field::new(&3911u16);
+    let expr = "(x * x * x) + x + 5 == 35";
+    let eq = Parser::parse(f, expr).unwrap();
+    let gates = &Gate::build(f, &eq);
+    let r1cs_tmpl = R1CSTmpl::from_gates(f, gates);
+
+    println!("w = {:?}", r1cs_tmpl.witness);
+    println!("{:?}", r1cs_tmpl.constraints);
   }
 }
