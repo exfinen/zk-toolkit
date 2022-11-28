@@ -286,7 +286,7 @@ mod tests {
   }
 
   #[test]
-  fn execute_for_blog_post_1() {
+  fn blog_post_1_sample_1() {
     let f = &Field::new(&3911u16);
     let expr = "(x * x * x) + x + 5 == 35";
     let eq = Parser::parse(f, expr).unwrap();
@@ -297,7 +297,7 @@ mod tests {
   }
 
   #[test]
-  fn execute_for_blog_post_1_2() {
+  fn blog_post_1_sample_2() {
     let f = &Field::new(&3911u16);
     let expr = "(x * x * x) + x + 5 == 35";
     let eq = Parser::parse(f, expr).unwrap();
