@@ -323,7 +323,7 @@ mod tests {
   }
 
   #[test]
-  fn execute_for_blog_post_1() {
+  fn blog_post_1_sample_1() {
     let f = &Field::new(&3911u16);
     let expr = "(x * x * x) + x + 5 == 35";
     let eq = Parser::parse(f, expr).unwrap();
@@ -339,14 +339,17 @@ mod tests {
       t4 = t2(27) + t2(8) = 35
       out = t4(35) * 1 = 35
     */
-    let witness = HashMap::<Term, FieldElem>::from([
-      (Term::Var("x".to_string()), f.elem(&3u8)),
-      (Term::TmpVar(1), f.elem(&9u8)),
-      (Term::TmpVar(2), f.elem(&27u8)),
-      (Term::TmpVar(3), f.elem(&8u8)),
-      (Term::TmpVar(4), f.elem(&35u8)),
-      (Term::Out, eq.rhs),
-    ]);
+    let witness = {
+      use crate::snarks::term::Term::*;
+      HashMap::<Term, FieldElem>::from([
+        (Term::var("x"), f.elem(&3u8)),
+        (TmpVar(1), f.elem(&9u8)),
+        (TmpVar(2), f.elem(&27u8)),
+        (TmpVar(3), f.elem(&8u8)),
+        (TmpVar(4), f.elem(&35u8)),
+        (Out, eq.rhs),
+      ])
+    };
 
     let r1cs = R1CS::from_tmpl(f, &r1cs_tmpl, &witness).unwrap();
     let qap = QAP::build(f, r1cs.clone(), &ApplyWitness::Beginning);

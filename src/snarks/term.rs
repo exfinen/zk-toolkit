@@ -11,6 +11,12 @@ pub enum Term {
   Var(String),
 }
 
+impl Term {
+  pub fn var(name: &str) -> Term {
+    Term::Var(name.to_string())
+  }
+}
+
 impl std::fmt::Debug for Term {
   fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
       match self {
