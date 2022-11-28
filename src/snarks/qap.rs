@@ -205,10 +205,18 @@ impl QAP {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::snarks::{
-    sparse_vec::SparseVec,
-    constraint::Constraint,
+  use crate::{
+    building_block::field::FieldElem,
+    snarks::{
+      constraint::Constraint,
+      gate::Gate,
+      equation_parser::Parser,
+      r1cs_tmpl::R1CSTmpl,
+      sparse_vec::SparseVec,
+      term::Term,
+    }
   };
+  use std::collections::HashMap;
 
   #[test]
   fn test_r1cs_to_polynomial() {
@@ -314,4 +322,53 @@ mod tests {
     assert_eq!(&z[2], one);
   }
 
+  #[test]
+  fn execute_for_blog_post_1() {
+    let f = &Field::new(&3911u16);
+    let expr = "(x * x * x) + x + 5 == 35";
+    let eq = Parser::parse(f, expr).unwrap();
+    let gates = &Gate::build(f, &eq);
+    let r1cs_tmpl = R1CSTmpl::from_gates(f, gates);
+
+    // build witness
+    /*
+      x = 3
+      t1 = x(3) * x(3) = 9
+      t2 = t1(9) * x(3) = 27
+      t3 = x(3) + 5 = 8
+      t4 = t2(27) + t2(8) = 35
+      out = t4(35) * 1 = 35
+    */
+    let witness = HashMap::<Term, FieldElem>::from([
+      (Term::Var("x".to_string()), f.elem(&3u8)),
+      (Term::TmpVar(1), f.elem(&9u8)),
+      (Term::TmpVar(2), f.elem(&27u8)),
+      (Term::TmpVar(3), f.elem(&8u8)),
+      (Term::TmpVar(4), f.elem(&35u8)),
+      (Term::Out, eq.rhs),
+    ]);
+
+    let r1cs = R1CS::from_tmpl(f, &r1cs_tmpl, &witness).unwrap();
+    let qap = QAP::build(f, r1cs.clone(), &ApplyWitness::Beginning);
+
+    /*
+    let a_poly: Polynomial = (&qap.a_polys.flatten_rows()).into();
+    let b_poly: Polynomial = (&qap.b_polys.flatten_rows()).into();
+    let c_poly: Polynomial = (&qap.c_polys.flatten_rows()).into();
+
+    let t = a_poly * &b_poly - &c_poly;
+
+    let num_constraints = f.elem(&gates.len());
+    let z = QAP::build_z(f, &num_constraints);
+
+    let is_constraints_valid = match t.divide_by(&z) {
+      DivResult::Quotient(_) => true,
+      DivResult::QuotientRemainder(_) => false,
+    };
+    println!("{:?}", is_constraints_valid);
+     */
+    println!("a: {:?}", qap.a_polys.pretty_print());
+    println!("b: {:?}", qap.b_polys.pretty_print());
+    println!("c: {:?}", qap.c_polys.pretty_print());
+  }
 }
