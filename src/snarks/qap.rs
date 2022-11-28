@@ -102,7 +102,7 @@ impl QAP {
 
   pub fn build(
     f: &Field,
-    r1cs: R1CS,
+    r1cs: &R1CS,
     apply_witness: &ApplyWitness,
   ) -> QAP {
     /*
@@ -307,7 +307,7 @@ mod tests {
     let r1cs = R1CS { constraints, witness: witness.clone() };
 
     for apply_witness in vec![ApplyWitness::Beginning, ApplyWitness::End] {
-      let qap = QAP::build(f, r1cs.clone(), &apply_witness);
+      let qap = QAP::build(f, &r1cs, &apply_witness);
       let is_passed = qap.check_constraints(&witness, num_constraints, &apply_witness);
       assert!(is_passed);
     }
@@ -359,7 +359,7 @@ mod tests {
     };
 
     let r1cs = R1CS::from_tmpl(f, &r1cs_tmpl, &witness).unwrap();
-    let qap = QAP::build(f, r1cs.clone(), &ApplyWitness::Beginning);
+    let qap = QAP::build(f, &r1cs, &ApplyWitness::Beginning);
 
     println!("a:\n{}", qap.a_polys.pretty_print());
     println!("b:\n{}", qap.b_polys.pretty_print());
@@ -401,7 +401,7 @@ mod tests {
     for witness in vec![good_witness, bad_witness] {
       let r1cs = R1CS::from_tmpl(f, &r1cs_tmpl, &witness).unwrap();
 
-      let qap = QAP::build(f, r1cs.clone(), &ApplyWitness::Beginning);
+      let qap = QAP::build(f, &r1cs, &ApplyWitness::Beginning);
       let (a, b, c) = qap.get_flattened_polys();
       let t = a * &b - &c;
 
