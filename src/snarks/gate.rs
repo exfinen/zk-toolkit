@@ -236,7 +236,7 @@ mod tests {
 
   #[test]
   fn blog_post_1_sample_1() {
-    let f = &Field::new(&3911u16);
+    let f = &Field::new(&37u8);
     let expr = "(x * x * x) + x + 5 == 35";
     let eq = Parser::parse(f, expr).unwrap();
     let gates = &Gate::build(f, &eq);

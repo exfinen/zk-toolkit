@@ -200,6 +200,13 @@ impl QAP {
       DivResult::QuotientRemainder(_) => false,
     }
   }
+
+  pub fn get_flattened_polys(&self) -> (Polynomial, Polynomial, Polynomial) {
+    let a_poly: Polynomial = (&self.a_polys.flatten_rows()).into();
+    let b_poly: Polynomial = (&self.b_polys.flatten_rows()).into();
+    let c_poly: Polynomial = (&self.c_polys.flatten_rows()).into();
+    (a_poly, b_poly, c_poly)
+  }
 }
 
 #[cfg(test)]
@@ -324,7 +331,7 @@ mod tests {
 
   #[test]
   fn blog_post_1_sample_1() {
-    let f = &Field::new(&3911u16);
+    let f = &Field::new(&37u8);
     let expr = "(x * x * x) + x + 5 == 35";
     let eq = Parser::parse(f, expr).unwrap();
     let gates = &Gate::build(f, &eq);
@@ -354,24 +361,58 @@ mod tests {
     let r1cs = R1CS::from_tmpl(f, &r1cs_tmpl, &witness).unwrap();
     let qap = QAP::build(f, r1cs.clone(), &ApplyWitness::Beginning);
 
-    /*
-    let a_poly: Polynomial = (&qap.a_polys.flatten_rows()).into();
-    let b_poly: Polynomial = (&qap.b_polys.flatten_rows()).into();
-    let c_poly: Polynomial = (&qap.c_polys.flatten_rows()).into();
+    println!("a:\n{}", qap.a_polys.pretty_print());
+    println!("b:\n{}", qap.b_polys.pretty_print());
+    println!("c:\n{}", qap.c_polys.pretty_print());
+  }
 
-    let t = a_poly * &b_poly - &c_poly;
+  #[test]
+  fn blog_post_1_sample_2() {
+    let f = &Field::new(&37u8);
+    let expr = "(x * x * x) + x + 5 == 35";
+    let eq = Parser::parse(f, expr).unwrap();
+    let gates = &Gate::build(f, &eq);
+    let r1cs_tmpl = R1CSTmpl::from_gates(f, gates);
 
-    let num_constraints = f.elem(&gates.len());
-    let z = QAP::build_z(f, &num_constraints);
-
-    let is_constraints_valid = match t.divide_by(&z) {
-      DivResult::Quotient(_) => true,
-      DivResult::QuotientRemainder(_) => false,
+    // build witness
+    let good_witness = {
+      use crate::snarks::term::Term::*;
+      HashMap::<Term, FieldElem>::from([
+        (Term::var("x"), f.elem(&3u8)),
+        (TmpVar(1), f.elem(&9u8)),
+        (TmpVar(2), f.elem(&27u8)),
+        (TmpVar(3), f.elem(&8u8)),
+        (TmpVar(4), f.elem(&35u8)),
+        (Out, eq.rhs.clone()),
+      ])
     };
-    println!("{:?}", is_constraints_valid);
-     */
-    println!("a: {:?}", qap.a_polys.pretty_print());
-    println!("b: {:?}", qap.b_polys.pretty_print());
-    println!("c: {:?}", qap.c_polys.pretty_print());
+    let bad_witness = {
+      use crate::snarks::term::Term::*;
+      HashMap::<Term, FieldElem>::from([
+        (Term::var("x"), f.elem(&4u8)),  // replaced 3 with 4
+        (TmpVar(1), f.elem(&9u8)),
+        (TmpVar(2), f.elem(&27u8)),
+        (TmpVar(3), f.elem(&8u8)),
+        (TmpVar(4), f.elem(&35u8)),
+        (Out, eq.rhs),
+      ])
+    };
+
+    for witness in vec![good_witness, bad_witness] {
+      let r1cs = R1CS::from_tmpl(f, &r1cs_tmpl, &witness).unwrap();
+
+      let qap = QAP::build(f, r1cs.clone(), &ApplyWitness::Beginning);
+      let (a, b, c) = qap.get_flattened_polys();
+      let t = a * &b - &c;
+
+      let num_constraints = f.elem(&gates.len());
+      let z = QAP::build_z(f, &num_constraints);
+
+      let is_witness_valid = match t.divide_by(&z) {
+        DivResult::Quotient(_) => true,
+        DivResult::QuotientRemainder(_) => false,
+      };
+      println!("is witness valid? -> {}", is_witness_valid);
+    }
   }
 }
