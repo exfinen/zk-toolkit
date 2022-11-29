@@ -330,7 +330,7 @@ mod tests {
   }
 
   #[test]
-  fn blog_post_1_sample_1() {
+  fn blog_post_1_example_1() {
     let f = &Field::new(&37u8);
     let expr = "(x * x * x) + x + 5 == 35";
     let eq = Parser::parse(f, expr).unwrap();
@@ -367,7 +367,7 @@ mod tests {
   }
 
   #[test]
-  fn blog_post_1_sample_2() {
+  fn blog_post_1_example_2() {
     let f = &Field::new(&37u8);
     let expr = "(x * x * x) + x + 5 == 35";
     let eq = Parser::parse(f, expr).unwrap();
