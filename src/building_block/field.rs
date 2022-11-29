@@ -189,6 +189,7 @@ impl FieldElem {
   }
 
   pub fn times(&self, rhs: &impl ToBigUint) -> FieldElem {
+    let rhs = rhs.to_biguint() % &*self.f.order;
     let mut n = self.n.clone();
     n *= &rhs.to_biguint();
     n %= &(*self.f.order);
@@ -310,13 +311,14 @@ impl FieldElem {
     self.safe_inv().unwrap()
   }
 
-  pub fn safe_div(&self, other: &impl ToBigUint) -> Result<FieldElem, String> {
-    let inv = self.f.elem(&other.to_biguint()).safe_inv()?;
+  pub fn safe_div(&self, rhs: &impl ToBigUint) -> Result<FieldElem, String> {
+    let inv = self.f.elem(&rhs.to_biguint()).safe_inv()?;
     Ok(self.times(&inv))
   }
 
-  pub fn divide_by(&self, other: &impl ToBigUint) -> FieldElem {
-    self.safe_div(other).unwrap()
+  pub fn divide_by(&self, rhs: &impl ToBigUint) -> FieldElem {
+    let rhs = rhs.to_biguint() % &*self.f.order;
+    self.safe_div(&rhs).unwrap()
   }
 
   pub fn negate(&self) -> FieldElem {
@@ -990,7 +992,7 @@ mod tests {
       (3u128, 3u128, 27u128),
       (17u128, 7u128, 10338673u128),
     ];
-    
+
     for t in test_cases {
       let base = FieldElem::new(&f, &t.0);
       let exponent = BigUint::from(t.1);
