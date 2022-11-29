@@ -312,13 +312,13 @@ impl FieldElem {
   }
 
   pub fn safe_div(&self, rhs: &impl ToBigUint) -> Result<FieldElem, String> {
+    let rhs = rhs.to_biguint() % &*self.f.order;
     let inv = self.f.elem(&rhs.to_biguint()).safe_inv()?;
     Ok(self.times(&inv))
   }
 
   pub fn divide_by(&self, rhs: &impl ToBigUint) -> FieldElem {
-    let rhs = rhs.to_biguint() % &*self.f.order;
-    self.safe_div(&rhs).unwrap()
+    self.safe_div(rhs).unwrap()
   }
 
   pub fn negate(&self) -> FieldElem {
