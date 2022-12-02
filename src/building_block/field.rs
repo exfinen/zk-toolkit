@@ -293,7 +293,7 @@ impl FieldElem {
       y1 = y2;
     }
 
-    // if the result is not field element, convert it to field element
+    // if the result is not a field element, convert it to a field element
     let mut new_v = x0;
     if new_v < zero.clone() {
       while new_v < zero.clone() {
