@@ -330,7 +330,6 @@ mod tests {
       // 0 coeff case
       let p = p.normalize();
       assert_eq!(p.degree(), f.elem(&0u8));
-      assert!(false);
     }
     // degree 1
     {

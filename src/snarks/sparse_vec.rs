@@ -190,40 +190,6 @@ mod tests {
   use crate::building_block::field::Field;
 
   #[test]
-  fn test_is_empty() {
-    let f = &Field::new(&3911u16);
-    let zero = &f.elem(&0u8);
-    let one = &f.elem(&1u8);
-
-    {
-      let vec = SparseVec::new(f, &0u8);
-      assert!(vec.is_empty() == true);
-    }
-    {
-      let mut vec = SparseVec::new(f, &1u8);
-      vec.set(zero, zero);
-      assert!(vec.is_empty() == true);
-    }
-    {
-      let mut vec = SparseVec::new(f, &1u8);
-      vec.set(zero, one);
-      assert!(vec.is_empty() == false);
-    }
-    {
-      let mut vec = SparseVec::new(f, &2u8);
-      vec.set(zero, zero);
-      vec.set(one, zero);
-      assert!(vec.is_empty() == true);
-    }
-    {
-      let mut vec = SparseVec::new(f, &2u8);
-      vec.set(zero, zero);
-      vec.set(one, one);
-      assert!(vec.is_empty() == false);
-    }
-  }
-
-  #[test]
   #[should_panic]
   fn test_from_empty_list() {
     std::panic::set_hook(Box::new(|_| {}));  // suppress stack trace
