@@ -69,15 +69,11 @@ impl Gate {
     }
   }
 
-  fn replace_root_tmp_var_with_out(gates: &mut Vec<Gate>) -> () {
-    let last_idx = gates.len() - 1;
-    gates[last_idx].c = Term::Out;
-  }
-
   pub fn build(f: &Field, eq: &Equation) -> Vec<Gate> {
     let mut gates: Vec<Gate> = vec![];
-    let _root = Gate::traverse_lhs(f, &eq.lhs, &mut gates);
-    Gate::replace_root_tmp_var_with_out(&mut gates);
+    let root = Gate::traverse_lhs(f, &eq.lhs, &mut gates);
+    let out_gate = Gate { a: root, b: Term::One, c: Term::Out };
+    gates.push(out_gate);
     gates
   }
 }
@@ -94,6 +90,7 @@ mod tests {
     let input = "x + 4 == 9";
     let eq = Parser::parse(f, input).unwrap();
     let gates = &Gate::build(f, &eq);
+    println!("{:?}", gates);
     assert_eq!(gates.len(), 2);
 
     // t1 = (x + 4) * 1
