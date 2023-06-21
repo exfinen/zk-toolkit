@@ -1,9 +1,11 @@
 #![allow(non_snake_case)]
-use crate::building_block::hasher::Hasher;
-use crate::building_block::sha512::Sha512;
-use crate::building_block::field::{Field, FieldElem};
-use crate::building_block::ec_point::EcPoint;
-use crate::building_block::elliptic_curve::AddOps;
+use crate::building_block::{
+  ec_additive_group_ops::EcAdditiveGroupOps,
+  ec_point::EcPoint,
+  field::{Field, FieldElem},
+  hasher::Hasher,
+  sha512::Sha512,
+};
 use num_bigint::BigUint;
 use core::ops::{Add, Sub, Rem};
 use num_traits::{Zero};
@@ -34,10 +36,7 @@ pub struct Ed25519Sha512 {
   zero: FieldElem,
 }
 
-impl AddOps for Ed25519Sha512 {
-  fn get_zero_point(&self) -> EcPoint {
-      EcPoint::new(&self.zero, &self.one)
-  } 
+impl EcAdditiveGroupOps for Ed25519Sha512 {
   // Edwards Addition Law
   // (x1,y1) + (x2,y2) = ((x1y2 + x2y1) / (1 + d x1x2 y1y2), (y1y2 + x1x2) / (1 - d x1x2 y1y2))
   fn add(&self, p1: &EcPoint, p2: &EcPoint) -> EcPoint {
@@ -184,7 +183,7 @@ impl Ed25519Sha512 {
     let digest = self.H.get_digest(prv_key);
     let s = Self::gen_s(&digest[0..32].try_into().unwrap());
     let prefix = &digest[32..64];
-    
+
     let A_pt = self.scalar_mul(&self.B, &s);
     let A = self.encode_point(&A_pt);
 
@@ -220,7 +219,7 @@ impl Ed25519Sha512 {
       &self.H.get_digest(&R_pub_key_msg)
     );
     let A_pt = self.decode_point(&pub_key);
-    
+
     let lhs = self.scalar_mul(&self.B, &(S * 8u8));
 
     let eight = BigUint::from(8u8);

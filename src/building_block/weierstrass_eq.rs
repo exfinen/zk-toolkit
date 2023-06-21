@@ -1,85 +1,66 @@
-use crate::building_block::field::{Field, FieldElem};
-use crate::building_block::ec_point::EcPoint;
-use crate::building_block::elliptic_curve::EllipticCurve;
+use crate::building_block::{
+  ec_point::EcPoint,
+  field::{Field, FieldElem},
+};
 use num_bigint::BigUint;
-use num_traits::identities::{Zero, One};
 
-// y^2 = x^3 + Ax + B
+// originally: Y^2                = X^3 +          aX   + b
+// currently:  Y^2 + a_1XY + a_3Y = X^3 + a_2X^2 + a_4X + a_6
 pub struct WeierstrassEq {
   pub f: Field,
-  pub a: FieldElem,
-  pub b: FieldElem,
-  pub g: EcPoint,
-  pub n: Field,
-  pub zero: BigUint,
-  pub one: BigUint,
+  pub a1: FieldElem,
+  pub a2: FieldElem,
+  pub a3: FieldElem,
+  pub a4: FieldElem,  // a originally
+  pub a6: FieldElem,  // b originally
 }
 
 impl WeierstrassEq {
   pub fn new(
-    f: Field, 
-    a: BigUint, 
-    b: BigUint, 
-    gx: BigUint, 
-    gy: BigUint,
-    n: Field,
+    f: Field,
+    a1: BigUint,
+    a2: BigUint,
+    a3: BigUint,
+    a4: BigUint,
+    a6: BigUint,
   ) -> Result<Self, String> {
-    let a = FieldElem::new(&f, &a);
-    let b = FieldElem::new(&f, &b);
-    let g = EcPoint::new(
-      &FieldElem::new(&f, &gx), 
-      &FieldElem::new(&f, &gy),
-    );
-    let zero = BigUint::zero();
-    let one = BigUint::one();
+    let a1 = FieldElem::new(&f, &a1);
+    let a2 = FieldElem::new(&f, &a2);
+    let a3 = FieldElem::new(&f, &a3);
+    let a4 = FieldElem::new(&f, &a4);
+    let a6 = FieldElem::new(&f, &a6);
 
-    Ok(WeierstrassEq { f, a, b, g, n, zero, one })
+    Ok(WeierstrassEq { f, a1, a2, a3, a4, a6 })
   }
 
-  pub fn secp256k1() -> WeierstrassEq {
-    let p = BigUint::parse_bytes(b"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F", 16).unwrap();
-    let f = Field::new(&p);
+  pub fn secp256k1(f: Field) -> WeierstrassEq {
+    let a1 = BigUint::from(0u8);
+    let a2 = BigUint::from(0u8);
+    let a3 = BigUint::from(0u8);
+    let a4 = BigUint::from(0u32);
+    let a6 = BigUint::from(7u8);
 
-    let a = BigUint::from(0u32);
-    let b = BigUint::from(7u8);
-
-    // base point
-    let gx = BigUint::parse_bytes(b"79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798", 16).unwrap();
-    let gy = BigUint::parse_bytes(b"483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8", 16).unwrap();
-
-    // order of base point
-    let order = BigUint::parse_bytes(b"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", 16).unwrap();
-    let n = Field::new(&order);
-    
     // curve
-    WeierstrassEq::new(f, a, b, gx, gy, n).unwrap()
-  }
-}
-
-impl EllipticCurve for WeierstrassEq {
-  fn f(&self) -> &Field {
-    &self.f
+    WeierstrassEq::new(f, a1, a2, a3, a4, a6).unwrap()
   }
 
-  fn g(&self) -> EcPoint {
-    self.g.clone()
-  }
-  
-  fn n(&self) -> &Field {
-    &self.n
-  }
-
-  fn is_on_curve(&self, pt: &EcPoint) -> bool {
-    println!("Checking if on curve");
+  pub fn is_rational_point(&self, pt: &EcPoint) -> bool {
     if pt.is_inf {
       false
     } else {
-      let x3 = &pt.x * &pt.x * &pt.x;
-      let ax = &self.a * &pt.x;
-      let y2 = &pt.y * &pt.y;
-
-      // check if y^2 = x^3 + Ax + B
-      y2 == x3 + ax + &self.b
+      // check if Y^2 + a_1XY + a_3Y = X^3 + a_2X^2 + a_4X + a_6 holds
+      let lhs =
+        &pt.y * &pt.y
+        + &self.a1 * &pt.x * &pt.y
+        + &self.a3 * &pt.y
+        ;
+      let rhs =
+        &pt.x * &pt.x * &pt.x
+        + &self.a2 * &pt.x * &pt.x
+        + &self.a4 * &pt.x
+        + &self.a6
+        ;
+      lhs == rhs
     }
   }
 }

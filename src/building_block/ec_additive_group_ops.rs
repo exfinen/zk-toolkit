@@ -1,19 +1,16 @@
 use crate::building_block::ec_point::EcPoint;
-use crate::building_block::field::Field;
 use num_bigint::BigUint;
 use num_traits::identities::{Zero, One};
 use std::ops::{BitAnd, ShrAssign};
 
-pub trait AddOps {
-  fn get_zero_point(&self) -> EcPoint; 
-
+pub trait EcAdditiveGroupOps {
   fn add(&self, p1: &EcPoint, p2: &EcPoint) -> EcPoint;
 
   fn inv(&self, p: &EcPoint) -> EcPoint;
 
   fn vector_add(&self, ps: &[&EcPoint]) -> EcPoint {
     if ps.len() == 0 {
-      panic!("cannot get the sum of empty slice"); 
+      panic!("cannot get the sum of empty slice");
     } else if ps.len() == 1 {
       ps[0].clone()
     } else {
@@ -25,9 +22,13 @@ pub trait AddOps {
     }
   }
 
+  fn get_point_at_infinity(&self) -> EcPoint { // using &self to make the trait object-safe
+    EcPoint::inf()
+  }
+
   fn scalar_mul(&self, pt: &EcPoint, multiplier: &BigUint) -> EcPoint {
     let mut n = multiplier.clone();
-    let mut res = self.get_zero_point();
+    let mut res = EcPoint::inf();
     let mut pt_pow_n = pt.clone();
     let one = BigUint::one();
 
@@ -40,11 +41,4 @@ pub trait AddOps {
     }
     res
   }
-}
-
-pub trait EllipticCurve {
-  fn g(&self) -> EcPoint;
-  fn n(&self) -> &Field;  // TODO create Group struct
-  fn is_on_curve(&self, pt: &EcPoint) -> bool;
-  fn f(&self) -> &Field;
 }

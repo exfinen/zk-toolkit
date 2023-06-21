@@ -1,7 +1,8 @@
 pub mod ec_point;
 pub mod ecdsa;
 pub mod ed25519_sha512;
-pub mod elliptic_curve;
+pub mod ec_additive_group_ops;
+pub mod ec_cyclic_additive_group;
 pub mod field;
 pub mod hasher;
 pub mod hmac;

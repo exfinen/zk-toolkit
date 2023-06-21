@@ -1,9 +1,12 @@
-use crate::building_block::elliptic_curve::AddOps;
-use crate::building_block::field::FieldElem;
-use crate::building_block::ec_point::EcPoint;
+use crate::building_block::{
+  ec_additive_group_ops::EcAdditiveGroupOps,
+  ec_point::EcPoint,
+  field::FieldElem,
+};
 use num_bigint::BigUint;
 use num_traits::identities::{One, Zero};
 
+#[derive(Clone)]
 pub struct AffineAddOps;
 
 impl AffineAddOps {
@@ -12,11 +15,7 @@ impl AffineAddOps {
   }
 }
 
-impl AddOps for AffineAddOps {
-  fn get_zero_point(&self) -> EcPoint {
-      EcPoint::inf()
-  }
-
+impl EcAdditiveGroupOps for AffineAddOps {
   // TODO check if all points are based on the same field
   fn add(&self, p1: &EcPoint, p2: &EcPoint) -> EcPoint {
     if p1.is_inf && p2.is_inf {  // inf + inf is inf
@@ -37,7 +36,7 @@ impl AddOps for AffineAddOps {
       // 2y dy/dx = 3x^2 + A
       // dy/dx = (3x^2 + A) / 2y
       //
-      // dy/dx is the slope m of the tangent line at the point 
+      // dy/dx is the slope m of the tangent line at the point
       // m = (3x^2 + A) / 2y
       let m1 = p1.x.sq() * 3u8;
       let m2 = &p1.y * 2u8;
@@ -53,22 +52,22 @@ impl AddOps for AffineAddOps {
       // 0 = x^3 - m^2 x^2 + ...  (2)
       //
       // with below equation:
-      // (x - r)(x - s)(x - t) = x^3 + (r + s + t)x^2 + (ab + ac + bc)x − abc 
-      // 
+      // (x - r)(x - s)(x - t) = x^3 + (r + s + t)x^2 + (ab + ac + bc)x − abc
+      //
       // we know that the coefficient of x^2 term is:
-      // r + s + t 
+      // r + s + t
       //
       // using (2), the coefficient of x^2 term of the intersecting line is:
       // m^2 = r + s + t
-      // 
+      //
       // since p1 and p2 are the same point, replace r and s w/ p1.x
       // to get the x-coordinate of the point where (1) intersects the curve
       // x3 = m^2 − 2*p1.x
       let p3x = m.sq() - (&p1.x * 2u8);
 
       // then get the y-coordinate by substituting x in (1) w/ x3 to get y3
-      // y3 = m(x3 − p1.x) + p1.y 
-      // 
+      // y3 = m(x3 − p1.x) + p1.y
+      //
       // reflecting y3 across the x-axis results in the addition result y-coordinate 
       // result.y = -1 * y3 = m(p1.x - x3) - p1.y
       let p3y_neg = m * (&p1.x - &p3x) - &p1.y;
@@ -95,13 +94,13 @@ impl AddOps for AffineAddOps {
       //
       // with below equation:
       // (x - r)(x - s)(x - t) = x^3 + (r + s + t)x^2 + (ab + ac + bc)x − abc 
-      // 
+      //
       // we know that the coefficient of x^2 term is:
-      // r + s + t 
+      // r + s + t
       //
       // using (2), the coefficient of x^2 term of the intersecting line is:
       // m^2 = r + s + t
-      // 
+      //
       // substitute r and s with the known 2 roots - p1.x and p2.x:
       // m^2 = p1.x + p2. + t
       // t = m^2 - p1.x - p2.x
@@ -114,7 +113,7 @@ impl AddOps for AffineAddOps {
       // y = m(x − p1.x) + p1.y
       // p3.y = m(p3.x − p1.x) + p1.y
       let p3y = m * (&p3x - &p1.x) + &p1.y;
-      
+
       // then (p3.x, -p3.y) is the result of adding p1 and p2
       EcPoint::new(&p3x, &-p3y)
     }
@@ -148,7 +147,7 @@ impl JacobianPoint {
       })
     }
   }
-  
+
   pub fn to_ec_point(&self) -> Result<EcPoint, String> {
     if self.z.n == BigUint::zero() {
       Err("z is not expected to be zero".to_string())
@@ -162,6 +161,7 @@ impl JacobianPoint {
   }
 }
 
+#[derive(Clone)]
 pub struct JacobianAddOps;
 
 impl JacobianAddOps {
@@ -170,11 +170,7 @@ impl JacobianAddOps {
   }
 }
 
-impl AddOps for JacobianAddOps {
-  fn get_zero_point(&self) -> EcPoint {
-    EcPoint::inf()
-  }
-
+impl EcAdditiveGroupOps for JacobianAddOps {
   // TODO check if all points are based on the same field
   fn add(&self, p1: &EcPoint, p2: &EcPoint) -> EcPoint {
     if p1.is_inf && p2.is_inf {  // inf + inf is inf
@@ -193,7 +189,7 @@ impl AddOps for JacobianAddOps {
 
       // formula described in: http://hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#doubling-dbl-2009-l
       // w/ unnecessary computation removed
-      let jp = JacobianPoint::from_ec_point(p1).unwrap(); 
+      let jp = JacobianPoint::from_ec_point(p1).unwrap();
 
       let a = &jp.x.sq();
       let b = &jp.y.sq();
@@ -213,9 +209,9 @@ impl AddOps for JacobianAddOps {
       jp2.to_ec_point().unwrap()
 
     } else {  // when line through p1 and p2 is non-vertical line
-      let jp1 = JacobianPoint::from_ec_point(p1).unwrap(); 
+      let jp1 = JacobianPoint::from_ec_point(p1).unwrap();
       let jp2 = JacobianPoint::from_ec_point(p2).unwrap();
-      
+
       // formula described in: https://hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-3.html#addition-add-2007-bl
       // w/ unnecessary computation removed
       let h = jp2.x - &jp1.x;
@@ -247,19 +243,22 @@ impl AddOps for JacobianAddOps {
 mod tests {
   use super::*;
   use num_bigint::BigUint;
-  use crate::building_block::weierstrass_eq::WeierstrassEq;
-  use crate::building_block::field::FieldElem;
-  use crate::building_block::field::Field;
+  use crate::building_block::{
+    ec_cyclic_additive_group::EcCyclicAdditiveGroup,
+    field::{Field, FieldElem},
+    weierstrass_eq::WeierstrassEq,
+  };
 
-  fn get_ops_list<'a>() -> Vec<Box<dyn AddOps>> {
+  fn get_ops_list<'a>() -> Vec<Box<dyn EcAdditiveGroupOps>> {
     vec![Box::new(AffineAddOps::new()), Box::new(JacobianAddOps::new())]
   }
 
   #[test]
   fn add_same_point() {
-    let e = WeierstrassEq::secp256k1();
+    let group = EcCyclicAdditiveGroup::secp256k1();
+    let g = &group.g;
     for ops in get_ops_list() {
-      let g2 = ops.add(&e.g, &e.g);
+      let g2 = ops.add(g, g);
       let exp_x = BigUint::parse_bytes(b"89565891926547004231252920425935692360644145829622209833684329913297188986597", 10).unwrap();
       let exp_y = BigUint::parse_bytes(b"12158399299693830322967808612713398636155367887041628176798871954788371653930", 10).unwrap();
       assert_eq!(g2.x.n, exp_x);
@@ -274,9 +273,10 @@ mod tests {
 
   #[test]
   fn add_vertical_line() {
-    let e = WeierstrassEq::secp256k1();
+    let group = EcCyclicAdditiveGroup::secp256k1();
+    let g = &group.g;
     for ops in get_ops_list() {
-      let a = e.g.clone();
+      let a = g.clone();
       let b = EcPoint::new(&a.x, &-&a.y);
       let exp = EcPoint::inf();
       let act = ops.add(&a, &b);
@@ -286,21 +286,23 @@ mod tests {
 
   #[test]
   fn add_inf_and_affine() {
-    let e = WeierstrassEq::secp256k1();
+    let group = EcCyclicAdditiveGroup::secp256k1();
+    let g = &group.g;
     for ops in get_ops_list() {
       let inf = EcPoint::inf();
-      let inf_plus_g = ops.add(&e.g, &inf);
-      assert_eq!(e.g, inf_plus_g);
+      let inf_plus_g = ops.add(g, &inf);
+      assert_eq!(g, &inf_plus_g);
     }
   }
 
   #[test]
   fn add_affine_and_inf() {
-    let e = WeierstrassEq::secp256k1();
+    let group = EcCyclicAdditiveGroup::secp256k1();
+    let g = &group.g;
     for ops in get_ops_list() {
       let inf = EcPoint::inf();
-      let g_plus_inf = ops.add(&inf, &e.g);
-      assert_eq!(e.g, g_plus_inf);
+      let g_plus_inf = ops.add(&inf, g);
+      assert_eq!(g, &g_plus_inf);
     }
   }
 
@@ -323,7 +325,7 @@ mod tests {
       let gx = BigUint::parse_bytes(self.x, 16).unwrap();
       let gy = BigUint::parse_bytes(self.y, 16).unwrap();
       EcPoint::new(
-        &FieldElem::new(f, &gx), 
+        &FieldElem::new(f, &gx),
         &FieldElem::new(f, &gy),
       )
     }
@@ -358,7 +360,9 @@ mod tests {
       Xy { _n: "9", x: b"ACD484E2F0C7F65309AD178A9F559ABDE09796974C57E714C35F110DFC27CCBE", y: b"CC338921B0A7D9FD64380971763B61E9ADD888A4375F8E0F05CC262AC64F9C37" },
       Xy { _n: "10", x: b"A0434D9E47F3C86235477C7B1AE6AE5D3442D49B1943C2B752A68E2A47E247C7", y: b"893ABA425419BC27A3B6C7E693A24C696F794C2ED877A1593CBEE53B037368D7" },
     ];
-    let mut gs = vec![e.g.clone()];  // gs[0] is used to match index and g's n and will not be actually used
+    let group = EcCyclicAdditiveGroup::secp256k1();
+    let g = &group.g;
+    let mut gs = vec![g.clone()];  // gs[0] is used to match index and g's n and will not be actually used
     for p in ps {
       gs.push(p.to_ec_point(&e.f));
     }
@@ -367,13 +371,15 @@ mod tests {
 
   #[test]
   fn scalar_mul_smaller_nums() {
-    let e = WeierstrassEq::secp256k1();
+    let group = EcCyclicAdditiveGroup::secp256k1();
+    let e = WeierstrassEq::secp256k1(group.f);
+    let g = &group.g;
     for ops in get_ops_list() {
       let gs = get_g_multiples(&e);
 
       for n in 1usize..=10 {
-        let res = ops.scalar_mul(&e.g, &BigUint::from(n));
-        assert_eq!(&res, &gs[n]); 
+        let res = ops.scalar_mul(g, &BigUint::from(n));
+        assert_eq!(&res, &gs[n]);
       }
     }
   }
@@ -387,27 +393,27 @@ mod tests {
   #[test]
   fn scalar_mul_gen_pubkey() {
     let test_cases = vec![
-      ScalarMulTest { 
+      ScalarMulTest {
         k: b"AA5E28D6A97A2479A65527F7290311A3624D4CC0FA1578598EE3C2613BF99522",
         x: b"34F9460F0E4F08393D192B3C5133A6BA099AA0AD9FD54EBCCFACDFA239FF49C6",
         y: b"0B71EA9BD730FD8923F6D25A7A91E7DD7728A960686CB5A901BB419E0F2CA232",
       },
-      ScalarMulTest { 
+      ScalarMulTest {
         k: b"7E2B897B8CEBC6361663AD410835639826D590F393D90A9538881735256DFAE3",
         x: b"D74BF844B0862475103D96A611CF2D898447E288D34B360BC885CB8CE7C00575",
         y: b"131C670D414C4546B88AC3FF664611B1C38CEB1C21D76369D7A7A0969D61D97D",
       },
-      ScalarMulTest { 
+      ScalarMulTest {
         k: b"6461E6DF0FE7DFD05329F41BF771B86578143D4DD1F7866FB4CA7E97C5FA945D",
         x: b"E8AECC370AEDD953483719A116711963CE201AC3EB21D3F3257BB48668C6A72F",
         y: b"C25CAF2F0EBA1DDB2F0F3F47866299EF907867B7D27E95B3873BF98397B24EE1",
       },
-      ScalarMulTest { 
+      ScalarMulTest {
         k: b"376A3A2CDCD12581EFFF13EE4AD44C4044B8A0524C42422A7E1E181E4DEECCEC",
         x: b"14890E61FCD4B0BD92E5B36C81372CA6FED471EF3AA60A3E415EE4FE987DABA1",
         y: b"297B858D9F752AB42D3BCA67EE0EB6DCD1C2B7B0DBE23397E66ADC272263F982",
       },
-      ScalarMulTest { 
+      ScalarMulTest {
         k: b"1B22644A7BE026548810C378D0B2994EEFA6D2B9881803CB02CEFF865287D1B9",
         x: b"F73C65EAD01C5126F28F442D087689BFA08E12763E0CEC1D35B01751FD735ED3",
         y: b"F449A8376906482A84ED01479BD18882B919C140D638307F0C0934BA12590BDE",
@@ -415,19 +421,21 @@ mod tests {
     ];
 
     use std::time::Instant;
-    let e = WeierstrassEq::secp256k1();
+    let group = EcCyclicAdditiveGroup::secp256k1();
+    let e = WeierstrassEq::secp256k1(group.f);
+    let g = &group.g;
     for ops in get_ops_list() {
       for t in &test_cases {
         let k = BigUint::parse_bytes(t.k, 16).unwrap();
         let x = BigUint::parse_bytes(t.x, 16).unwrap();
         let y = BigUint::parse_bytes(t.y, 16).unwrap();
         let p = EcPoint::new(
-          &FieldElem::new(&e.f, &x), 
+          &FieldElem::new(&e.f, &x),
           &FieldElem::new(&e.f, &y),
         );
 
         let beg = Instant::now();
-        let gk = ops.scalar_mul(&e.g, &k);
+        let gk = ops.scalar_mul(g, &k);
         let end = beg.elapsed();
         println!("Large number scalar mul done in {}.{:03} sec", end.as_secs(), end.subsec_nanos() / 1_000_000);
         assert_eq!(p, gk);
@@ -437,35 +445,36 @@ mod tests {
 
   #[test]
   fn add_different_points() {
-    let large_1 = Xy { 
-      _n: "28948022309329048855892746252171976963209391069768726095651290785379540373584", 
-      x: b"A6B594B38FB3E77C6EDF78161FADE2041F4E09FD8497DB776E546C41567FEB3C", 
+    let large_1 = Xy {
+      _n: "28948022309329048855892746252171976963209391069768726095651290785379540373584",
+      x: b"A6B594B38FB3E77C6EDF78161FADE2041F4E09FD8497DB776E546C41567FEB3C",
       y: b"71444009192228730CD8237A490FEBA2AFE3D27D7CC1136BC97E439D13330D55",
     };
-    let large_2 = Xy { 
-      _n: "57896044618658097711785492504343953926418782139537452191302581570759080747168", 
-      x: b"00000000000000000000003B78CE563F89A0ED9414F5AA28AD0D96D6795F9C63", 
+    let large_2 = Xy {
+      _n: "57896044618658097711785492504343953926418782139537452191302581570759080747168",
+      x: b"00000000000000000000003B78CE563F89A0ED9414F5AA28AD0D96D6795F9C63",
       y: b"3F3979BF72AE8202983DC989AEC7F2FF2ED91BDD69CE02FC0700CA100E59DDF3",
     };
-    let large_3 = Xy { 
-      _n: "86844066927987146567678238756515930889628173209306178286953872356138621120752", 
-      x: b"E24CE4BEEE294AA6350FAA67512B99D388693AE4E7F53D19882A6EA169FC1CE1", 
+    let large_3 = Xy {
+      _n: "86844066927987146567678238756515930889628173209306178286953872356138621120752",
+      x: b"E24CE4BEEE294AA6350FAA67512B99D388693AE4E7F53D19882A6EA169FC1CE1",
       y: b"8B71E83545FC2B5872589F99D948C03108D36797C4DE363EBD3FF6A9E1A95B10",
     };
 
-    let e = WeierstrassEq::secp256k1();
+    let f = EcCyclicAdditiveGroup::secp256k1().f;
+    let e = WeierstrassEq::secp256k1(f);
     for ops in get_ops_list() {
       let gs = get_g_multiples(&e);
 
       let test_cases = [
-        AddTestCase::new(1, 2, 3), 
-        AddTestCase::new(2, 2, 4), 
-        AddTestCase::new(2, 6, 8), 
-        AddTestCase::new(3, 4, 7), 
-        AddTestCase::new(5, 1, 6), 
-        AddTestCase::new(5, 2, 7), 
-        AddTestCase::new(8, 1, 9), 
-        AddTestCase::new(9, 1, 10), 
+        AddTestCase::new(1, 2, 3),
+        AddTestCase::new(2, 2, 4),
+        AddTestCase::new(2, 6, 8),
+        AddTestCase::new(3, 4, 7),
+        AddTestCase::new(5, 1, 6),
+        AddTestCase::new(5, 2, 7),
+        AddTestCase::new(8, 1, 9),
+        AddTestCase::new(9, 1, 10),
       ];
 
       for tc in test_cases {

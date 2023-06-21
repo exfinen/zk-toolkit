@@ -343,8 +343,7 @@ mod tests {
       t1 = x(3) * x(3) = 9
       t2 = t1(9) * x(3) = 27
       t3 = x(3) + 5 = 8
-      t4 = t2(27) + t2(8) = 35
-      out = t4(35) * 1 = 35
+      out = t2(27) + t2(8) = 35
     */
     let witness = {
       use crate::snarks::term::Term::*;
@@ -353,7 +352,6 @@ mod tests {
         (TmpVar(1), f.elem(&9u8)),
         (TmpVar(2), f.elem(&27u8)),
         (TmpVar(3), f.elem(&8u8)),
-        (TmpVar(4), f.elem(&35u8)),
         (Out, eq.rhs),
       ])
     };
@@ -382,8 +380,7 @@ mod tests {
         (TmpVar(1), f.elem(&9u8)),
         (TmpVar(2), f.elem(&27u8)),
         (TmpVar(3), f.elem(&8u8)),
-        (TmpVar(4), f.elem(&35u8)),
-        (Out, eq.rhs.clone()),
+        (Out, f.elem(&35u8)),
       ])
     };
     let bad_witness = {
@@ -393,12 +390,12 @@ mod tests {
         (TmpVar(1), f.elem(&9u8)),
         (TmpVar(2), f.elem(&27u8)),
         (TmpVar(3), f.elem(&8u8)),
-        (TmpVar(4), f.elem(&35u8)),
-        (Out, eq.rhs),
+        (Out, f.elem(&35u8)),
       ])
     };
 
-    for witness in vec![good_witness, bad_witness] {
+    for test_case in vec![("good", good_witness), ("bad", bad_witness)] {
+      let (name, witness) = test_case;
       let r1cs = R1CS::from_tmpl(f, &r1cs_tmpl, &witness).unwrap();
 
       let qap = QAP::build(f, &r1cs, &ApplyWitness::Beginning);
@@ -412,7 +409,7 @@ mod tests {
         DivResult::Quotient(_) => true,
         DivResult::QuotientRemainder(_) => false,
       };
-      println!("is witness valid? -> {}", is_witness_valid);
+      println!("is {} witness valid? -> {}", name, is_witness_valid);
     }
   }
 }

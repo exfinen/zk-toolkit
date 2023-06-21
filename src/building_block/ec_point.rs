@@ -1,5 +1,5 @@
 use crate::building_block::field::{Field, FieldElem};
-use crate::building_block::vector_ops::EcPoint1;
+use crate::building_block::vector_ops::EcPointWithOps;
 
 #[derive(Debug, Clone)]
 pub struct EcPoint {
@@ -12,9 +12,9 @@ impl PartialEq for EcPoint {
   fn eq(&self, other: &Self) -> bool {
     if self.is_inf != other.is_inf {
       false
-    } else if self.is_inf {  // both is_inf's are true 
+    } else if self.is_inf {  // both is_inf's are true
       true
-    } else {  // both is_inf's are false 
+    } else {  // both is_inf's are false
       self.x == other.x && self.y == other.y
     }
   }
@@ -22,9 +22,9 @@ impl PartialEq for EcPoint {
 
 impl Eq for EcPoint {}
 
-impl<'a> From<EcPoint1<'a>> for EcPoint {
-  fn from(x: EcPoint1<'a>) -> EcPoint {
-    x.0.1  
+impl<'a> From<EcPointWithOps<'a>> for EcPoint {
+  fn from(x: EcPointWithOps<'a>) -> EcPoint {
+    x.0.1
   }
 }
 
