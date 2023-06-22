@@ -193,7 +193,7 @@ mod tests {
   #[test]
   fn test_gg_ones_times_z() {
     let group = EcCyclicAdditiveGroup::secp256k1();
-    let ops = JacobianAddOps::new();
+    let ops = JacobianAddOps::new(&group.f);
     let bp: Bulletproofs<2> = Bulletproofs::new(group, &ops);
 
     let n = 2;
@@ -213,7 +213,7 @@ mod tests {
   #[test]
   fn test_offset_by_negation() {
     let group = EcCyclicAdditiveGroup::secp256k1();
-    let ops = JacobianAddOps::new();
+    let ops = JacobianAddOps::new(&group.f);
     let bp: Bulletproofs<2> = Bulletproofs::new(group, &ops);
     let f_n = &bp.group.f_n;
     {
@@ -241,7 +241,7 @@ mod tests {
   #[allow(non_snake_case)]
   fn test_base_point_field_elem_mul() {
     let group = EcCyclicAdditiveGroup::secp256k1();
-    let ops = JacobianAddOps::new();
+    let ops = JacobianAddOps::new(&group.f);
     let bp: Bulletproofs<2> = Bulletproofs::new(group, &ops);
     let f_n = &bp.group.f_n;
 
@@ -278,7 +278,7 @@ mod tests {
   #[allow(non_snake_case)]
   fn test_mul_field_elem_above_order() {
     let group = EcCyclicAdditiveGroup::secp256k1();
-    let ops = JacobianAddOps::new();
+    let ops = JacobianAddOps::new(&group.f);
     let bp: Bulletproofs<2> = Bulletproofs::new(group, &ops);
     let f_n = &bp.group.f_n;
 
@@ -301,7 +301,7 @@ mod tests {
   #[allow(non_snake_case)]
   fn test_range_proof() {
     let group = EcCyclicAdditiveGroup::secp256k1();
-    let ops = JacobianAddOps::new();
+    let ops = JacobianAddOps::new(&group.f);
     let bp: Bulletproofs<2> = Bulletproofs::new(group, &ops);
     let f_n = &bp.group.f_n;
 

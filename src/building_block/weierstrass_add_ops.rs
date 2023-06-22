@@ -1,17 +1,19 @@
 use crate::building_block::{
   ec_additive_group_ops::EcAdditiveGroupOps,
   ec_point::EcPoint,
-  field::FieldElem,
+  field::{Field, FieldElem},
 };
 use num_bigint::BigUint;
 use num_traits::identities::{One, Zero};
 
 #[derive(Clone)]
-pub struct AffineAddOps;
+pub struct AffineAddOps {
+  f: Field,
+}
 
 impl AffineAddOps {
-  pub fn new() -> Self {
-    AffineAddOps {}
+  pub fn new(f: &Field) -> Self {
+    AffineAddOps { f: f.clone() }
   }
 }
 
@@ -19,17 +21,17 @@ impl EcAdditiveGroupOps for AffineAddOps {
   // TODO check if all points are based on the same field
   fn add(&self, p1: &EcPoint, p2: &EcPoint) -> EcPoint {
     if p1.is_inf && p2.is_inf {  // inf + inf is inf
-      EcPoint::inf()
+      EcPoint::inf(&self.f)
     } else if p1.is_inf {  // adding p2 to inf is p2
       p2.clone()
     } else if p2.is_inf {  // adding p1 to inf is p1
       p1.clone()
     } else if p1.x == p2.x && p1.y != p2.y {  // if line through p1 and p2 is vertical line
-      EcPoint::inf()
+      EcPoint::inf(&self.f)
     } else if p1.x == p2.x && p1.y == p2.y {  // if adding the same point
       // special case: if y == 0, the tangent line is vertical
       if p1.y.n == BigUint::zero() || p2.y.n == BigUint::zero() {
-        return EcPoint::inf();
+        return EcPoint::inf(&self.f);
       }
       // differentiate y^2 = x^3 + Ax + B w/ implicit differentiation
       // d/dx(y^2) = d/dx(x^3 + Ax + B)
@@ -162,11 +164,13 @@ impl JacobianPoint {
 }
 
 #[derive(Clone)]
-pub struct JacobianAddOps;
+pub struct JacobianAddOps {
+  f: Field,
+}
 
 impl JacobianAddOps {
-  pub fn new() -> Self {
-    JacobianAddOps {}
+  pub fn new(f: &Field) -> Self {
+    JacobianAddOps { f: f.clone() }
   }
 }
 
@@ -174,17 +178,17 @@ impl EcAdditiveGroupOps for JacobianAddOps {
   // TODO check if all points are based on the same field
   fn add(&self, p1: &EcPoint, p2: &EcPoint) -> EcPoint {
     if p1.is_inf && p2.is_inf {  // inf + inf is inf
-      EcPoint::inf()
+      EcPoint::inf(&self.f)
     } else if p1.is_inf {  // adding p2 to inf is p2
       p2.clone()
     } else if p2.is_inf {  // adding p1 to inf is p1
       p1.clone()
     } else if p1.x == p2.x && p1.y != p2.y {  // if line through p1 and p2 is vertical line
-      EcPoint::inf()
+      EcPoint::inf(&self.f)
     } else if p1.x == p2.x && p1.y == p2.y {  // if adding the same point
       // special case: if y == 0, the tangent line is vertical
       if p1.y.n == BigUint::zero() || p2.y.n == BigUint::zero() {
-        return EcPoint::inf();
+        return EcPoint::inf(&self.f);
       }
 
       // formula described in: http://hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#doubling-dbl-2009-l
@@ -249,15 +253,18 @@ mod tests {
     weierstrass_eq::WeierstrassEq,
   };
 
-  fn get_ops_list<'a>() -> Vec<Box<dyn EcAdditiveGroupOps>> {
-    vec![Box::new(AffineAddOps::new()), Box::new(JacobianAddOps::new())]
+  fn get_ops_list<'a>(f: &Field) -> Vec<Box<dyn EcAdditiveGroupOps>> {
+    vec![
+      Box::new(AffineAddOps::new(f)),
+      Box::new(JacobianAddOps::new(f)),
+    ]
   }
 
   #[test]
   fn add_same_point() {
     let group = EcCyclicAdditiveGroup::secp256k1();
     let g = &group.g;
-    for ops in get_ops_list() {
+    for ops in get_ops_list(&group.f) {
       let g2 = ops.add(g, g);
       let exp_x = BigUint::parse_bytes(b"89565891926547004231252920425935692360644145829622209833684329913297188986597", 10).unwrap();
       let exp_y = BigUint::parse_bytes(b"12158399299693830322967808612713398636155367887041628176798871954788371653930", 10).unwrap();
@@ -275,10 +282,10 @@ mod tests {
   fn add_vertical_line() {
     let group = EcCyclicAdditiveGroup::secp256k1();
     let g = &group.g;
-    for ops in get_ops_list() {
+    for ops in get_ops_list(&group.f) {
       let a = g.clone();
       let b = EcPoint::new(&a.x, &-&a.y);
-      let exp = EcPoint::inf();
+      let exp = EcPoint::inf(&group.f);
       let act = ops.add(&a, &b);
       assert_eq!(act, exp);
     }
@@ -288,8 +295,8 @@ mod tests {
   fn add_inf_and_affine() {
     let group = EcCyclicAdditiveGroup::secp256k1();
     let g = &group.g;
-    for ops in get_ops_list() {
-      let inf = EcPoint::inf();
+    for ops in get_ops_list(&group.f) {
+      let inf = EcPoint::inf(&group.f);
       let inf_plus_g = ops.add(g, &inf);
       assert_eq!(g, &inf_plus_g);
     }
@@ -299,8 +306,8 @@ mod tests {
   fn add_affine_and_inf() {
     let group = EcCyclicAdditiveGroup::secp256k1();
     let g = &group.g;
-    for ops in get_ops_list() {
-      let inf = EcPoint::inf();
+    for ops in get_ops_list(&group.f) {
+      let inf = EcPoint::inf(&group.f);
       let g_plus_inf = ops.add(&inf, g);
       assert_eq!(g, &g_plus_inf);
     }
@@ -308,8 +315,9 @@ mod tests {
 
   #[test]
   fn add_inf_and_inf() {
-    let ops = AffineAddOps::new();
-    let inf = EcPoint::inf();
+    let group = EcCyclicAdditiveGroup::secp256k1();
+    let ops = AffineAddOps::new(&group.f);
+    let inf = EcPoint::inf(&group.f);
     let inf_plus_inf = ops.add(&inf, &inf);
     assert_eq!(inf_plus_inf, inf);
   }
@@ -372,9 +380,9 @@ mod tests {
   #[test]
   fn scalar_mul_smaller_nums() {
     let group = EcCyclicAdditiveGroup::secp256k1();
-    let e = WeierstrassEq::secp256k1(group.f);
+    let e = WeierstrassEq::secp256k1(&group.f);
     let g = &group.g;
-    for ops in get_ops_list() {
+    for ops in get_ops_list(&group.f) {
       let gs = get_g_multiples(&e);
 
       for n in 1usize..=10 {
@@ -422,9 +430,9 @@ mod tests {
 
     use std::time::Instant;
     let group = EcCyclicAdditiveGroup::secp256k1();
-    let e = WeierstrassEq::secp256k1(group.f);
+    let e = WeierstrassEq::secp256k1(&group.f);
     let g = &group.g;
-    for ops in get_ops_list() {
+    for ops in get_ops_list(&group.f) {
       for t in &test_cases {
         let k = BigUint::parse_bytes(t.k, 16).unwrap();
         let x = BigUint::parse_bytes(t.x, 16).unwrap();
@@ -461,9 +469,9 @@ mod tests {
       y: b"8B71E83545FC2B5872589F99D948C03108D36797C4DE363EBD3FF6A9E1A95B10",
     };
 
-    let f = EcCyclicAdditiveGroup::secp256k1().f;
+    let f = &EcCyclicAdditiveGroup::secp256k1().f;
     let e = WeierstrassEq::secp256k1(f);
-    for ops in get_ops_list() {
+    for ops in get_ops_list(f) {
       let gs = get_g_multiples(&e);
 
       let test_cases = [

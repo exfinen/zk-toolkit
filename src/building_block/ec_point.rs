@@ -29,11 +29,10 @@ impl<'a> From<EcPointWithOps<'a>> for EcPoint {
 }
 
 impl EcPoint {
-  pub fn inf() -> Self {
-    let f = Field::new(&1u8);
+  pub fn inf(f: &Field) -> Self {
     EcPoint {
-      x: FieldElem::new(&f, &0u8),
-      y: FieldElem::new(&f, &0u8),
+      x: FieldElem::new(f, &0u8),
+      y: FieldElem::new(f, &0u8),
       is_inf: true,
     }
   }

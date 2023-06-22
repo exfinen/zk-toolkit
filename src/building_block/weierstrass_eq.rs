@@ -17,23 +17,23 @@ pub struct WeierstrassEq {
 
 impl WeierstrassEq {
   pub fn new(
-    f: Field,
+    f: &Field,
     a1: BigUint,
     a2: BigUint,
     a3: BigUint,
     a4: BigUint,
     a6: BigUint,
   ) -> Result<Self, String> {
-    let a1 = FieldElem::new(&f, &a1);
-    let a2 = FieldElem::new(&f, &a2);
-    let a3 = FieldElem::new(&f, &a3);
-    let a4 = FieldElem::new(&f, &a4);
-    let a6 = FieldElem::new(&f, &a6);
+    let a1 = FieldElem::new(f, &a1);
+    let a2 = FieldElem::new(f, &a2);
+    let a3 = FieldElem::new(f, &a3);
+    let a4 = FieldElem::new(f, &a4);
+    let a6 = FieldElem::new(f, &a6);
 
-    Ok(WeierstrassEq { f, a1, a2, a3, a4, a6 })
+    Ok(WeierstrassEq { f: f.clone(), a1, a2, a3, a4, a6 })
   }
 
-  pub fn secp256k1(f: Field) -> WeierstrassEq {
+  pub fn secp256k1(f: &Field) -> WeierstrassEq {
     let a1 = BigUint::from(0u8);
     let a2 = BigUint::from(0u8);
     let a3 = BigUint::from(0u8);

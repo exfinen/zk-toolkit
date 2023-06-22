@@ -40,14 +40,21 @@ impl EcAdditiveGroupOps for Ed25519Sha512 {
   // Edwards Addition Law
   // (x1,y1) + (x2,y2) = ((x1y2 + x2y1) / (1 + d x1x2 y1y2), (y1y2 + x1x2) / (1 - d x1x2 y1y2))
   fn add(&self, p1: &EcPoint, p2: &EcPoint) -> EcPoint {
-    let x1y2 = &p1.x * &p2.y;
-    let x2y1 = &p2.x * &p1.y;
-    let x1x2y1y2 = &x1y2 * &x2y1;
-    let y1y2 = &p1.y * &p2.y;
-    let x1x2 = &p1.x * &p2.x;
-    let x = (x1y2 + x2y1) / (self.f.elem(&1u8) + (&self.d * &x1x2y1y2));
-    let y = (y1y2 + x1x2) / (self.f.elem(&1u8) - (&self.d * x1x2y1y2));
-    EcPoint::new(&x, &y)
+    if p1.is_inf {
+      p2.clone()
+    }
+    else if p2.is_inf {
+      p1.clone()
+    } else {
+      let x1y2 = &p1.x * &p2.y;
+      let x2y1 = &p2.x * &p1.y;
+      let x1x2y1y2 = &x1y2 * &x2y1;
+      let y1y2 = &p1.y * &p2.y;
+      let x1x2 = &p1.x * &p2.x;
+      let x = (x1y2 + x2y1) / (self.f.elem(&1u8) + (&self.d * &x1x2y1y2));
+      let y = (y1y2 + x1x2) / (self.f.elem(&1u8) - (&self.d * x1x2y1y2));
+      EcPoint::new(&x, &y)
+    }
   }
 
   fn inv(&self, _p: &EcPoint) -> EcPoint {
@@ -234,6 +241,30 @@ impl Ed25519Sha512 {
 #[cfg(test)]
 mod tests {
   use super::*;
+
+  #[test]
+  fn adding_inf_test() {
+    let ed25519 = Ed25519Sha512::new();
+    let inf = &EcPoint::inf(&ed25519.f);
+    let one = &ed25519.f.elem(&1u8);
+    let non_inf = &EcPoint::new(one, one);
+    {
+      let pt = ed25519.add(inf, inf);
+      assert!(pt.is_inf);
+    }
+    {
+      let pt = ed25519.add(non_inf, inf);
+      assert!(&pt == non_inf);
+    }
+    {
+      let pt = ed25519.add(inf, non_inf);
+      assert!(&pt == non_inf);
+    }
+    {
+      let pt = ed25519.add(non_inf, non_inf);
+      assert!(pt.is_inf == false);
+    }
+  }
 
   fn run_rfc8032_test(prv_key: &str, exp_pub_key: &str, msg: &[u8], exp_sig: &str) {
     let ed25519 = Ed25519Sha512::new();

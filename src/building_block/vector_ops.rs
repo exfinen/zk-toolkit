@@ -265,7 +265,7 @@ mod tests {
   #[test]
   fn ec_point1_eq() {
     let group = EcCyclicAdditiveGroup::secp256k1();
-    let ops = JacobianAddOps::new();
+    let ops = JacobianAddOps::new(&group.f);
 
     let p = EcPointWithOps((&ops, group.g));
     assert!(p == p);
@@ -277,7 +277,7 @@ mod tests {
   #[test]
   fn ec_point1_times_field_elem() {
     let group = EcCyclicAdditiveGroup::secp256k1();
-    let ops = JacobianAddOps::new();
+    let ops = JacobianAddOps::new(&group.f);
 
     let p = group.g;
     let p = EcPointWithOps((&ops, p));
@@ -292,7 +292,7 @@ mod tests {
   #[test]
   fn ec_point1_plus_ec_point1() {
     let group = EcCyclicAdditiveGroup::secp256k1();
-    let ops = JacobianAddOps::new();
+    let ops = JacobianAddOps::new(&group.f);
 
     let g = group.g;
     let g = EcPointWithOps((&ops, g));
@@ -310,7 +310,7 @@ mod tests {
   #[test]
   fn ec_points_eq() {
     let group = EcCyclicAdditiveGroup::secp256k1();
-    let ops = JacobianAddOps::new();
+    let ops = JacobianAddOps::new(&group.f);
 
     let p1 = EcPointWithOps((&ops, group.g));
     let p2 = &p1 * group.f.elem(&2u8);
@@ -327,7 +327,7 @@ mod tests {
   #[test]
   fn ec_points_index() {
     let group = EcCyclicAdditiveGroup::secp256k1();
-    let ops = JacobianAddOps::new();
+    let ops = JacobianAddOps::new(&group.f);
 
     let p1 = EcPointWithOps((&ops, group.g));
     let p2 = &p1 * group.f.elem(&2u8);
@@ -343,7 +343,7 @@ mod tests {
   #[test]
   fn ec_points_from() {
     let group = EcCyclicAdditiveGroup::secp256k1();
-    let ops = JacobianAddOps::new();
+    let ops = JacobianAddOps::new(&group.f);
 
     let p1 = EcPointWithOps((&ops, group.g));
     let p2 = &p1 * group.f.elem(&2u8);
@@ -383,7 +383,7 @@ mod tests {
   #[test]
   fn ec_points_to() {
     let group = EcCyclicAdditiveGroup::secp256k1();
-    let ops = JacobianAddOps::new();
+    let ops = JacobianAddOps::new(&group.f);
 
     let p1 = EcPointWithOps((&ops, group.g));
     let p2 = &p1 * group.f.elem(&2u8);
@@ -426,7 +426,7 @@ mod tests {
   #[test]
   fn ec_points_sum() {
     let group = EcCyclicAdditiveGroup::secp256k1();
-    let ops = JacobianAddOps::new();
+    let ops = JacobianAddOps::new(&group.f);
 
     let p1 = EcPointWithOps((&ops, group.g));
     let p2 = &p1 * group.f.elem(&2u8);
@@ -443,7 +443,7 @@ mod tests {
   #[test]
   fn ec_points_times_field_elem() {
     let group = EcCyclicAdditiveGroup::secp256k1();
-    let ops = JacobianAddOps::new();
+    let ops = JacobianAddOps::new(&group.f);
 
     let p1 = EcPointWithOps((&ops, group.g));
     let p2 = &p1 * group.f.elem(&2u8);
@@ -458,7 +458,7 @@ mod tests {
   #[test]
   fn ec_points_plus_ec_points() {
     let group = EcCyclicAdditiveGroup::secp256k1();
-    let ops = JacobianAddOps::new();
+    let ops = JacobianAddOps::new(&group.f);
 
     let p1 = EcPointWithOps((&ops, group.g));
     let p2 = &p1 * group.f.elem(&2u8);
@@ -476,11 +476,11 @@ mod tests {
   #[test]
   fn ec_points_minus_ec_points() {
     let group = EcCyclicAdditiveGroup::secp256k1();
-    let ops = JacobianAddOps::new();
+    let ops = JacobianAddOps::new(&group.f);
 
     let g = &EcPointWithOps((&ops, group.g));
     let g2 = g * group.f.elem(&2u8);
-    let zero = &EcPointWithOps((&ops, ops.get_point_at_infinity()));
+    let zero = &EcPointWithOps((&ops, ops.get_point_at_infinity(&group.f)));
 
     let g2s = EcPointsWithOps((&ops, vec![g2.clone(), g2.clone()]));
     let zeros = EcPointsWithOps((&ops, vec![zero.clone(), zero.clone()]));

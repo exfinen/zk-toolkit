@@ -1,4 +1,5 @@
 use crate::building_block::ec_point::EcPoint;
+use crate::building_block::field::Field;
 use num_bigint::BigUint;
 use num_traits::identities::{Zero, One};
 use std::ops::{BitAnd, ShrAssign};
@@ -22,13 +23,13 @@ pub trait EcAdditiveGroupOps {
     }
   }
 
-  fn get_point_at_infinity(&self) -> EcPoint { // using &self to make the trait object-safe
-    EcPoint::inf()
+  fn get_point_at_infinity(&self, f: &Field) -> EcPoint { // using &self to make the trait object-safe
+    EcPoint::inf(f)
   }
 
   fn scalar_mul(&self, pt: &EcPoint, multiplier: &BigUint) -> EcPoint {
     let mut n = multiplier.clone();
-    let mut res = EcPoint::inf();
+    let mut res = EcPoint::inf(&pt.x.f);
     let mut pt_pow_n = pt.clone();
     let one = BigUint::one();
 
