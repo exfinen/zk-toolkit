@@ -23,13 +23,13 @@ pub trait EcAdditiveGroupOps {
     }
   }
 
-  fn get_point_at_infinity(&self, f: &Field) -> EcPoint { // using &self to make the trait object-safe
-    EcPoint::inf(f)
-  }
+  fn get_zero(&self, f: &Field) -> EcPoint;
+
+  fn is_zero(&self, p: &EcPoint) -> bool;
 
   fn scalar_mul(&self, pt: &EcPoint, multiplier: &BigUint) -> EcPoint {
     let mut n = multiplier.clone();
-    let mut res = EcPoint::inf(&pt.x.f);
+    let mut res = self.get_zero(&pt.x.f);
     let mut pt_pow_n = pt.clone();
     let one = BigUint::one();
 

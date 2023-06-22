@@ -125,6 +125,13 @@ impl EcAdditiveGroupOps for AffineAddOps {
     EcPoint::new(&p.x, &p.y.inv())
   }
 
+  fn get_zero(&self, f: &Field) -> EcPoint {
+      EcPoint::inf(f)
+  }
+
+  fn is_zero(&self, p: &EcPoint) -> bool {
+      p.is_inf
+  }
 }
 
 #[derive(Debug, Clone)]
@@ -240,6 +247,13 @@ impl EcAdditiveGroupOps for JacobianAddOps {
     EcPoint::new(&p.x, &p.y.inv())
   }
 
+  fn get_zero(&self, f: &Field) -> EcPoint {
+      EcPoint::inf(f)
+  }
+
+  fn is_zero(&self, p: &EcPoint) -> bool {
+      p.is_inf
+  }
 }
 
 

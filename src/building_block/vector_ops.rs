@@ -480,7 +480,7 @@ mod tests {
 
     let g = &EcPointWithOps((&ops, group.g));
     let g2 = g * group.f.elem(&2u8);
-    let zero = &EcPointWithOps((&ops, ops.get_point_at_infinity(&group.f)));
+    let zero = &EcPointWithOps((&ops, ops.get_zero(&group.f)));
 
     let g2s = EcPointsWithOps((&ops, vec![g2.clone(), g2.clone()]));
     let zeros = EcPointsWithOps((&ops, vec![zero.clone(), zero.clone()]));
