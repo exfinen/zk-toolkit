@@ -343,7 +343,8 @@ mod tests {
       t1 = x(3) * x(3) = 9
       t2 = t1(9) * x(3) = 27
       t3 = x(3) + 5 = 8
-      out = t2(27) + t2(8) = 35
+      t4 = t2(27) + t2(8) = 35
+      out = t4
     */
     let witness = {
       use crate::snarks::term::Term::*;
@@ -352,6 +353,7 @@ mod tests {
         (TmpVar(1), f.elem(&9u8)),
         (TmpVar(2), f.elem(&27u8)),
         (TmpVar(3), f.elem(&8u8)),
+        (TmpVar(4), f.elem(&35u8)),
         (Out, eq.rhs),
       ])
     };
@@ -380,7 +382,8 @@ mod tests {
         (TmpVar(1), f.elem(&9u8)),
         (TmpVar(2), f.elem(&27u8)),
         (TmpVar(3), f.elem(&8u8)),
-        (Out, f.elem(&35u8)),
+        (TmpVar(4), f.elem(&35u8)),
+        (Out, eq.rhs.clone()),
       ])
     };
     let bad_witness = {
@@ -390,7 +393,8 @@ mod tests {
         (TmpVar(1), f.elem(&9u8)),
         (TmpVar(2), f.elem(&27u8)),
         (TmpVar(3), f.elem(&8u8)),
-        (Out, f.elem(&35u8)),
+        (TmpVar(4), f.elem(&35u8)),
+        (Out, eq.rhs),
       ])
     };
 
