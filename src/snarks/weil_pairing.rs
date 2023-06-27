@@ -2,27 +2,46 @@
 
 use crate::building_block::{
   ec_point::EcPoint,
-  field::Field,
+  field::{Field, FieldElem},
   to_biguint::ToBigUint,
   weierstrass_eq::WeierstrassEq,
 };
 use num_bigint::BigUint;
+use num_traits::{One, Zero};
 
 #[derive(Clone)]
 pub struct WeilPairing {
-  pub f_qk: Field,   // extention field of q^k
+  pub f_qk: Field, // extention field of q^k
 }
 
 impl WeilPairing {
   pub fn new(
-    q: BigUint,  // base field order
-    k: u32,      // embedding degree
-    _E: WeierstrassEq,
-    _n: BigUint,  // order of E
+    f_q: &Field,    // base field F_q
+    r: &FieldElem,  // prime s.t. r | n (#E(F_q))
+    //_E: WeierstrassEq,
   ) -> Self {
-    let q_to_k = q.pow(k);
+    let k = WeilPairing::find_k(f_q, r);
+    let q_to_k = f_q.order.pow(k);
+
+    // F_qk contains mu_r of r-th roots of unity
     let f_qk = Field::new(&q_to_k);
+
+    // compute E[m]; the set of m-torsion points of E
+
+
     WeilPairing { f_qk }
+  }
+
+  pub fn find_k(f_q: &Field, r: &FieldElem) -> u32 {
+    let zero = &BigUint::Zero();
+    let one = &BigUint::One();
+    let mut k = 1u32;
+    let mut f_q_pow = *f_q.order;
+    loop {
+      if (f_q_pow - one) % r.n == zero { break; }
+      f_q_pow = f_q_pow * f_q.order;
+    }
+    k
   }
 
   pub fn get_torsion_points(_n: &impl ToBigUint) -> Vec<EcPoint> {
