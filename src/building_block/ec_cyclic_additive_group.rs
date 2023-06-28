@@ -3,7 +3,7 @@ use crate::building_block::{
   field::{Field, FieldElem},
   to_biguint::ToBigUint,
   ec_additive_group_ops::EcAdditiveGroupOps,
-  weierstrass_add_ops::JacobianAddOps,
+  weierstrass_add_ops::Secp256k1JacobianAddOps,
 };
 use num_bigint::BigUint;
 
@@ -43,7 +43,7 @@ impl EcCyclicAdditiveGroup {
     // order of the base point
     let n = BigUint::parse_bytes(b"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", 16).unwrap();
 
-    let ops = Box::new(JacobianAddOps::new(f));
+    let ops = Box::new(Secp256k1JacobianAddOps::new(f));
 
     EcCyclicAdditiveGroup::new(f, g, &n, ops)
   }

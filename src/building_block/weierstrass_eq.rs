@@ -4,8 +4,7 @@ use crate::building_block::{
 };
 use num_bigint::BigUint;
 
-// originally: Y^2                = X^3 +          aX   + b
-// currently:  Y^2 + a_1XY + a_3Y = X^3 + a_2X^2 + a_4X + a_6
+// Y^2 + a_1XY + a_3Y = X^3 + a_2X^2 + a_4X + a_6
 pub struct WeierstrassEq {
   pub f: Field,
   pub a1: FieldElem,

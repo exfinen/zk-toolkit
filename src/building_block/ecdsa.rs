@@ -123,7 +123,7 @@ mod tests {
   use super::*;
   use crate::building_block::{
     ec_cyclic_additive_group::EcCyclicAdditiveGroup,
-    weierstrass_add_ops::JacobianAddOps,
+    weierstrass_add_ops::Secp256k1JacobianAddOps,
     weierstrass_eq::WeierstrassEq,
   };
 
@@ -132,7 +132,7 @@ mod tests {
   fn sign_verify_bad_pub_key() {
     let group = EcCyclicAdditiveGroup::secp256k1();
     let curve = WeierstrassEq::secp256k1(&group.f);
-    let ops = Box::new(JacobianAddOps::new(&group.f));
+    let ops = Box::new(Secp256k1JacobianAddOps::new(&group.f));
     let hasher = Box::new(Sha256());
     let mut ecdsa = Ecdsa::new(group, curve, ops.clone(), hasher);
 
@@ -157,7 +157,7 @@ mod tests {
     let group = EcCyclicAdditiveGroup::secp256k1();
     let f = &group.f.clone();
     let curve = WeierstrassEq::secp256k1(f);
-    let ops = Box::new(JacobianAddOps::new(f));
+    let ops = Box::new(Secp256k1JacobianAddOps::new(&group.f));
     let hasher = Box::new(Sha256());
     let mut ecdsa = Ecdsa::new(group, curve, ops, hasher);
 
@@ -177,7 +177,7 @@ mod tests {
   fn sign_verify_sig_r_out_of_range() {
     let group = EcCyclicAdditiveGroup::secp256k1();
     let curve = WeierstrassEq::secp256k1(&group.f);
-    let ops = Box::new(JacobianAddOps::new(&group.f));
+    let ops = Box::new(Secp256k1JacobianAddOps::new(&group.f));
     let hasher = Box::new(Sha256());
     let mut ecdsa = Ecdsa::new(group, curve, ops.clone(), hasher);
 
@@ -210,7 +210,7 @@ mod tests {
   fn sign_verify_sig_s_out_of_range() {
     let group = EcCyclicAdditiveGroup::secp256k1();
     let curve = WeierstrassEq::secp256k1(&group.f);
-    let ops = Box::new(JacobianAddOps::new(&group.f));
+    let ops = Box::new(Secp256k1JacobianAddOps::new(&group.f));
     let hasher = Box::new(Sha256());
     let mut ecdsa = Ecdsa::new(group, curve, ops.clone(), hasher);
 
@@ -243,7 +243,7 @@ mod tests {
   fn sign_verify_all_good() {
     let group = EcCyclicAdditiveGroup::secp256k1();
     let curve = WeierstrassEq::secp256k1(&group.f);
-    let ops = Box::new(JacobianAddOps::new(&group.f));
+    let ops = Box::new(Secp256k1JacobianAddOps::new(&group.f));
     let hasher = Box::new(Sha256());
     let mut ecdsa = Ecdsa::new(group, curve, ops, hasher);
 
@@ -263,7 +263,7 @@ mod tests {
   fn sign_verify_bad_priv_key() {
     let group = EcCyclicAdditiveGroup::secp256k1();
     let curve = WeierstrassEq::secp256k1(&group.f);
-    let ops = Box::new(JacobianAddOps::new(&group.f));
+    let ops = Box::new(Secp256k1JacobianAddOps::new(&group.f));
     let hasher = Box::new(Sha256());
     let mut ecdsa = Ecdsa::new(group, curve, ops.clone(), hasher);
 
@@ -285,7 +285,7 @@ mod tests {
   fn sign_verify_different_message() {
     let group = EcCyclicAdditiveGroup::secp256k1();
     let curve = WeierstrassEq::secp256k1(&group.f);
-    let ops = Box::new(JacobianAddOps::new(&group.f));
+    let ops = Box::new(Secp256k1JacobianAddOps::new(&group.f));
     let hasher = Box::new(Sha256());
     let mut ecdsa = Ecdsa::new(group, curve, ops.clone(), hasher);
 

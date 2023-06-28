@@ -7,18 +7,17 @@ use num_bigint::BigUint;
 use num_traits::identities::{One, Zero};
 
 #[derive(Clone)]
-pub struct AffineAddOps {
+pub struct Secp256k1AffineAddOps {
   f: Field,
 }
 
-impl AffineAddOps {
+impl Secp256k1AffineAddOps {
   pub fn new(f: &Field) -> Self {
-    AffineAddOps { f: f.clone() }
+    Secp256k1AffineAddOps { f: f.clone() }
   }
 }
 
-impl EcAdditiveGroupOps for AffineAddOps {
-  // TODO check if all points are based on the same field
+impl EcAdditiveGroupOps for Secp256k1AffineAddOps {
   fn add(&self, p1: &EcPoint, p2: &EcPoint) -> EcPoint {
     if p1.is_inf && p2.is_inf {  // inf + inf is inf
       EcPoint::inf(&self.f)
@@ -70,7 +69,7 @@ impl EcAdditiveGroupOps for AffineAddOps {
       // then get the y-coordinate by substituting x in (1) w/ x3 to get y3
       // y3 = m(x3 − p1.x) + p1.y
       //
-      // reflecting y3 across the x-axis results in the addition result y-coordinate 
+      // reflecting y3 across the x-axis results in the addition result y-coordinate
       // result.y = -1 * y3 = m(p1.x - x3) - p1.y
       let p3y_neg = m * (&p1.x - &p3x) - &p1.y;
       EcPoint::new(&p3x, &p3y_neg)
@@ -95,7 +94,7 @@ impl EcAdditiveGroupOps for AffineAddOps {
       // 0 = x^3 - m^2 x^2 + ...  (2)
       //
       // with below equation:
-      // (x - r)(x - s)(x - t) = x^3 + (r + s + t)x^2 + (ab + ac + bc)x − abc 
+      // (x - r)(x - s)(x - t) = x^3 + (r + s + t)x^2 + (ab + ac + bc)x − abc
       //
       // we know that the coefficient of x^2 term is:
       // r + s + t
@@ -103,7 +102,7 @@ impl EcAdditiveGroupOps for AffineAddOps {
       // using (2), the coefficient of x^2 term of the intersecting line is:
       // m^2 = r + s + t
       //
-      // substitute r and s with the known 2 roots - p1.x and p2.x:
+      // substitute r and s with the known 2 roots -p1.x and p2.x:
       // m^2 = p1.x + p2. + t
       // t = m^2 - p1.x - p2.x
       //
@@ -171,17 +170,17 @@ impl JacobianPoint {
 }
 
 #[derive(Clone)]
-pub struct JacobianAddOps {
+pub struct Secp256k1JacobianAddOps {
   f: Field,
 }
 
-impl JacobianAddOps {
+impl Secp256k1JacobianAddOps {
   pub fn new(f: &Field) -> Self {
-    JacobianAddOps { f: f.clone() }
+    Secp256k1JacobianAddOps { f: f.clone() }
   }
 }
 
-impl EcAdditiveGroupOps for JacobianAddOps {
+impl EcAdditiveGroupOps for Secp256k1JacobianAddOps {
   // TODO check if all points are based on the same field
   fn add(&self, p1: &EcPoint, p2: &EcPoint) -> EcPoint {
     if p1.is_inf && p2.is_inf {  // inf + inf is inf
@@ -269,8 +268,8 @@ mod tests {
 
   fn get_ops_list<'a>(f: &Field) -> Vec<Box<dyn EcAdditiveGroupOps>> {
     vec![
-      Box::new(AffineAddOps::new(f)),
-      Box::new(JacobianAddOps::new(f)),
+      Box::new(Secp256k1AffineAddOps::new(f)),
+      Box::new(Secp256k1JacobianAddOps::new(f)),
     ]
   }
 
@@ -330,7 +329,7 @@ mod tests {
   #[test]
   fn add_inf_and_inf() {
     let group = EcCyclicAdditiveGroup::secp256k1();
-    let ops = AffineAddOps::new(&group.f);
+    let ops = Secp256k1AffineAddOps::new(&group.f);
     let inf = EcPoint::inf(&group.f);
     let inf_plus_inf = ops.add(&inf, &inf);
     assert_eq!(inf_plus_inf, inf);
