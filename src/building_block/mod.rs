@@ -1,3 +1,4 @@
+pub mod bls12_381;
 pub mod ec_point;
 pub mod ecdsa;
 pub mod ed25519_sha512;

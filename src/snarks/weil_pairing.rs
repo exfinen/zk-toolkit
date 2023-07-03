@@ -6,7 +6,7 @@ use crate::building_block::{
   to_biguint::ToBigUint,
   weierstrass_eq::WeierstrassEq,
   ec_additive_group_ops::EcAdditiveGroupOps,
-  ec_cyclic_additive_group::EcCyclicAdditiveGroup,
+  //ec_cyclic_additive_group::EcCyclicAdditiveGroup,
   weierstrass_add_ops::Secp256k1JacobianAddOps,
 };
 use num_bigint::{BigUint};
@@ -32,7 +32,7 @@ impl WeilPairing {
     let f_qk = Field::new(&q_to_k);
 
     // compute E[r]; the set of r-torsion points of E
-    let r_torsion_points = WeilPairing::calc_r_torsion_points(
+    let _r_torsion_points = WeilPairing::calc_r_torsion_points(
       &f_qk,
       &curve_order,
       &r,
@@ -47,7 +47,7 @@ impl WeilPairing {
     f_qk: &Field,  // extension field of order q^k
     curve_order: &FieldElem,
     r: &FieldElem,
-    E: &WeierstrassEq,
+    _E: &WeierstrassEq,
     rational_point_on_E: &EcPoint,
   ) -> Vec<EcPoint> {
     if (&curve_order.n % &r.n).is_zero() == false {
