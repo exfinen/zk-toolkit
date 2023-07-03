@@ -1,18 +1,15 @@
+use std::ops::{Add, Sub, Mul};
+use crate::building_block::bls12_381::additional_ops::AdditionalOps;
 use crate::building_block::field::FieldElem;
-use std::ops::Add;
 
-pub struct Fq1(FieldElem);
+type Fq1 = FieldElem;
 
-impl Fq1 {
-  pub fn new(n: &FieldElem) -> Self {
-      Fq1(n.clone())
+impl AdditionalOps for Fq1 {
+  fn apply_reduce_rule(n: &Self) -> Self {
+    n.clone()
   }
-}
 
-impl Add<Fq1> for Fq1 {
-  type Output = Fq1;
-
-  fn add(self, rhs: Fq1) -> Self::Output {
-    Fq1(self.0 + rhs.0)
+  fn inv(n: &Self) -> Self {
+      n.inv()
   }
 }
