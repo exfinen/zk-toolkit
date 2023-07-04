@@ -49,11 +49,11 @@ impl Fq6 {
   }
 }
 
-impl Neg for &Fq6 {
+impl Neg for Fq6 {
   type Output = Fq6;
 
   fn neg(self) -> Self::Output {
-    panic!("TO BE IMPLEMENTED");
+    Self::zero() - self
   }
 }
 

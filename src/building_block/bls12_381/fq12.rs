@@ -25,7 +25,7 @@ impl AdditionalOps for Fq12 {
       - Fq6::apply_reduce_rule(&(&n.w1 * &n.w1))
     ));
     Self {
-      w0: -&n.w1 * &factor,
+      w0: -n.w1.clone() * &factor,
       w1: &n.w0 * &factor,
     }
   }
