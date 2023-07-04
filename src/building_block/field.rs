@@ -1,5 +1,4 @@
 use std::{
-  rc::Rc,
   ops,
   cmp::{PartialOrd, Ord, Ordering},
 };
@@ -335,7 +334,7 @@ impl FieldElem {
 
 #[derive(Debug, Clone, Hash)]
 pub struct Field {
-  pub order: Rc<BigUint>,
+  pub order: Box<BigUint>,
 }
 
 impl ToBigUint for BigUint {
@@ -353,7 +352,7 @@ impl ToBigUint for FieldElem {
 impl Field {
   pub fn new(order: &impl ToBigUint) -> Self {
     Field {
-      order: Rc::new(order.to_biguint()),
+      order: Box::new(order.to_biguint()),
     }
   }
 
