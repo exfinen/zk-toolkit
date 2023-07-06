@@ -8,12 +8,9 @@ use crate::building_block::field::{Field};
 use num_bigint::BigUint;
 use once_cell::sync::Lazy;
 
-pub static BASE_FIELD_ORDER: Lazy<BigUint> = Lazy::new(|| {
-  BigUint::parse_bytes(b"1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab", 16).unwrap()
-});
-
 pub static BASE_FIELD: Lazy<Field> = Lazy::new(|| {
-  Field::new(Lazy::get(&BASE_FIELD_ORDER).unwrap())
+  let order = BigUint::parse_bytes(b"1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab", 16).unwrap();
+  Field::new(&order)
 });
 
 pub static G1_GENERATOR: Lazy<G1Point> = Lazy::new(|| {

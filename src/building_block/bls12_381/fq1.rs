@@ -1,13 +1,14 @@
 use crate::building_block::{
   bls12_381::{
     additional_ops::AdditionalOps,
-    setup::BASE_FIELD_ORDER,
+    setup::BASE_FIELD,
   },
-  field::{Field, FieldElem},
+  field::FieldElem,
 };
 use once_cell::sync::Lazy;
 
 pub type Fq1 = FieldElem;
+
 impl AdditionalOps for Fq1 {
   fn apply_reduce_rule(n: &Self) -> Self {
     n.clone()
@@ -19,7 +20,7 @@ impl AdditionalOps for Fq1 {
 
   fn zero() -> Self {
     static ZERO: Lazy<FieldElem> = Lazy::new(|| {
-      let f = Field::new(Lazy::get(&BASE_FIELD_ORDER).unwrap());
+      let f = BASE_FIELD.clone();
       f.elem(&0u8)
     });
     ZERO.clone()
