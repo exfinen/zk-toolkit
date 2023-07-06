@@ -44,8 +44,12 @@ impl AdditionalOps for Fq6 {
 }
 
 impl Fq6 {
-  pub fn new(v2: Fq2, v1: Fq2, v0: Fq2) -> Self {
-    Fq6 { v2, v1, v0 }
+  pub fn new(v2: &Fq2, v1: &Fq2, v0: &Fq2) -> Self {
+    Fq6 {
+      v2: v2.clone(),
+      v1: v1.clone(),
+      v0: v0.clone(),
+    }
   }
 }
 

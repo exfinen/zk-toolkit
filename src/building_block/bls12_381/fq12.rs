@@ -9,8 +9,11 @@ pub struct Fq12 {
 }
 
 impl Fq12 {
-  pub fn new(w1: Fq6, w0: Fq6) -> Self {
-      Fq12 { w1, w0 }
+  pub fn new(w1: &Fq6, w0: &Fq6) -> Self {
+      Fq12 {
+        w1: w1.clone(),
+        w0: w0.clone(),
+      }
   }
 }
 
