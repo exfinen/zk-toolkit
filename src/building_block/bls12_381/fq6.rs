@@ -2,7 +2,7 @@ use std::ops::{Add, Sub, Mul, Neg};
 use crate::building_block::bls12_381::additional_ops::AdditionalOps;
 use crate::building_block::bls12_381::fq2::Fq2;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Fq6 {
   v2: Fq2,
   v1: Fq2,
