@@ -6,6 +6,7 @@ use crate::building_block::{
   field::FieldElem,
 };
 use once_cell::sync::Lazy;
+use std::fmt;
 
 pub type Fq1 = FieldElem;
 
@@ -24,5 +25,11 @@ impl AdditionalOps for Fq1 {
       f.elem(&0u8)
     });
     ZERO.clone()
+  }
+}
+
+impl fmt::Display for Fq1 {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}", self.n)
   }
 }
