@@ -11,22 +11,22 @@ pub struct Fq6 {
 }
 
 impl AdditionalOps for Fq6 {
-  fn apply_reduce_rule(n: &Self) -> Self {
+  fn reduce(n: &Self) -> Self {
     Self {
       v2: n.v1.clone(),
       v1: n.v0.clone(),
-      v0: Fq2::apply_reduce_rule(&n.v2),
+      v0: Fq2::reduce(&n.v2),
     }
   }
 
   fn inv(n: &Self) -> Self {
-    let t0 = &n.v0 * &n.v0 - Fq2::apply_reduce_rule(&(&n.v1 * &n.v2));
-    let t1 = Fq2::apply_reduce_rule(&(&n.v2 * &n.v2)) - &n.v0 * &n.v1;
+    let t0 = &n.v0 * &n.v0 - Fq2::reduce(&(&n.v1 * &n.v2));
+    let t1 = Fq2::reduce(&(&n.v2 * &n.v2)) - &n.v0 * &n.v1;
     let t2 = &n.v1 * &n.v1 - &n.v0 * &n.v2;
     let factor = Fq2::inv(&(
       &n.v0 * &t0
-      + Fq2::apply_reduce_rule(&(&n.v2 * &t1))
-      + Fq2::apply_reduce_rule(&(&n.v1 * &t2))
+      + Fq2::reduce(&(&n.v2 * &t1))
+      + Fq2::reduce(&(&n.v1 * &t2))
     ));
     Self {
       v2: &t2 * &factor,
@@ -111,8 +111,8 @@ macro_rules! impl_mul {
         let t0 = &self.v0 * &rhs.v0;
         let t1 = &self.v0 * &rhs.v1 + &self.v1 * &rhs.v0;
         let t2 = &self.v0 * &rhs.v2 + &self.v1 * &rhs.v1 + &self.v2 * &rhs.v0;
-        let t3 = Fq2::apply_reduce_rule(&(&self.v1 * &rhs.v2 + &self.v2 * &rhs.v1));
-        let t4 = Fq2::apply_reduce_rule(&(&self.v2 * &rhs.v2));
+        let t3 = Fq2::reduce(&(&self.v1 * &rhs.v2 + &self.v2 * &rhs.v1));
+        let t4 = Fq2::reduce(&(&self.v2 * &rhs.v2));
         Fq6 {
           v2: t2,
           v1: t1 + t4,
@@ -227,7 +227,7 @@ mod tests {
     let a6 = Fq6::new(&a2, &b2, &c2);
     let b6 = Fq6::new(&b2, &c2, &d2);
 
-    let x = Fq6::apply_reduce_rule(&(&a6 * &b6));
+    let x = Fq6::reduce(&(&a6 * &b6));
     let [v2_u1, v2_u0, v1_u1, v1_u0, v0_u1, v0_u0] = to_strs(&x);
     assert_eq!(v2_u1, "270");
     assert_eq!(v2_u0, "4002409555221667393417789825735904156556882819939007885332058136124031650490837864442687629129015664037894272559769");

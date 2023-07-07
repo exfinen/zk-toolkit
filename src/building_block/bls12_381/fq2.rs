@@ -16,7 +16,7 @@ impl Fq2 {
 }
 
 impl AdditionalOps for Fq2 {
-  fn apply_reduce_rule(n: &Self) -> Self {
+  fn reduce(n: &Self) -> Self {
     Self {
       u1: &n.u1 + &n.u0,
       u0: &n.u0 - &n.u1,
@@ -168,7 +168,7 @@ mod tests {
     let (a1, b1, c1, d1) = get_fq1_values();
     let a2 = Fq2::new(&a1, &b1);
     let b2 = Fq2::new(&c1, &d1);
-    let x = Fq2::apply_reduce_rule(&(&a2 * &b2));
+    let x = Fq2::reduce(&(&a2 * &b2));
     let [u1, u0] = to_strs(&x);
     assert_eq!(u1, "86");
     assert_eq!(u0, "4002409555221667393417789825735904156556882819939007885332058136124031650490837864442687629129015664037894272559749");

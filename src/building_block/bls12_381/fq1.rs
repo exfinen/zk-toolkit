@@ -11,7 +11,7 @@ use std::fmt;
 pub type Fq1 = FieldElem;
 
 impl AdditionalOps for Fq1 {
-  fn apply_reduce_rule(n: &Self) -> Self {
+  fn reduce(n: &Self) -> Self {
     n.clone()
   }
 

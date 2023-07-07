@@ -19,14 +19,14 @@ impl Fq12 {
 }
 
 impl AdditionalOps for Fq12 {
-  fn apply_reduce_rule(_n: &Self) -> Self {
+  fn reduce(_n: &Self) -> Self {
     panic!("Not implemented");
   }
 
   fn inv(n: &Self) -> Self {
     let factor = Fq6::inv(&(
       &n.w0 * &n.w0
-      - Fq6::apply_reduce_rule(&(&n.w1 * &n.w1))
+      - Fq6::reduce(&(&n.w1 * &n.w1))
     ));
     Self {
       w1: -n.w1.clone() * &factor,
@@ -88,7 +88,7 @@ macro_rules! impl_mul {
       fn mul(self, rhs: $rhs) -> Self::Output {
         Fq12 {
           w1: &self.w1 * &rhs.w0 + &self.w0 * &rhs.w1,
-          w0: &self.w0 * &rhs.w0 + Fq6::apply_reduce_rule(&(&self.w1 * &rhs.w1))
+          w0: &self.w0 * &rhs.w0 + Fq6::reduce(&(&self.w1 * &rhs.w1))
         }
       }
     }
