@@ -1,36 +1,39 @@
-use crate::building_block::{
-  ec_additive_group_ops::EcAdditiveGroupOps,
-  ec_cyclic_additive_group::EcCyclicAdditiveGroup,
+use crate::building_block::field::{FieldElem, FieldElems};
+use crate::building_block::elliptic_curve::{
   ec_point::EcPoint,
-  field::{FieldElem, FieldElems},
-  vector_ops::{EcPointsWithOps, EcPointWithOps},
+  curve::Curve,
+  ec_point_with_ops::{EcPointsWithOps, EcPointWithOps},
+  elliptic_curve_point_ops::{
+    EllipticCurveField,
+    EllipticCurvePointAdd,
+    ElllipticCurvePointInv,
+  },
 };
 // implementation based on https://eprint.iacr.org/2017/1066.pdf
 
-pub struct Bulletproofs<'a, const N: usize> {
-  group: EcCyclicAdditiveGroup,
-  ops: &'a dyn EcAdditiveGroupOps,
+pub struct Bulletproofs<const N: usize, T>
+  where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv {
+  curve: dyn Curve<T>,
 }
 
-impl<'a, const N: usize> Bulletproofs<'a, N> {
-  pub fn new(
-    group: EcCyclicAdditiveGroup,
-    ops: &'a dyn EcAdditiveGroupOps,
-  ) -> Self {
-    Bulletproofs { group, ops }
+impl<'a, T, const N: usize> Bulletproofs<N, T>
+  where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv {
+
+  pub fn new(curve: dyn Curve<T>) -> Self {
+    Bulletproofs { curve }
   }
 
-  pub fn ec_points(&self, ec_points: &'a [EcPoint]) -> EcPointsWithOps<'a> {
+  pub fn ec_points(&self, ec_points: &'a [EcPoint]) -> EcPointsWithOps<'a, T> {
     assert!(ec_points.len() > 0);
     let xs = ec_points.iter().map(|x| EcPointWithOps((self.ops, x.clone()))).collect::<_>();
     EcPointsWithOps((self.ops, xs))
   }
 
-  pub fn ec_point1(&self, ec_point: &'a EcPoint) -> EcPointWithOps<'a> {
+  pub fn ec_point1(&self, ec_point: &'a EcPoint) -> EcPointWithOps<'a, T> {
     EcPointWithOps((self.ops, ec_point.clone()))
   }
 
-  pub fn rand_point(&self) -> EcPointWithOps<'a> {
+  pub fn rand_point(&self) -> EcPointWithOps<'a, T> {
     let fe = self.group.f_n.rand_elem(true);
     let p = self.ops.scalar_mul(&self.group.g, &fe);
     EcPointWithOps((self.ops, p))
@@ -44,7 +47,7 @@ impl<'a, const N: usize> Bulletproofs<'a, N> {
     xs
   }
 
-  pub fn scalar_mul(&self, pt: &EcPointWithOps<'a>, fe: &FieldElem) -> EcPointWithOps<'a> {
+  pub fn scalar_mul(&self, pt: &EcPointWithOps<'a, T>, fe: &FieldElem) -> EcPointWithOps<'a, T> {
     let (ops, _) = pt.0;
     let x = self.ops.scalar_mul(&pt, &fe);
     EcPointWithOps((ops, x))
@@ -54,10 +57,10 @@ impl<'a, const N: usize> Bulletproofs<'a, N> {
   #[allow(non_snake_case)]
   pub fn inner_product_argument(&self,
     n: usize,
-    gg: &EcPointsWithOps,
-    hh: &EcPointsWithOps,
-    u: &EcPointWithOps,
-    P: &EcPointWithOps,
+    gg: &EcPointsWithOps<'a, T>,
+    hh: &EcPointsWithOps<'a, T>,
+    u: &EcPointWithOps<'a, T>,
+    P: &EcPointWithOps<'a, T>,
     a: &FieldElems,
     b: &FieldElems,
   ) -> bool {
@@ -75,7 +78,7 @@ impl<'a, const N: usize> Bulletproofs<'a, N> {
       let L = (gg.from(np..) * a.to(..np)).sum() + (hh.to(..np) * b.from(np..)).sum() + u * cL;
       let R = (gg.to(..np) * a.from(np..)).sum() + (hh.from(np..) * b.to(..np)).sum() + u * cR;
 
-      let x = &self.group.f_n.rand_elem(true);
+      let x = &self.curve.get_curve_group().rand_elem(true);
 
       let ggp = (gg.to(..np) * x.inv()) + (gg.from(np..) * x);
       let hhp = (hh.to(..np) * x) + (hh.from(np..) * x.inv());
@@ -94,16 +97,16 @@ impl<'a, const N: usize> Bulletproofs<'a, N> {
   pub fn range_proof(
     &self,
     n: usize,
-    V: &EcPointWithOps,
+    V: &EcPointWithOps<'a, T>,
     aL: &FieldElems,
     gamma: &FieldElem,
-    g: &EcPointWithOps,
-    h: &EcPointWithOps,
-    gg: &EcPointsWithOps,
-    hh: &EcPointsWithOps,
+    g: &EcPointWithOps<'a, T>,
+    h: &EcPointWithOps<'a, T>,
+    gg: &EcPointsWithOps<'a, T>,
+    hh: &EcPointsWithOps<'a, T>,
     use_inner_product_argument: bool,
   ) -> bool {
-    let f = &self.group.f_n;  // prime field of order n
+    let f = &self.curve.get_curve_group().f_n;  // prime field of order n
 
     let one = f.elem(&1u8);
     let two = f.elem(&2u8);
@@ -187,14 +190,21 @@ impl<'a, const N: usize> Bulletproofs<'a, N> {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::building_block::weierstrass_add_ops::Secp256k1JacobianAddOps;
+  use crate::building_block::elliptic_curve::{
+    curve::Curve,
+    weierstrass::{
+      curves::secp256k1::{Secp256k1, Secp256k1Params},
+      jacobian_point_ops::WeierstrassJacobianPointOps,
+    },
+  };
 
   // gg^z == gg^(ones * z)
   #[test]
   fn test_gg_ones_times_z() {
-    let group = EcCyclicAdditiveGroup::secp256k1();
-    let ops = Secp256k1JacobianAddOps::new(&group.f);
-    let bp: Bulletproofs<2> = Bulletproofs::new(group, &ops);
+    let params = Secp256k1Params::new();
+    let ops = WeierstrassJacobianPointOps::new(&params.f);
+    let curve = Secp256k1::new(&ops, params);
+    let bp: Bulletproofs<2> = Bulletproofs::new(curve);
 
     let n = 2;
     let z = bp.group.f_n.rand_elem(true);
@@ -212,10 +222,11 @@ mod tests {
 
   #[test]
   fn test_offset_by_negation() {
-    let group = EcCyclicAdditiveGroup::secp256k1();
-    let ops = Secp256k1JacobianAddOps::new(&group.f);
-    let bp: Bulletproofs<2> = Bulletproofs::new(group, &ops);
-    let f_n = &bp.group.f_n;
+    let params = Secp256k1Params::new();
+    let ops = WeierstrassJacobianPointOps::new(&params.f);
+    let curve = Secp256k1::new(&ops, params);
+    let bp: Bulletproofs<2> = Bulletproofs::new(curve);
+    let f_n = &bp.curve.get_curve_group();
     {
         let z = f_n.elem(&100u8);
         let basis = f_n.elem(&12345u16);
@@ -240,10 +251,11 @@ mod tests {
   #[test]
   #[allow(non_snake_case)]
   fn test_base_point_field_elem_mul() {
-    let group = EcCyclicAdditiveGroup::secp256k1();
-    let ops = Secp256k1JacobianAddOps::new(&group.f);
-    let bp: Bulletproofs<2> = Bulletproofs::new(group, &ops);
-    let f_n = &bp.group.f_n;
+    let params = Secp256k1Params::new();
+    let ops = WeierstrassJacobianPointOps::new(&params.f);
+    let curve = Secp256k1::new(&ops, params);
+    let bp: Bulletproofs<2> = Bulletproofs::new(curve);
+    let f_n = &bp.curve.get_curve_group();
 
     let alpha = &f_n.rand_elem(true);
     let rho = &f_n.rand_elem(true);
@@ -257,8 +269,11 @@ mod tests {
   #[test]
   #[allow(non_snake_case)]
   fn test_field_elems_mul_field_elem() {
-    let group = EcCyclicAdditiveGroup::secp256k1();
-    let f_n = &group.f_n;
+    let params = Secp256k1Params::new();
+    let ops = WeierstrassJacobianPointOps::new(&params.f);
+    let curve = Secp256k1::new(&ops, params);
+    let bp: Bulletproofs<2> = Bulletproofs::new(curve);
+    let f_n = &bp.curve.get_curve_group();
 
     let x = f_n.elem(&5u8);
     let sL = FieldElems(vec![
@@ -277,10 +292,11 @@ mod tests {
   #[test]
   #[allow(non_snake_case)]
   fn test_mul_field_elem_above_order() {
-    let group = EcCyclicAdditiveGroup::secp256k1();
-    let ops = Secp256k1JacobianAddOps::new(&group.f);
-    let bp: Bulletproofs<2> = Bulletproofs::new(group, &ops);
-    let f_n = &bp.group.f_n;
+    let params = Secp256k1Params::new();
+    let ops = WeierstrassJacobianPointOps::new(&params.f);
+    let curve = Secp256k1::new(&ops, params);
+    let bp: Bulletproofs<2> = Bulletproofs::new(curve);
+    let f_n = &bp.curve.get_curve_group();
 
     let gg = vec![
       bp.group.g.clone(),
@@ -300,10 +316,11 @@ mod tests {
   #[test]
   #[allow(non_snake_case)]
   fn test_range_proof() {
-    let group = EcCyclicAdditiveGroup::secp256k1();
-    let ops = Secp256k1JacobianAddOps::new(&group.f);
-    let bp: Bulletproofs<2> = Bulletproofs::new(group, &ops);
-    let f_n = &bp.group.f_n;
+    let params = Secp256k1Params::new();
+    let ops = WeierstrassJacobianPointOps::new(&params.f);
+    let curve = Secp256k1::new(&ops, params);
+    let bp: Bulletproofs<2> = Bulletproofs::new(curve);
+    let f_n = &bp.curve.get_curve_group();
 
     let aL = FieldElems::new(&vec![
       f_n.elem(&1u8),

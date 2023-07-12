@@ -14,7 +14,7 @@ impl Number {
       let mut m = n;
       if n < 0 {
         // convert to a positive number w/ the same bit representation
-        m = i64::MAX + n + 1;  
+        m = i64::MAX + n + 1;
       }
 
       let mut x = m;

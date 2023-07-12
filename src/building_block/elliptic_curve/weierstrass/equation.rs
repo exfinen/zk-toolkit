@@ -1,5 +1,6 @@
+use super::super::ec_point::EcPoint;
 use crate::building_block::{
-  ec_point::EcPoint,
+  elliptic_curve::curve_equation::CurveEquation,
   field::{Field, FieldElem},
 };
 use num_bigint::BigUint;
@@ -22,28 +23,19 @@ impl WeierstrassEq {
     a3: BigUint,
     a4: BigUint,
     a6: BigUint,
-  ) -> Result<Self, String> {
+  ) -> Self {
     let a1 = FieldElem::new(f, &a1);
     let a2 = FieldElem::new(f, &a2);
     let a3 = FieldElem::new(f, &a3);
     let a4 = FieldElem::new(f, &a4);
     let a6 = FieldElem::new(f, &a6);
 
-    Ok(WeierstrassEq { f: f.clone(), a1, a2, a3, a4, a6 })
+    WeierstrassEq { f: f.clone(), a1, a2, a3, a4, a6 }
   }
+}
 
-  pub fn secp256k1(f: &Field) -> WeierstrassEq {
-    let a1 = BigUint::from(0u8);
-    let a2 = BigUint::from(0u8);
-    let a3 = BigUint::from(0u8);
-    let a4 = BigUint::from(0u32);
-    let a6 = BigUint::from(7u8);
-
-    // curve
-    WeierstrassEq::new(f, a1, a2, a3, a4, a6).unwrap()
-  }
-
-  pub fn is_rational_point(&self, pt: &EcPoint) -> bool {
+impl CurveEquation for WeierstrassEq {
+  fn is_rational_point(&self, pt: &EcPoint) -> bool {
     if pt.is_inf {
       false
     } else {

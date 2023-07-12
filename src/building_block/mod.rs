@@ -1,9 +1,5 @@
 pub mod bls12_381;
-pub mod ec_point;
-pub mod ecdsa;
-pub mod ed25519_sha512;
-pub mod ec_additive_group_ops;
-pub mod ec_cyclic_additive_group;
+pub mod elliptic_curve;
 pub mod field;
 pub mod hasher;
 pub mod hmac;
@@ -13,6 +9,3 @@ pub mod sha256;
 pub mod sha512;
 pub mod to_bigint;
 pub mod to_biguint;
-pub mod vector_ops;
-pub mod weierstrass_add_ops;
-pub mod weierstrass_eq;

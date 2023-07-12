@@ -1,5 +1,14 @@
-use crate::building_block::field::{Field, FieldElem};
-use crate::building_block::vector_ops::EcPointWithOps;
+use crate::building_block::{
+  field::{Field, FieldElem},
+  elliptic_curve::{
+    ec_point_with_ops::EcPointWithOps,
+    elliptic_curve_point_ops::{
+      EllipticCurveField,
+      EllipticCurvePointAdd,
+      ElllipticCurvePointInv,
+    }
+  },
+};
 
 #[derive(Debug, Clone)]
 pub struct EcPoint {
@@ -22,8 +31,10 @@ impl PartialEq for EcPoint {
 
 impl Eq for EcPoint {}
 
-impl<'a> From<EcPointWithOps<'a>> for EcPoint {
-  fn from(x: EcPointWithOps<'a>) -> EcPoint {
+impl<'a, T> From<EcPointWithOps<'a, T>> for EcPoint
+  where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv {
+
+  fn from(x: EcPointWithOps<'a, T>) -> EcPoint {
     x.0.1
   }
 }

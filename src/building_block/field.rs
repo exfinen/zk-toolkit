@@ -152,7 +152,7 @@ impl FieldElem {
     let n = n.to_biguint();
     let f = f.clone();
     if n.ge(&f.order) {
-      let n = n.rem(&(*f.order));
+      let n = n.rem(&f.order);
       FieldElem { f, n }
     } else {
       FieldElem { f, n }
@@ -164,21 +164,21 @@ impl FieldElem {
   }
 
   pub fn plus(&self, rhs: &impl ToBigUint) -> FieldElem {
-    let rhs = rhs.to_biguint() % &*self.f.order;
+    let rhs = rhs.to_biguint() % &self.f.order;
     let mut n = self.n.clone();
     n += &rhs;
-    if n >= *self.f.order {
-      n -= &(*self.f.order);
+    if n >= self.f.order {
+      n -= &self.f.order;
     }
     FieldElem { f: self.f.clone(), n }
   }
 
   pub fn minus(&self, rhs: &impl ToBigUint) -> FieldElem {
-    let rhs = rhs.to_biguint() % &*self.f.order;
+    let rhs = rhs.to_biguint() % self.f.order;
     let f = self.f.clone();
     if self.n < rhs {
       let diff = &rhs - &self.n;
-      let n = &(*self.f.order) - diff;
+      let n = &self.f.order - diff;
       FieldElem { f, n }
     } else {
       let mut n = self.n.clone();
@@ -188,10 +188,10 @@ impl FieldElem {
   }
 
   pub fn times(&self, rhs: &impl ToBigUint) -> FieldElem {
-    let rhs = rhs.to_biguint() % &*self.f.order;
+    let rhs = rhs.to_biguint() % self.f.order;
     let mut n = self.n.clone();
     n *= &rhs.to_biguint();
-    n %= &(*self.f.order);
+    n %= &self.f.order;
     FieldElem { f: self.f.clone(), n }
   }
 
@@ -208,8 +208,8 @@ impl FieldElem {
       if bit == true {
         sum *= &bit_value;
       }
-      bit_value = (&bit_value * &bit_value) % &*self.f.order;
-      sum %= &(*self.f.order);
+      bit_value = (&bit_value * &bit_value) % &self.f.order;
+      sum %= &self.f.order;
     }
 
     FieldElem { f: self.f.clone(), n: sum }
@@ -218,16 +218,16 @@ impl FieldElem {
   pub fn sq(&self) -> FieldElem {
     let mut n = self.n.clone();
     n *= &self.n;
-    n %= &(*self.f.order);
+    n %= &self.f.order;
     FieldElem { f: self.f.clone(), n }
   }
 
   pub fn cube(&self) -> FieldElem {
     let mut n = self.n.clone();
     n *= &self.n;
-    n %= &(*self.f.order);
+    n %= &self.f.order;
     n *= &self.n;
-    n %= &(*self.f.order);
+    n %= &self.f.order;
     FieldElem { f: self.f.clone(), n }
   }
 
@@ -311,7 +311,7 @@ impl FieldElem {
   }
 
   pub fn safe_div(&self, rhs: &impl ToBigUint) -> Result<FieldElem, String> {
-    let rhs = rhs.to_biguint() % &*self.f.order;
+    let rhs = rhs.to_biguint() % &self.f.order;
     let inv = self.f.elem(&rhs.to_biguint()).safe_inv()?;
     Ok(self.times(&inv))
   }
@@ -325,7 +325,7 @@ impl FieldElem {
     if self.n == BigUint::zero() {
       FieldElem { f, n: self.n.clone() }
     } else {
-      let mut n = (*self.f.order).clone();
+      let mut n = self.f.order.clone();
       n -= &self.n;
       FieldElem { f, n }
     }
@@ -334,7 +334,7 @@ impl FieldElem {
 
 #[derive(Debug, Clone, Hash)]
 pub struct Field {
-  pub order: Box<BigUint>,
+  pub order: BigUint,
 }
 
 impl ToBigUint for BigUint {
@@ -352,7 +352,7 @@ impl ToBigUint for FieldElem {
 impl Field {
   pub fn new(order: &impl ToBigUint) -> Self {
     Field {
-      order: Box::new(order.to_biguint()),
+      order: order.to_biguint(),
     }
   }
 
@@ -363,7 +363,7 @@ impl Field {
   pub fn elem_from_signed(&self, x: &impl ToBigIntType) -> FieldElem {
     let n = x.to_bigint();
     if n.sign() == Sign::Minus {
-      let order = &BigInt::from_biguint(Sign::Plus, (*self.order).clone());
+      let order = &BigInt::from_biguint(Sign::Plus, self.order.clone());
       let mut n = -n;
       n = n % order;
       n = order - n;

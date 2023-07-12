@@ -1,15 +1,14 @@
 #![allow(non_snake_case)]
 
+/*
 use crate::building_block::{
-  ec_point::EcPoint,
   field::{Field, FieldElem},
   to_biguint::ToBigUint,
-  weierstrass_eq::WeierstrassEq,
-  ec_additive_group_ops::EcAdditiveGroupOps,
-  //ec_cyclic_additive_group::EcCyclicAdditiveGroup,
-  weierstrass_add_ops::Secp256k1JacobianAddOps,
+  elliptic_curve::{
+    ec_point::EcPoint,
+  },
 };
-use num_bigint::{BigUint};
+use num_bigint::BigUint;
 use num_traits::{One, Zero};
 
 #[derive(Clone)]
@@ -107,3 +106,5 @@ impl WeilPairing {
 //     WeilPairing::get_torsion_points(n)
 //   }
 // }
+
+ */

@@ -1,19 +1,23 @@
 use crate::building_block::{
-  ec_cyclic_additive_group::EcCyclicAdditiveGroup,
-  ec_additive_group_ops::EcAdditiveGroupOps,
-  ec_point::EcPoint,
-  field::FieldElem,
+  field::{Field, FieldElem},
   hasher::Hasher,
   sha256::Sha256,
-  weierstrass_eq::WeierstrassEq,
 };
-use num_bigint::{BigUint};
+use super::{
+  elliptic_curve_point_ops::{
+    EllipticCurveField,
+    EllipticCurvePointAdd,
+    ElllipticCurvePointInv,
+  },
+  ec_point::EcPoint,
+  curve::Curve,
+};
+use num_bigint::BigUint;
 use num_traits::identities::Zero;
 
-pub struct Ecdsa<const HASHER_OUT_SIZE: usize> {
-  pub group: EcCyclicAdditiveGroup,
-  pub curve: WeierstrassEq,
-  pub ops: Box<dyn EcAdditiveGroupOps>,
+pub struct Ecdsa<const HASHER_OUT_SIZE: usize, T>
+where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv {
+  pub curve: Box<T>,
   pub hasher: Box<dyn Hasher<HASHER_OUT_SIZE>>,
 }
 
@@ -23,25 +27,27 @@ pub struct Signature {
   pub s: FieldElem,   // mod n
 }
 
-impl<const HASHER_OUT_SIZE: usize> Ecdsa<HASHER_OUT_SIZE> {
+impl<const HASHER_OUT_SIZE: usize, T> Ecdsa<HASHER_OUT_SIZE, T>
+  where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv {
   pub fn new(
-    group: EcCyclicAdditiveGroup,
-    curve: WeierstrassEq,
-    ops: Box<dyn EcAdditiveGroupOps>,
+    curve: Box<dyn Curve<T>>,
     hasher: Box<dyn Hasher<HASHER_OUT_SIZE>>,
   ) -> Self {
-    Ecdsa { group, curve, ops, hasher }
+    Ecdsa { curve, hasher }
   }
 
   pub fn gen_pub_key(&self, priv_key: &FieldElem) -> EcPoint {
-    self.ops.scalar_mul(&self.group.g, &priv_key.n)
+    let g = &self.curve.get_generator();
+    self.curve.get_point_ops().scalar_mul(g, &priv_key.n)
   }
 
   pub fn sign(&mut self, priv_key: &FieldElem, message: &[u8]) -> Result<Signature, String> {
     // n is 32-byte long in secp256k1
     // dA = private key in [1, n-1]
-    let n = &self.group.n;
-    let f_n = &self.group.f_n;
+    let f_n = &self.curve.get_curve_group();
+    let n = f_n.order;
+    let ops = &self.curve.get_point_ops();
+    let g = &self.curve.get_generator();
     let sha256 = Sha256();
 
     loop {
@@ -53,7 +59,7 @@ impl<const HASHER_OUT_SIZE: usize> Ecdsa<HASHER_OUT_SIZE> {
       let z = BigUint::from_bytes_be(&sha256.get_digest(message));
 
       // p = kG (k != 0)
-      let p: EcPoint = self.ops.scalar_mul(&self.group.g, &k.n);
+      let p: EcPoint = ops.scalar_mul(g, &k.n);
 
       // r = p.x mod n
       let r = p.x.n % n;
@@ -78,7 +84,11 @@ impl<const HASHER_OUT_SIZE: usize> Ecdsa<HASHER_OUT_SIZE> {
 
   // pub key is modulo p. not n which is the order of g
   pub fn verify(&self, sig: &Signature, pub_key: &EcPoint, message: &[u8]) -> bool {
-    let n = &self.group.n;
+    let curve_group = &self.curve.get_curve_group();
+    let n = &curve_group.order;
+    let g = &self.curve.get_generator();
+    let eq = &self.curve.get_generator();
+    let ops = &self.curve.get_point_ops();
 
     // confirm pub_key is not inf
     if pub_key.is_inf {
@@ -89,7 +99,7 @@ impl<const HASHER_OUT_SIZE: usize> Ecdsa<HASHER_OUT_SIZE> {
       false
     }
     // confirm n * pub_key is inf
-    else if !self.ops.scalar_mul(pub_key, n).is_inf {
+    else if !ops.scalar_mul(pub_key, n).is_inf {
       false
     }
     // check if r and s are in [1, n-1]
@@ -104,15 +114,15 @@ impl<const HASHER_OUT_SIZE: usize> Ecdsa<HASHER_OUT_SIZE> {
       // compute e = HASH(m)
       // z = e's uppermost Ln bits (Ln = order of n = 256 bits)
       let z = BigUint::from_bytes_be(&self.hasher.get_digest(message));
-      let z_fe = self.group.f_n.elem(&z);  // mod n
+      let z_fe = curve_group.elem(&z);  // mod n
       let w = sig.s.inv();  // mod n
       let u1 = z_fe * &w;  // mod n
       let u2 = &sig.r * w;  // mod n
 
       // (x, y) = u1 * G + u2 * PubKey
-      let p1 = self.ops.scalar_mul(&self.group.g, &u1.n);
-      let p2 = self.ops.scalar_mul(&pub_key, &u2.n);
-      let p3 = self.ops.add(&p1, &p2);
+      let p1 = ops.scalar_mul(&g, &u1.n);
+      let p2 = ops.scalar_mul(&pub_key, &u2.n);
+      let p3 = ops.add(&p1, &p2);
       sig.r.n == (p3.x.n % n)
     }
   }
@@ -121,20 +131,25 @@ impl<const HASHER_OUT_SIZE: usize> Ecdsa<HASHER_OUT_SIZE> {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::building_block::{
-    ec_cyclic_additive_group::EcCyclicAdditiveGroup,
-    weierstrass_add_ops::Secp256k1JacobianAddOps,
-    weierstrass_eq::WeierstrassEq,
+  use crate::building_block::elliptic_curve::weierstrass::{
+    curves::secp256k1::{Secp256k1, Secp256k1Params},
+    jacobian_point_ops::WeierstrassJacobianPointOps,
   };
 
   #[test]
   // TODO create separate tests for not-on-curve and pub_key-not-order-n cases
   fn sign_verify_bad_pub_key() {
-    let group = EcCyclicAdditiveGroup::secp256k1();
-    let curve = WeierstrassEq::secp256k1(&group.f);
-    let ops = Box::new(Secp256k1JacobianAddOps::new(&group.f));
+    let params = Secp256k1Params::new();
+    let ops = WeierstrassJacobianPointOps::new(&params.f);
+    let curve = Secp256k1::new(ops, params);
     let hasher = Box::new(Sha256());
-    let mut ecdsa = Ecdsa::new(group, curve, ops.clone(), hasher);
+    let mut ecdsa = Ecdsa::new(curve, hasher);
+
+    let curve_group = &curve.get_curve_group();
+    let n = &curve_group.order;
+    let g = &curve.get_generator();
+    let eq = &curve.get_generator();
+    let ops = &curve.get_point_ops();
 
     let message = vec![1u8, 2, 3];
 
@@ -154,12 +169,10 @@ mod tests {
 
   #[test]
   fn sign_verify_inf_pub_key() {
-    let group = EcCyclicAdditiveGroup::secp256k1();
-    let f = &group.f.clone();
-    let curve = WeierstrassEq::secp256k1(f);
-    let ops = Box::new(Secp256k1JacobianAddOps::new(&group.f));
+    let params = Secp256k1Params::new();
+    let ops = WeierstrassJacobianPointOps::new(&params.f);
     let hasher = Box::new(Sha256());
-    let mut ecdsa = Ecdsa::new(group, curve, ops, hasher);
+    let mut ecdsa = Ecdsa::new(ops, hasher);
 
     let message = vec![1u8, 2, 3];
 
@@ -168,18 +181,17 @@ mod tests {
     let sig = ecdsa.sign(&priv_key, &message).unwrap();
 
     // use inf public key for verifying
-    let pub_key = EcPoint::inf(f);
+    let pub_key = EcPoint::inf(&params.f);
     let is_verified = ecdsa.verify(&sig, &pub_key, &message);
     assert_eq!(is_verified, false);
   }
 
   #[test]
   fn sign_verify_sig_r_out_of_range() {
-    let group = EcCyclicAdditiveGroup::secp256k1();
-    let curve = WeierstrassEq::secp256k1(&group.f);
-    let ops = Box::new(Secp256k1JacobianAddOps::new(&group.f));
+    let params = Secp256k1Params::new();
+    let ops = WeierstrassJacobianPointOps::new(&params.f);
     let hasher = Box::new(Sha256());
-    let mut ecdsa = Ecdsa::new(group, curve, ops.clone(), hasher);
+    let mut ecdsa = Ecdsa::new(ops, hasher);
 
     let message = vec![1u8, 2, 3];
 
@@ -208,11 +220,10 @@ mod tests {
 
   #[test]
   fn sign_verify_sig_s_out_of_range() {
-    let group = EcCyclicAdditiveGroup::secp256k1();
-    let curve = WeierstrassEq::secp256k1(&group.f);
-    let ops = Box::new(Secp256k1JacobianAddOps::new(&group.f));
+    let params = Secp256k1Params::new();
+    let ops = WeierstrassJacobianPointOps::new(&params.f);
     let hasher = Box::new(Sha256());
-    let mut ecdsa = Ecdsa::new(group, curve, ops.clone(), hasher);
+    let mut ecdsa = Ecdsa::new(ops, hasher);
 
     let message = vec![1u8, 2, 3];
 
@@ -241,11 +252,10 @@ mod tests {
 
   #[test]
   fn sign_verify_all_good() {
-    let group = EcCyclicAdditiveGroup::secp256k1();
-    let curve = WeierstrassEq::secp256k1(&group.f);
-    let ops = Box::new(Secp256k1JacobianAddOps::new(&group.f));
+    let params = Secp256k1Params::new();
+    let ops = WeierstrassJacobianPointOps::new(&params.f);
     let hasher = Box::new(Sha256());
-    let mut ecdsa = Ecdsa::new(group, curve, ops, hasher);
+    let mut ecdsa = Ecdsa::new(ops, hasher);
 
     let message = vec![1u8, 2, 3];
 
@@ -261,11 +271,10 @@ mod tests {
 
   #[test]
   fn sign_verify_bad_priv_key() {
-    let group = EcCyclicAdditiveGroup::secp256k1();
-    let curve = WeierstrassEq::secp256k1(&group.f);
-    let ops = Box::new(Secp256k1JacobianAddOps::new(&group.f));
+    let params = Secp256k1Params::new();
+    let ops = WeierstrassJacobianPointOps::new(&params.f);
     let hasher = Box::new(Sha256());
-    let mut ecdsa = Ecdsa::new(group, curve, ops.clone(), hasher);
+    let mut ecdsa = Ecdsa::new(ops, hasher);
 
     let message = vec![1u8, 2, 3];
 
@@ -283,11 +292,10 @@ mod tests {
 
   #[test]
   fn sign_verify_different_message() {
-    let group = EcCyclicAdditiveGroup::secp256k1();
-    let curve = WeierstrassEq::secp256k1(&group.f);
-    let ops = Box::new(Secp256k1JacobianAddOps::new(&group.f));
+    let params = Secp256k1Params::new();
+    let ops = WeierstrassJacobianPointOps::new(&params.f);
     let hasher = Box::new(Sha256());
-    let mut ecdsa = Ecdsa::new(group, curve, ops.clone(), hasher);
+    let mut ecdsa = Ecdsa::new(ops, hasher);
 
     let message = vec![1u8, 2, 3];
 

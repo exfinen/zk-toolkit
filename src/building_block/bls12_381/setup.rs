@@ -4,7 +4,7 @@ use crate::building_block::bls12_381::{
   g1_point::G1Point,
   g2_point::G2Point,
 };
-use crate::building_block::field::{Field};
+use crate::building_block::field::Field;
 use num_bigint::BigUint;
 use once_cell::sync::Lazy;
 

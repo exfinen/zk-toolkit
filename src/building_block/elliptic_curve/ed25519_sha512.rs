@@ -1,10 +1,16 @@
 #![allow(non_snake_case)]
 use crate::building_block::{
-  ec_additive_group_ops::EcAdditiveGroupOps,
-  ec_point::EcPoint,
   field::{Field, FieldElem},
   hasher::Hasher,
   sha512::Sha512,
+};
+use super::{
+  elliptic_curve_point_ops::{
+    EllipticCurveField,
+    EllipticCurvePointAdd,
+    ElllipticCurvePointInv,
+  },
+  ec_point::EcPoint,
 };
 use num_bigint::BigUint;
 use core::ops::{Add, Sub, Rem};
@@ -36,7 +42,13 @@ pub struct Ed25519Sha512 {
   zero: FieldElem,
 }
 
-impl EcAdditiveGroupOps for Ed25519Sha512 {
+impl EllipticCurveField for Ed25519Sha512 {
+  fn get_field(&self) -> &Field {
+     &self.f
+  }
+}
+
+impl EllipticCurvePointAdd for Ed25519Sha512 {
   // Edwards Addition Law
   // (x1,y1) + (x2,y2) = ((x1y2 + x2y1) / (1 + d x1x2 y1y2), (y1y2 + x1x2) / (1 - d x1x2 y1y2))
   fn add(&self, p1: &EcPoint, p2: &EcPoint) -> EcPoint {
@@ -50,16 +62,18 @@ impl EcAdditiveGroupOps for Ed25519Sha512 {
     EcPoint::new(&x, &y)
   }
 
-  fn inv(&self, _p: &EcPoint) -> EcPoint {
-    panic!("not implemented");
-  }
-
   fn get_zero(&self, f: &Field) -> EcPoint {
       EcPoint::new(&f.elem(&0u8), &f.elem(&1u8))
   }
 
   fn is_zero(&self, p: &EcPoint) -> bool {
       p.x == self.zero && p.y == self.one
+  }
+}
+
+impl ElllipticCurvePointInv for Ed25519Sha512 {
+  fn inv(&self, _p: &EcPoint) -> EcPoint {
+    panic!("not implemented");
   }
 }
 
@@ -96,7 +110,7 @@ impl Ed25519Sha512 {
   // d is passed to allow new() to call this function. ideally d should be replaced by &self
   fn recover_x(d: &FieldElem, y: &FieldElem, x_parity: Parity) -> FieldElem {
     let f = &d.f;
-    let q = &*d.f.order;
+    let q = &d.f.order;
 
     // xx = x^2 = (y^2 - 1) / (1 + d*y^2)
     let xx = (y.sq() - 1u8) / ((d * y.sq()) + 1u8);
@@ -104,7 +118,7 @@ impl Ed25519Sha512 {
     // calculate the square root of xx assuming a^((q-1)/4) = 1 mod q
     let mut x = (&xx).pow(&((q + &3u8) / &8u8));
 
-    // if that doesn't match, calculate the square root of xx again 
+    // if that doesn't match, calculate the square root of xx again
     // assuming a^((q-1)/4) = -1 mod q
     if &x.sq().n != &xx.n {
       let I = f.elem(&2u8).pow(&((q - &1u8) / &4u8));
@@ -123,7 +137,7 @@ impl Ed25519Sha512 {
     assert!(bytes_le.len() <= 32);
 
     // then write to 32-byte buffer w/ 0 padding on higher index side
-    // e.g. 0xab in little-endian in 4 byte buffer is ab 00 00 00 
+    // e.g. 0xab in little-endian in 4 byte buffer is ab 00 00 00
     let mut buf = [0u8; 32];
     buf[0..bytes_le.len()].copy_from_slice(&bytes_le);
     buf

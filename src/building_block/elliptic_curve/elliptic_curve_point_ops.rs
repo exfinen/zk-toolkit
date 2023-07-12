@@ -1,13 +1,11 @@
-use crate::building_block::ec_point::EcPoint;
 use crate::building_block::field::Field;
+use super::ec_point::EcPoint;
 use num_bigint::BigUint;
 use num_traits::identities::{Zero, One};
 use std::ops::{BitAnd, ShrAssign};
 
-pub trait EcAdditiveGroupOps {
+pub trait EllipticCurvePointAdd {
   fn add(&self, p1: &EcPoint, p2: &EcPoint) -> EcPoint;
-
-  fn inv(&self, p: &EcPoint) -> EcPoint;
 
   fn vector_add(&self, ps: &[&EcPoint]) -> EcPoint {
     if ps.len() == 0 {
@@ -23,9 +21,13 @@ pub trait EcAdditiveGroupOps {
     }
   }
 
-  fn get_zero(&self, f: &Field) -> EcPoint;
+  fn get_zero(&self, f: &Field) -> EcPoint {
+      EcPoint::inf(f)
+  }
 
-  fn is_zero(&self, p: &EcPoint) -> bool;
+  fn is_zero(&self, p: &EcPoint) -> bool {
+      p.is_inf
+  }
 
   fn scalar_mul(&self, pt: &EcPoint, multiplier: &BigUint) -> EcPoint {
     let mut n = multiplier.clone();
@@ -41,5 +43,15 @@ pub trait EcAdditiveGroupOps {
       n.shr_assign(1usize);
     }
     res
+  }
+}
+
+pub trait EllipticCurveField {
+  fn get_field(&self) -> &Field;
+}
+
+pub trait ElllipticCurvePointInv {
+  fn inv(&self, p: &EcPoint) -> EcPoint {
+    EcPoint::new(&p.x, &p.y.inv())
   }
 }
