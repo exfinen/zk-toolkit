@@ -1,23 +1,24 @@
 use crate::building_block::{
-  field::{Field, FieldElem},
+  field::FieldElem,
   hasher::Hasher,
   sha256::Sha256,
-};
-use super::{
-  elliptic_curve_point_ops::{
-    EllipticCurveField,
-    EllipticCurvePointAdd,
-    ElllipticCurvePointInv,
+  elliptic_curve::{
+    curve::Curve,
+    curve_equation::CurveEquation,
+    elliptic_curve_point_ops::{
+      EllipticCurveField,
+      EllipticCurvePointAdd,
+      ElllipticCurvePointInv,
+    },
+    ec_point::EcPoint,
   },
-  ec_point::EcPoint,
-  curve::Curve,
 };
 use num_bigint::BigUint;
 use num_traits::identities::Zero;
 
-pub struct Ecdsa<const HASHER_OUT_SIZE: usize, T>
-where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv {
-  pub curve: Box<T>,
+pub struct Ecdsa<const HASHER_OUT_SIZE: usize, T, U>
+where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv, U: CurveEquation {
+  pub curve: Box<dyn Curve<T, U>>,
   pub hasher: Box<dyn Hasher<HASHER_OUT_SIZE>>,
 }
 
@@ -27,10 +28,10 @@ pub struct Signature {
   pub s: FieldElem,   // mod n
 }
 
-impl<const HASHER_OUT_SIZE: usize, T> Ecdsa<HASHER_OUT_SIZE, T>
-  where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv {
+impl<const HASHER_OUT_SIZE: usize, T, U> Ecdsa<HASHER_OUT_SIZE, T, U>
+  where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv, U: CurveEquation {
   pub fn new(
-    curve: Box<dyn Curve<T>>,
+    curve: Box<dyn Curve<T, U>>,
     hasher: Box<dyn Hasher<HASHER_OUT_SIZE>>,
   ) -> Self {
     Ecdsa { curve, hasher }
@@ -95,7 +96,7 @@ impl<const HASHER_OUT_SIZE: usize, T> Ecdsa<HASHER_OUT_SIZE, T>
       false
     }
     // confirm pub_key is on the curve
-    else if !self.curve.is_rational_point(&pub_key) {
+    else if !self.curve.get_equation().is_rational_point(&pub_key) {
       false
     }
     // confirm n * pub_key is inf
@@ -141,7 +142,7 @@ mod tests {
   fn sign_verify_bad_pub_key() {
     let params = Secp256k1Params::new();
     let ops = WeierstrassJacobianPointOps::new(&params.f);
-    let curve = Secp256k1::new(ops, params);
+    let curve = Box::new(Secp256k1::new(ops, params));
     let hasher = Box::new(Sha256());
     let mut ecdsa = Ecdsa::new(curve, hasher);
 
@@ -154,10 +155,10 @@ mod tests {
     let message = vec![1u8, 2, 3];
 
     // sign with newly generated private key
-    let priv_key = ecdsa.group.f_n.rand_elem(true);
+    let priv_key = curve_group.rand_elem(true);
     let sig = ecdsa.sign(&priv_key, &message).unwrap();
 
-    let good_pub_key = ops.scalar_mul(&ecdsa.group.g, &priv_key.n);
+    let good_pub_key = ops.scalar_mul(g, &priv_key.n);
     let bad_pub_key = EcPoint {
       x: good_pub_key.x.clone(),
       y: good_pub_key.x.clone(),

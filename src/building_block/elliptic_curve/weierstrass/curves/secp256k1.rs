@@ -48,22 +48,22 @@ impl Secp256k1Params {
   }
 }
 
-pub struct Secp256k1<T>
-  where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv {
+pub struct Secp256k1<T, WeierstrassEq>
+  where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv + Clone {
   pub params: Secp256k1Params,
   pub ops: Box<T>,
-  pub eq: WeierstrassEq,
+  pub eq: Box<WeierstrassEq>,
 }
 
-impl<T> Secp256k1<T>
-  where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv {
+impl<T> Secp256k1<T, WeierstrassEq>
+  where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv + Clone {
   pub fn new(ops: T, params: Secp256k1Params) -> Self {
     let a1 = BigUint::from(0u8);
     let a2 = BigUint::from(0u8);
     let a3 = BigUint::from(0u8);
     let a4 = BigUint::from(0u32);
     let a6 = BigUint::from(7u8);
-    let eq = WeierstrassEq::new(&params.f, a1, a2, a3, a4, a6);
+    let eq = Box::new(WeierstrassEq::new(&params.f, a1, a2, a3, a4, a6));
 
     Self {
       params,
@@ -73,7 +73,8 @@ impl<T> Secp256k1<T>
   }
 }
 
-impl<T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv> Curve<T> for Secp256k1<T> {
+impl<T, U> Curve<T, U> for Secp256k1<T, U>
+  where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv + Clone, U: CurveEquation {
   fn get_curve_group(&self) -> Field {
     self.params.f_n.clone()
   }
@@ -85,9 +86,14 @@ impl<T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv> Cur
   fn get_point_ops(&self) -> Box<T> {
     self.ops
   }
+
+  fn get_equation(&self) -> Box<U> {
+      self.eq
+  }
 }
 
-impl<T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv> CurveEquation for Secp256k1<T> {
+impl<T, U> CurveEquation for Secp256k1<T, U>
+  where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv + Clone, U: CurveEquation {
   fn is_rational_point(&self, pt: &EcPoint) -> bool {
       self.eq.is_rational_point(pt)
   }

@@ -1,3 +1,4 @@
+use crate::building_block::elliptic_curve::curve_equation::CurveEquation;
 use crate::building_block::field::{FieldElem, FieldElems};
 use crate::building_block::elliptic_curve::{
   ec_point::EcPoint,
@@ -11,21 +12,22 @@ use crate::building_block::elliptic_curve::{
 };
 // implementation based on https://eprint.iacr.org/2017/1066.pdf
 
-pub struct Bulletproofs<const N: usize, T>
-  where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv {
-  curve: dyn Curve<T>,
+pub struct Bulletproofs<const N: usize, T, U>
+  where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv + Clone, U: CurveEquation {
+  curve: Box<dyn Curve<T, U>>,
 }
 
-impl<'a, T, const N: usize> Bulletproofs<N, T>
-  where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv {
+impl<'a, T, const N: usize, U> Bulletproofs<N, T, U>
+  where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv + Clone, U: CurveEquation {
 
-  pub fn new(curve: dyn Curve<T>) -> Self {
+  pub fn new(curve: Box<dyn Curve<T, U>>) -> Self {
     Bulletproofs { curve }
   }
 
   pub fn ec_points(&self, ec_points: &'a [EcPoint]) -> EcPointsWithOps<'a, T> {
     assert!(ec_points.len() > 0);
-    let xs = ec_points.iter().map(|x| EcPointWithOps((self.ops, x.clone()))).collect::<_>();
+    let ops = self.curve.get_point_ops();
+    let xs = ec_points.iter().map(|x| EcPointWithOps((ops, x.clone()))).collect::<_>();
     EcPointsWithOps((self.ops, xs))
   }
 
