@@ -45,8 +45,8 @@ impl<const HASHER_OUT_SIZE: usize, T, U> Ecdsa<HASHER_OUT_SIZE, T, U>
   pub fn sign(&mut self, priv_key: &FieldElem, message: &[u8]) -> Result<Signature, String> {
     // n is 32-byte long in secp256k1
     // dA = private key in [1, n-1]
-    let f_n = &self.curve.get_curve_group();
-    let n = f_n.order;
+    let f_n = self.curve.get_curve_group();
+    let n = &f_n.order;
     let ops = &self.curve.get_point_ops();
     let g = &self.curve.get_generator();
     let sha256 = Sha256();
@@ -88,7 +88,6 @@ impl<const HASHER_OUT_SIZE: usize, T, U> Ecdsa<HASHER_OUT_SIZE, T, U>
     let curve_group = &self.curve.get_curve_group();
     let n = &curve_group.order;
     let g = &self.curve.get_generator();
-    let eq = &self.curve.get_generator();
     let ops = &self.curve.get_point_ops();
 
     // confirm pub_key is not inf

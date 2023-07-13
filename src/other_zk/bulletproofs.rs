@@ -24,21 +24,24 @@ impl<'a, T, const N: usize, U> Bulletproofs<N, T, U>
     Bulletproofs { curve }
   }
 
-  pub fn ec_points(&self, ec_points: &'a [EcPoint]) -> EcPointsWithOps<'a, T> {
+  pub fn ec_points(&self, ec_points: &'a [EcPoint]) -> EcPointsWithOps<T> {
     assert!(ec_points.len() > 0);
     let ops = self.curve.get_point_ops();
     let xs = ec_points.iter().map(|x| EcPointWithOps((ops, x.clone()))).collect::<_>();
-    EcPointsWithOps((self.ops, xs))
+    EcPointsWithOps((ops, xs))
   }
 
-  pub fn ec_point1(&self, ec_point: &'a EcPoint) -> EcPointWithOps<'a, T> {
-    EcPointWithOps((self.ops, ec_point.clone()))
+  pub fn ec_point1(&self, ec_point: &'a EcPoint) -> EcPointWithOps<T> {
+    let ops = self.curve.get_point_ops();
+    EcPointWithOps((ops, ec_point.clone()))
   }
 
-  pub fn rand_point(&self) -> EcPointWithOps<'a, T> {
-    let fe = self.group.f_n.rand_elem(true);
-    let p = self.ops.scalar_mul(&self.group.g, &fe);
-    EcPointWithOps((self.ops, p))
+  pub fn rand_point(&self) -> EcPointWithOps<T> {
+    let ops = self.curve.get_point_ops();
+    let group = &self.curve.get_curve_group();
+    let fe = group.rand_elem(true);
+    let p = ops.scalar_mul(&self.curve.get_generator(), &fe);
+    EcPointWithOps((ops, p))
   }
 
   pub fn rand_points(&self, n: usize) -> Vec<EcPoint> {
@@ -49,9 +52,9 @@ impl<'a, T, const N: usize, U> Bulletproofs<N, T, U>
     xs
   }
 
-  pub fn scalar_mul(&self, pt: &EcPointWithOps<'a, T>, fe: &FieldElem) -> EcPointWithOps<'a, T> {
-    let (ops, _) = pt.0;
-    let x = self.ops.scalar_mul(&pt, &fe);
+  pub fn scalar_mul(&self, pt: &EcPointWithOps<T>, fe: &FieldElem) -> EcPointWithOps<T> {
+    let ops = self.curve.get_point_ops();
+    let x = ops.scalar_mul(&pt, &fe);
     EcPointWithOps((ops, x))
   }
 
@@ -59,10 +62,10 @@ impl<'a, T, const N: usize, U> Bulletproofs<N, T, U>
   #[allow(non_snake_case)]
   pub fn inner_product_argument(&self,
     n: usize,
-    gg: &EcPointsWithOps<'a, T>,
-    hh: &EcPointsWithOps<'a, T>,
-    u: &EcPointWithOps<'a, T>,
-    P: &EcPointWithOps<'a, T>,
+    gg: &EcPointsWithOps<T>,
+    hh: &EcPointsWithOps<T>,
+    u: &EcPointWithOps<T>,
+    P: &EcPointWithOps<T>,
     a: &FieldElems,
     b: &FieldElems,
   ) -> bool {
@@ -99,16 +102,16 @@ impl<'a, T, const N: usize, U> Bulletproofs<N, T, U>
   pub fn range_proof(
     &self,
     n: usize,
-    V: &EcPointWithOps<'a, T>,
+    V: &EcPointWithOps<T>,
     aL: &FieldElems,
     gamma: &FieldElem,
-    g: &EcPointWithOps<'a, T>,
-    h: &EcPointWithOps<'a, T>,
-    gg: &EcPointsWithOps<'a, T>,
-    hh: &EcPointsWithOps<'a, T>,
+    g: &EcPointWithOps<T>,
+    h: &EcPointWithOps<T>,
+    gg: &EcPointsWithOps<T>,
+    hh: &EcPointsWithOps<T>,
     use_inner_product_argument: bool,
   ) -> bool {
-    let f = &self.curve.get_curve_group().f_n;  // prime field of order n
+    let f = &self.curve.get_curve_group();  // prime field of order n
 
     let one = f.elem(&1u8);
     let two = f.elem(&2u8);

@@ -17,7 +17,7 @@ use std::ops::{Index, RangeFrom, RangeTo, Deref};
 pub struct EcPointWithOps<T>(pub (Box<T>, EcPoint))
   where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv;
 
-impl<T> Deref for EcPointWithOps<Box<T>>
+impl<T> Deref for EcPointWithOps<T>
   where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv {
   type Target = EcPoint;
 
@@ -26,7 +26,7 @@ impl<T> Deref for EcPointWithOps<Box<T>>
   }
 }
 
-impl<T> PartialEq for EcPointWithOps<Box<T>>
+impl<T> PartialEq for EcPointWithOps<T>
   where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv {
 
   fn eq(&self, other: &Self) -> bool {
@@ -40,80 +40,82 @@ impl<T> Eq for EcPointWithOps<T>
 macro_rules! impl_ec_point1_times_field_elem {
   ($rhs: ty, $target: ty) => {
     impl<T> ops::Mul<$rhs> for $target
-      where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv {
+      where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv + Clone {
 
-      type Output = EcPointWithOps<Box<T>>;
+      type Output = EcPointWithOps<T>;
 
       fn mul(self, rhs: $rhs) -> Self::Output {
-        let (ops, lhs) = &self.0;
-        let x = ops.scalar_mul(&lhs, &rhs.n);
-        EcPointWithOps((*ops, x))
+        let ops = self.0.0.clone();
+        let lhs = &self.0.1;
+        let x = ops.scalar_mul(lhs, &rhs.n);
+        EcPointWithOps((ops, x))
       }
     }
   };
 }
-impl_ec_point1_times_field_elem!(&FieldElem, &EcPointWithOps<Box<T>>);
-impl_ec_point1_times_field_elem!(FieldElem, &EcPointWithOps<Box<T>>);
-impl_ec_point1_times_field_elem!(FieldElem, EcPointWithOps<Box<T>>);
-impl_ec_point1_times_field_elem!(&FieldElem, EcPointWithOps<Box<T>>);
+impl_ec_point1_times_field_elem!(&FieldElem, &EcPointWithOps<T>);
+impl_ec_point1_times_field_elem!(FieldElem, &EcPointWithOps<T>);
+impl_ec_point1_times_field_elem!(FieldElem, EcPointWithOps<T>);
+impl_ec_point1_times_field_elem!(&FieldElem, EcPointWithOps<T>);
 
 macro_rules! impl_ec_point1_plus_ec_point1 {
   ($rhs: ty, $target: ty) => {
     impl<T> ops::Add<$rhs> for $target
-      where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv {
-      type Output = EcPointWithOps<Box<T>>;
+      where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv + Clone {
+      type Output = EcPointWithOps<T>;
 
       fn add(self, rhs: $rhs) -> Self::Output {
-        let (ops, lhs) = &self.0;
-        let x = ops.add(&lhs, &rhs.0.1);
-        EcPointWithOps((*ops, x))
+        let ops = self.0.0.clone();
+        let lhs = &self.0.1;
+        let x = ops.add(lhs, &rhs.0.1);
+        EcPointWithOps((ops, x))
       }
     }
   };
 }
-impl_ec_point1_plus_ec_point1!(EcPointWithOps<Box<T>>, &EcPointWithOps<Box<T>>);
-impl_ec_point1_plus_ec_point1!(&EcPointWithOps<Box<T>>, EcPointWithOps<Box<T>>);
-impl_ec_point1_plus_ec_point1!(EcPointWithOps<Box<T>>, EcPointWithOps<Box<T>>);
-impl_ec_point1_plus_ec_point1!(&EcPointWithOps<Box<T>>, &EcPointWithOps<Box<T>>);
+impl_ec_point1_plus_ec_point1!(EcPointWithOps<T>, &EcPointWithOps<T>);
+impl_ec_point1_plus_ec_point1!(&EcPointWithOps<T>, EcPointWithOps<T>);
+impl_ec_point1_plus_ec_point1!(EcPointWithOps<T>, EcPointWithOps<T>);
+impl_ec_point1_plus_ec_point1!(&EcPointWithOps<T>, &EcPointWithOps<T>);
 
 ////////////////////
 // EcPointsWithOps
 
 #[derive(Clone)]
-pub struct EcPointsWithOps<'a, T>(pub (&'a T, Vec<EcPointWithOps<'a, T>>))
+pub struct EcPointsWithOps<T>(pub (Box<T>, Vec<EcPointWithOps<T>>))
   where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv + Clone;
 
-impl<'a, T> Deref for EcPointsWithOps<'a, T>
+impl<T> Deref for EcPointsWithOps<T>
   where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv + Clone {
-  type Target = [EcPointWithOps<'a, T>];
+  type Target = [EcPointWithOps<T>];
 
   fn deref(&self) -> &Self::Target {
     &self.0.1[..]
   }
 }
 
-impl<'a, T> PartialEq for EcPointsWithOps<'a, T>
+impl<T> PartialEq for EcPointsWithOps<T>
   where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv + Clone {
   fn eq(&self, other: &Self) -> bool {
     self.0.1 == other.0.1
   }
 }
 
-impl<'a, T> Index<usize> for EcPointsWithOps<'a, T>
+impl<T> Index<usize> for EcPointsWithOps<T>
   where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv + Clone {
-  type Output = EcPointWithOps<'a, T>;
+  type Output = EcPointWithOps<T>;
 
   fn index(&self, index: usize) -> &Self::Output {
     &self.0.1[index]
   }
 }
 
-impl<'a, T> EcPointsWithOps<'a, T>
+impl<T> EcPointsWithOps<T>
   where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv + Clone {
 
-  pub fn from(&self, range: RangeFrom<usize>) -> EcPointsWithOps<'a, T> {
-    let (ops, _) = self.0;
-    let mut xs: Vec<EcPointWithOps<'a, T>> = vec!{};
+  pub fn from(&self, range: RangeFrom<usize>) -> EcPointsWithOps<T> {
+    let ops = self.0.0.clone();
+    let mut xs: Vec<EcPointWithOps<T>> = vec!{};
     for i in range.start..self.len() {
       let x = self[i].clone();
       xs.push(x);
@@ -121,22 +123,22 @@ impl<'a, T> EcPointsWithOps<'a, T>
     EcPointsWithOps((ops, xs))
   }
 
-  pub fn to(&self, range: RangeTo<usize>) -> EcPointsWithOps<'a, T> {
-    let (ops, _) = self.0;
+  pub fn to(&self, range: RangeTo<usize>) -> EcPointsWithOps<T> {
+    let ops = self.0.0.clone();
 
     if self.len() < range.end {
       return EcPointsWithOps((ops, self.0.1.clone()));
     }
-    let xs: Vec<EcPointWithOps<'a, T>> = (0..range.end).map(|i| {
-      let x: &EcPointWithOps<'a, T> = &self[i];
+    let xs: Vec<EcPointWithOps<T>> = (0..range.end).map(|i| {
+      let x: &EcPointWithOps<T> = &self[i];
       x.clone()
-    }).collect::<Vec<EcPointWithOps<'a, T>>>();
+    }).collect::<Vec<EcPointWithOps<T>>>();
     EcPointsWithOps((ops, xs))
   }
 
-  pub fn sum(&self) -> EcPointWithOps<'a, T> {
+  pub fn sum(&self) -> EcPointWithOps<T> {
     assert!(self.len() > 0);
-    let (ops, _) = self.0;
+    let ops = self.0.0.clone();
 
     let head = self[0].0.1.clone();
     let tail = &self.from(1..);
@@ -149,9 +151,9 @@ impl<'a, T> EcPointsWithOps<'a, T>
 // returns Hadamard product
 macro_rules! impl_ec_points_times_field_elems {
   ($rhs: ty, $target: ty) => {
-    impl<'a, T> ops::Mul<$rhs> for $target
+    impl<T> ops::Mul<$rhs> for $target
       where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv + Clone {
-      type Output = EcPointsWithOps<'a, T>;
+      type Output = EcPointsWithOps<T>;
 
       fn mul(self, rhs: $rhs) -> Self::Output {
         assert!(self.len() > 0 && self.len() == rhs.len());
@@ -168,17 +170,17 @@ macro_rules! impl_ec_points_times_field_elems {
     }
   };
 }
-impl_ec_points_times_field_elems!(&FieldElems, &EcPointsWithOps<'a, T>);
-impl_ec_points_times_field_elems!(&FieldElems, EcPointsWithOps<'a, T>);
-impl_ec_points_times_field_elems!(FieldElems, &EcPointsWithOps<'a, T>);
-impl_ec_points_times_field_elems!(FieldElems, EcPointsWithOps<'a, T>);
+impl_ec_points_times_field_elems!(&FieldElems, &EcPointsWithOps<T>);
+impl_ec_points_times_field_elems!(&FieldElems, EcPointsWithOps<T>);
+impl_ec_points_times_field_elems!(FieldElems, &EcPointsWithOps<T>);
+impl_ec_points_times_field_elems!(FieldElems, EcPointsWithOps<T>);
 
 // returns Hadamard product
 macro_rules! impl_ec_points_times_ec_points {
   ($rhs: ty, $target: ty) => {
-    impl<'a, T> ops::Mul<$rhs> for $target
+    impl<T> ops::Mul<$rhs> for $target
       where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv + Clone {
-      type Output = EcPointsWithOps<'a, T>;
+      type Output = EcPointsWithOps<T>;
 
       fn mul(self, rhs: $rhs) -> Self::Output {
         assert!(self.len() > 0 && self.len() == rhs.len());
@@ -195,17 +197,17 @@ macro_rules! impl_ec_points_times_ec_points {
     }
   };
 }
-impl_ec_points_times_ec_points!(&EcPointsWithOps<'a, T>, &EcPointsWithOps<'a, T>);
-impl_ec_points_times_ec_points!(&EcPointsWithOps<'a, T>, EcPointsWithOps<'a, T>);
-impl_ec_points_times_ec_points!(EcPointsWithOps<'a, T>, &EcPointsWithOps<'a, T>);
-impl_ec_points_times_ec_points!(EcPointsWithOps<'a, T>, EcPointsWithOps<'a, T>);
+impl_ec_points_times_ec_points!(&EcPointsWithOps<T>, &EcPointsWithOps<T>);
+impl_ec_points_times_ec_points!(&EcPointsWithOps<T>, EcPointsWithOps<T>);
+impl_ec_points_times_ec_points!(EcPointsWithOps<T>, &EcPointsWithOps<T>);
+impl_ec_points_times_ec_points!(EcPointsWithOps<T>, EcPointsWithOps<T>);
 
 // multiply rhs (scalar) to each element
 macro_rules! impl_ec_points_times_field_elem {
   ($rhs: ty, $target: ty) => {
-    impl<'a, T> ops::Mul<$rhs> for $target
+    impl<T> ops::Mul<$rhs> for $target
       where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv + Clone {
-      type Output = EcPointsWithOps<'a, T>;
+      type Output = EcPointsWithOps<T>;
 
       fn mul(self, rhs: $rhs) -> Self::Output {
         assert!(self.len() > 0);
@@ -221,16 +223,16 @@ macro_rules! impl_ec_points_times_field_elem {
     }
   };
 }
-impl_ec_points_times_field_elem!(&FieldElem, &EcPointsWithOps<'a, T>);
-impl_ec_points_times_field_elem!(&FieldElem, EcPointsWithOps<'a, T>);
-impl_ec_points_times_field_elem!(FieldElem, &EcPointsWithOps<'a, T>);
-impl_ec_points_times_field_elem!(FieldElem, EcPointsWithOps<'a, T>);
+impl_ec_points_times_field_elem!(&FieldElem, &EcPointsWithOps<T>);
+impl_ec_points_times_field_elem!(&FieldElem, EcPointsWithOps<T>);
+impl_ec_points_times_field_elem!(FieldElem, &EcPointsWithOps<T>);
+impl_ec_points_times_field_elem!(FieldElem, EcPointsWithOps<T>);
 
 macro_rules! impl_ec_points_plus_ec_points {
   ($rhs: ty, $target: ty) => {
-    impl<'a, T> ops::Add<$rhs> for $target
+    impl<T> ops::Add<$rhs> for $target
       where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv + Clone {
-      type Output = EcPointsWithOps<'a, T>;
+      type Output = EcPointsWithOps<T>;
 
       fn add(self, rhs: $rhs) -> Self::Output {
         assert!(self.len() > 0 && self.len() == rhs.len());
@@ -247,16 +249,16 @@ macro_rules! impl_ec_points_plus_ec_points {
     }
   };
 }
-impl_ec_points_plus_ec_points!(&EcPointsWithOps<'a, T>, &EcPointsWithOps<'a, T>);
-impl_ec_points_plus_ec_points!(&EcPointsWithOps<'a, T>, EcPointsWithOps<'a, T>);
-impl_ec_points_plus_ec_points!(EcPointsWithOps<'a, T>, &EcPointsWithOps<'a, T>);
-impl_ec_points_plus_ec_points!(EcPointsWithOps<'a, T>, EcPointsWithOps<'a, T>);
+impl_ec_points_plus_ec_points!(&EcPointsWithOps<T>, &EcPointsWithOps<T>);
+impl_ec_points_plus_ec_points!(&EcPointsWithOps<T>, EcPointsWithOps<T>);
+impl_ec_points_plus_ec_points!(EcPointsWithOps<T>, &EcPointsWithOps<T>);
+impl_ec_points_plus_ec_points!(EcPointsWithOps<T>, EcPointsWithOps<T>);
 
 macro_rules! impl_ec_points_minus_ec_points {
   ($rhs: ty, $target: ty) => {
-    impl<'a, T> ops::Sub<$rhs> for $target
+    impl<T> ops::Sub<$rhs> for $target
       where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv + Clone {
-      type Output = EcPointsWithOps<'a, T>;
+      type Output = EcPointsWithOps<T>;
 
       fn sub(self, rhs: $rhs) -> Self::Output {
         assert!(self.len() > 0 && self.len() == rhs.len());
@@ -273,10 +275,10 @@ macro_rules! impl_ec_points_minus_ec_points {
     }
   };
 }
-impl_ec_points_minus_ec_points!(&EcPointsWithOps<'a, T>, &EcPointsWithOps<'a, T>);
-impl_ec_points_minus_ec_points!(&EcPointsWithOps<'a, T>, EcPointsWithOps<'a, T>);
-impl_ec_points_minus_ec_points!(EcPointsWithOps<'a, T>, &EcPointsWithOps<'a, T>);
-impl_ec_points_minus_ec_points!(EcPointsWithOps<'a, T>, EcPointsWithOps<'a, T>);
+impl_ec_points_minus_ec_points!(&EcPointsWithOps<T>, &EcPointsWithOps<T>);
+impl_ec_points_minus_ec_points!(&EcPointsWithOps<T>, EcPointsWithOps<T>);
+impl_ec_points_minus_ec_points!(EcPointsWithOps<T>, &EcPointsWithOps<T>);
+impl_ec_points_minus_ec_points!(EcPointsWithOps<T>, EcPointsWithOps<T>);
 
 #[cfg(test)]
 mod tests {

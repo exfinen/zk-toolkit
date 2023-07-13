@@ -31,10 +31,10 @@ impl PartialEq for EcPoint {
 
 impl Eq for EcPoint {}
 
-impl<'a, T> From<EcPointWithOps<'a, T>> for EcPoint
+impl<T> From<EcPointWithOps<T>> for EcPoint
   where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv {
 
-  fn from(x: EcPointWithOps<'a, T>) -> EcPoint {
+  fn from(x: EcPointWithOps<T>) -> EcPoint {
     x.0.1
   }
 }
