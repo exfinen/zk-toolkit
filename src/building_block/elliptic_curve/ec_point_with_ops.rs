@@ -295,7 +295,6 @@ mod tests {
   use super::*;
   use crate::building_block::elliptic_curve::weierstrass::{
     curves::secp256k1::{
-      Secp256k1,
       Secp256k1Params,
     },
     jacobian_point_ops::WeierstrassJacobianPointOps,

@@ -49,15 +49,15 @@ impl Secp256k1Params {
 }
 
 pub struct Secp256k1<T, WeierstrassEq>
-  where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv + Clone {
+  where T: ?Sized + EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv {
   pub params: Secp256k1Params,
   pub ops: Box<T>,
   pub eq: Box<WeierstrassEq>,
 }
 
 impl<T> Secp256k1<T, WeierstrassEq>
-  where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv + Clone {
-  pub fn new(ops: &T, params: Secp256k1Params) -> Self {
+  where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv {
+  pub fn new(ops: Box<T>, params: Secp256k1Params) -> Self {
     let a1 = BigUint::from(0u8);
     let a2 = BigUint::from(0u8);
     let a3 = BigUint::from(0u8);
@@ -67,7 +67,7 @@ impl<T> Secp256k1<T, WeierstrassEq>
 
     Self {
       params,
-      ops: Box::new(ops.clone()),
+      ops,
       eq,
     }
   }
@@ -120,8 +120,12 @@ mod tests {
     },
   };
 
-  fn get_ops_list<'a, T>(f: &Field) -> Vec<Box<T>>
-    where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv {
+  trait EllipticCurveOperations: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv {}
+
+  impl EllipticCurveOperations for WeierstrassAffinePointOps {}
+  impl EllipticCurveOperations for WeierstrassJacobianPointOps {}
+
+  fn get_ops_list(f: &Field) -> Vec<Box<dyn EllipticCurveOperations>> {
     let affine = WeierstrassAffinePointOps::new(f);
     let jacobian = WeierstrassJacobianPointOps::new(f);
     vec![
