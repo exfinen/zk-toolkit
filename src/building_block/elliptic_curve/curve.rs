@@ -13,8 +13,8 @@ use crate::building_block::{
 
 pub trait Curve<T, U>
 where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv, U: CurveEquation {
-  fn get_generator(&self) -> EcPoint;
-  fn get_curve_group(&self) -> Field;
-  fn get_point_ops(&self) -> Box<T>;
-  fn get_equation(&self) -> Box<U>;
+  fn g(&self) -> EcPoint;
+  fn group(&self) -> Field;
+  fn ops(&self) -> Box<T>;
+  fn equation(&self) -> Box<U>;
 }

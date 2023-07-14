@@ -26,21 +26,21 @@ impl<'a, T, const N: usize, U> Bulletproofs<N, T, U>
 
   pub fn ec_points(&self, ec_points: &'a [EcPoint]) -> EcPointsWithOps<T> {
     assert!(ec_points.len() > 0);
-    let ops = self.curve.get_point_ops();
+    let ops = self.curve.ops();
     let xs = ec_points.iter().map(|x| EcPointWithOps((ops.clone(), x.clone()))).collect::<_>();
     EcPointsWithOps((ops, xs))
   }
 
   pub fn ec_point1(&self, ec_point: &'a EcPoint) -> EcPointWithOps<T> {
-    let ops = self.curve.get_point_ops();
+    let ops = self.curve.ops();
     EcPointWithOps((ops, ec_point.clone()))
   }
 
   pub fn rand_point(&self) -> EcPointWithOps<T> {
-    let ops = self.curve.get_point_ops();
-    let group = &self.curve.get_curve_group();
+    let ops = self.curve.ops();
+    let group = &self.curve.group();
     let fe = group.rand_elem(true);
-    let p = ops.scalar_mul(&self.curve.get_generator(), &fe);
+    let p = ops.scalar_mul(&self.curve.g(), &fe);
     EcPointWithOps((ops, p))
   }
 
@@ -53,7 +53,7 @@ impl<'a, T, const N: usize, U> Bulletproofs<N, T, U>
   }
 
   pub fn scalar_mul(&self, pt: &EcPointWithOps<T>, fe: &FieldElem) -> EcPointWithOps<T> {
-    let ops = self.curve.get_point_ops();
+    let ops = self.curve.ops();
     let x = ops.scalar_mul(&pt, &fe);
     EcPointWithOps((ops, x))
   }
@@ -83,7 +83,7 @@ impl<'a, T, const N: usize, U> Bulletproofs<N, T, U>
       let L = (gg.from(np..) * a.to(..np)).sum() + (hh.to(..np) * b.from(np..)).sum() + u * cL;
       let R = (gg.to(..np) * a.from(np..)).sum() + (hh.from(np..) * b.to(..np)).sum() + u * cR;
 
-      let x = &self.curve.get_curve_group().rand_elem(true);
+      let x = &self.curve.group().rand_elem(true);
 
       let ggp = (gg.to(..np) * x.inv()) + (gg.from(np..) * x);
       let hhp = (hh.to(..np) * x) + (hh.from(np..) * x.inv());
@@ -111,7 +111,7 @@ impl<'a, T, const N: usize, U> Bulletproofs<N, T, U>
     hh: &EcPointsWithOps<T>,
     use_inner_product_argument: bool,
   ) -> bool {
-    let f = &self.curve.get_curve_group();  // prime field of order n
+    let f = &self.curve.group();  // prime field of order n
 
     let one = f.elem(&1u8);
     let two = f.elem(&2u8);
@@ -210,7 +210,7 @@ mod tests {
     let ops = Box::new(WeierstrassJacobianPointOps::new(&params.f));
     let curve = Box::new(Secp256k1::new(ops, params));
     let bp: Bulletproofs<2, WeierstrassJacobianPointOps, WeierstrassEq> = Bulletproofs::new(curve);
-    let group = bp.curve.get_curve_group();
+    let group = bp.curve.group();
 
     let n = 2;
     let z = group.rand_elem(true);
@@ -232,7 +232,7 @@ mod tests {
     let ops = Box::new(WeierstrassJacobianPointOps::new(&params.f));
     let curve = Box::new(Secp256k1::new(ops, params.clone()));
     let bp: Bulletproofs<2, WeierstrassJacobianPointOps, WeierstrassEq> = Bulletproofs::new(curve);
-    let group = bp.curve.get_curve_group();
+    let group = bp.curve.group();
     {
         let z = group.elem(&100u8);
         let basis = group.elem(&12345u16);
@@ -261,7 +261,7 @@ mod tests {
     let ops = Box::new(WeierstrassJacobianPointOps::new(&params.f));
     let curve = Box::new(Secp256k1::new(ops, params));
     let bp: Bulletproofs<2, WeierstrassJacobianPointOps, WeierstrassEq> = Bulletproofs::new(curve);
-    let group = &bp.curve.get_curve_group();
+    let group = &bp.curve.group();
 
     let alpha = &group.rand_elem(true);
     let rho = &group.rand_elem(true);
@@ -279,7 +279,7 @@ mod tests {
     let ops = Box::new(WeierstrassJacobianPointOps::new(&params.f));
     let curve = Box::new(Secp256k1::new(ops, params));
     let bp: Bulletproofs<2, WeierstrassJacobianPointOps, WeierstrassEq> = Bulletproofs::new(curve);
-    let group = &bp.curve.get_curve_group();
+    let group = &bp.curve.group();
 
     let x = group.elem(&5u8);
     let sL = FieldElems(vec![
@@ -302,7 +302,7 @@ mod tests {
     let ops = Box::new(WeierstrassJacobianPointOps::new(&params.f));
     let curve = Box::new(Secp256k1::new(ops, params.clone()));
     let bp: Bulletproofs<2, WeierstrassJacobianPointOps, WeierstrassEq> = Bulletproofs::new(curve);
-    let group = &bp.curve.get_curve_group();
+    let group = &bp.curve.group();
 
     let gg = vec![
       params.g.clone(),
@@ -326,7 +326,7 @@ mod tests {
     let ops = Box::new(WeierstrassJacobianPointOps::new(&params.f));
     let curve = Box::new(Secp256k1::new(ops, params));
     let bp: Bulletproofs<2, WeierstrassJacobianPointOps, WeierstrassEq> = Bulletproofs::new(curve);
-    let group = &bp.curve.get_curve_group();
+    let group = &bp.curve.group();
 
     let aL = FieldElems::new(&vec![
       group.elem(&1u8),

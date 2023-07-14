@@ -79,19 +79,20 @@ impl<T, U> Curve<T, U> for Secp256k1<T, U>
   where
     T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv + Clone,
     U: CurveEquation + Clone {
-  fn get_curve_group(&self) -> Field {
-    self.params.f_n.clone()
-  }
 
-  fn get_generator(&self) -> EcPoint {
+  fn g(&self) -> EcPoint {
     self.params.g.clone()
   }
 
-  fn get_point_ops(&self) -> Box<T> {
+  fn group(&self) -> Field {
+    self.params.f_n.clone()
+  }
+
+  fn ops(&self) -> Box<T> {
     self.ops.clone()
   }
 
-  fn get_equation(&self) -> Box<U> {
+  fn equation(&self) -> Box<U> {
       self.eq.clone()
   }
 }
@@ -122,29 +123,29 @@ mod tests {
     },
   };
 
-  trait EllipticCurveOperations: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv {
-    fn box_clone(&self) -> Box<dyn EllipticCurveOperations>;
+  trait EllipticCurveOps: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv {
+    fn box_clone(&self) -> Box<dyn EllipticCurveOps>;
   }
 
-  impl Clone for Box<dyn EllipticCurveOperations> {
-      fn clone(&self) -> Box<dyn EllipticCurveOperations> {
+  impl Clone for Box<dyn EllipticCurveOps> {
+      fn clone(&self) -> Box<dyn EllipticCurveOps> {
           self.box_clone()
       }
   }
 
-  impl EllipticCurveOperations for WeierstrassAffinePointOps {
-    fn box_clone(&self) -> Box<dyn EllipticCurveOperations> {
+  impl EllipticCurveOps for WeierstrassAffinePointOps {
+    fn box_clone(&self) -> Box<dyn EllipticCurveOps> {
       Box::new(self.clone())
     }
   }
 
-  impl EllipticCurveOperations for WeierstrassJacobianPointOps {
-    fn box_clone(&self) -> Box<dyn EllipticCurveOperations> {
+  impl EllipticCurveOps for WeierstrassJacobianPointOps {
+    fn box_clone(&self) -> Box<dyn EllipticCurveOps> {
       Box::new(self.clone())
     }
   }
 
-  fn get_ops_list(f: &Field) -> Vec<Box<dyn EllipticCurveOperations>> {
+  fn get_ops_list(f: &Field) -> Vec<Box<dyn EllipticCurveOps>> {
     let affine = WeierstrassAffinePointOps::new(f);
     let jacobian = WeierstrassJacobianPointOps::new(f);
     vec![

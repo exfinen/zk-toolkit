@@ -38,17 +38,17 @@ impl<const HASHER_OUT_SIZE: usize, T, U> Ecdsa<HASHER_OUT_SIZE, T, U>
   }
 
   pub fn gen_pub_key(&self, priv_key: &FieldElem) -> EcPoint {
-    let g = &self.curve.get_generator();
-    self.curve.get_point_ops().scalar_mul(g, &priv_key.n)
+    let g = &self.curve.g();
+    self.curve.ops().scalar_mul(g, &priv_key.n)
   }
 
   pub fn sign(&mut self, priv_key: &FieldElem, message: &[u8]) -> Result<Signature, String> {
     // n is 32-byte long in secp256k1
     // dA = private key in [1, n-1]
-    let f_n = self.curve.get_curve_group();
+    let f_n = self.curve.group();
     let n = &f_n.order;
-    let ops = &self.curve.get_point_ops();
-    let g = &self.curve.get_generator();
+    let ops = &self.curve.ops();
+    let g = &self.curve.g();
     let sha256 = Sha256();
 
     loop {
@@ -85,17 +85,17 @@ impl<const HASHER_OUT_SIZE: usize, T, U> Ecdsa<HASHER_OUT_SIZE, T, U>
 
   // pub key is modulo p. not n which is the order of g
   pub fn verify(&self, sig: &Signature, pub_key: &EcPoint, message: &[u8]) -> bool {
-    let curve_group = &self.curve.get_curve_group();
+    let curve_group = &self.curve.group();
     let n = &curve_group.order;
-    let g = &self.curve.get_generator();
-    let ops = &self.curve.get_point_ops();
+    let g = &self.curve.g();
+    let ops = &self.curve.ops();
 
     // confirm pub_key is not inf
     if pub_key.is_inf {
       false
     }
     // confirm pub_key is on the curve
-    else if !self.curve.get_equation().is_rational_point(&pub_key) {
+    else if !self.curve.equation().is_rational_point(&pub_key) {
       false
     }
     // confirm n * pub_key is inf
@@ -145,9 +145,9 @@ mod tests {
     let hasher = Box::new(Sha256());
     let mut ecdsa = Ecdsa::new(curve.clone(), hasher);
 
-    let curve_group = &curve.get_curve_group();
-    let g = &curve.get_generator();
-    let ops = &curve.get_point_ops();
+    let curve_group = &curve.group();
+    let g = &curve.g();
+    let ops = &curve.ops();
 
     let message = vec![1u8, 2, 3];
 
@@ -176,7 +176,7 @@ mod tests {
     let message = vec![1u8, 2, 3];
 
     // sign with newly generated private key
-    let priv_key = ecdsa.curve.get_curve_group().rand_elem(true);
+    let priv_key = ecdsa.curve.group().rand_elem(true);
     let sig = ecdsa.sign(&priv_key, &message).unwrap();
 
     // use inf public key for verifying
@@ -192,7 +192,7 @@ mod tests {
     let curve = Box::new(Secp256k1::new(ops.clone(), params.clone()));
     let hasher = Box::new(Sha256());
     let mut ecdsa = Ecdsa::new(curve, hasher);
-    let group = &ecdsa.curve.get_curve_group();
+    let group = &ecdsa.curve.group();
 
     let message = vec![1u8, 2, 3];
 
@@ -226,7 +226,7 @@ mod tests {
     let curve = Box::new(Secp256k1::new(ops.clone(), params.clone()));
     let hasher = Box::new(Sha256());
     let mut ecdsa = Ecdsa::new(curve, hasher);
-    let group = &ecdsa.curve.get_curve_group();
+    let group = &ecdsa.curve.group();
 
     let message = vec![1u8, 2, 3];
 
@@ -260,7 +260,7 @@ mod tests {
     let curve = Box::new(Secp256k1::new(ops, params));
     let hasher = Box::new(Sha256());
     let mut ecdsa = Ecdsa::new(curve, hasher);
-    let group = &ecdsa.curve.get_curve_group();
+    let group = &ecdsa.curve.group();
 
     let message = vec![1u8, 2, 3];
 
@@ -281,7 +281,7 @@ mod tests {
     let curve = Box::new(Secp256k1::new(ops.clone(), params.clone()));
     let hasher = Box::new(Sha256());
     let mut ecdsa = Ecdsa::new(curve, hasher);
-    let group = &ecdsa.curve.get_curve_group();
+    let group = &ecdsa.curve.group();
 
     let message = vec![1u8, 2, 3];
 
@@ -304,7 +304,7 @@ mod tests {
     let curve = Box::new(Secp256k1::new(ops.clone(), params.clone()));
     let hasher = Box::new(Sha256());
     let mut ecdsa = Ecdsa::new(curve, hasher);
-    let group = &ecdsa.curve.get_curve_group();
+    let group = &ecdsa.curve.group();
 
     let message = vec![1u8, 2, 3];
 
