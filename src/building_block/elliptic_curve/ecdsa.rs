@@ -143,12 +143,10 @@ mod tests {
     let ops = Box::new(WeierstrassJacobianPointOps::new(&params.f));
     let curve = Box::new(Secp256k1::new(ops, params));
     let hasher = Box::new(Sha256());
-    let mut ecdsa = Ecdsa::new(curve, hasher);
+    let mut ecdsa = Ecdsa::new(curve.clone(), hasher);
 
     let curve_group = &curve.get_curve_group();
-    let n = &curve_group.order;
     let g = &curve.get_generator();
-    let eq = &curve.get_generator();
     let ops = &curve.get_point_ops();
 
     let message = vec![1u8, 2, 3];
@@ -171,7 +169,7 @@ mod tests {
   fn sign_verify_inf_pub_key() {
     let params = Secp256k1Params::new();
     let ops = Box::new(WeierstrassJacobianPointOps::new(&params.f));
-    let curve = Box::new(Secp256k1::new(ops, params));
+    let curve = Box::new(Secp256k1::new(ops, params.clone()));
     let hasher = Box::new(Sha256());
     let mut ecdsa = Ecdsa::new(curve, hasher);
 
@@ -191,7 +189,7 @@ mod tests {
   fn sign_verify_sig_r_out_of_range() {
     let params = Secp256k1Params::new();
     let ops = Box::new(WeierstrassJacobianPointOps::new(&params.f));
-    let curve = Box::new(Secp256k1::new(ops, params));
+    let curve = Box::new(Secp256k1::new(ops.clone(), params.clone()));
     let hasher = Box::new(Sha256());
     let mut ecdsa = Ecdsa::new(curve, hasher);
     let group = &ecdsa.curve.get_curve_group();
@@ -225,7 +223,7 @@ mod tests {
   fn sign_verify_sig_s_out_of_range() {
     let params = Secp256k1Params::new();
     let ops = Box::new(WeierstrassJacobianPointOps::new(&params.f));
-    let curve = Box::new(Secp256k1::new(ops, params));
+    let curve = Box::new(Secp256k1::new(ops.clone(), params.clone()));
     let hasher = Box::new(Sha256());
     let mut ecdsa = Ecdsa::new(curve, hasher);
     let group = &ecdsa.curve.get_curve_group();
@@ -280,7 +278,7 @@ mod tests {
   fn sign_verify_bad_priv_key() {
     let params = Secp256k1Params::new();
     let ops = Box::new(WeierstrassJacobianPointOps::new(&params.f));
-    let curve = Box::new(Secp256k1::new(ops, params));
+    let curve = Box::new(Secp256k1::new(ops.clone(), params.clone()));
     let hasher = Box::new(Sha256());
     let mut ecdsa = Ecdsa::new(curve, hasher);
     let group = &ecdsa.curve.get_curve_group();
@@ -303,7 +301,7 @@ mod tests {
   fn sign_verify_different_message() {
     let params = Secp256k1Params::new();
     let ops = Box::new(WeierstrassJacobianPointOps::new(&params.f));
-    let curve = Box::new(Secp256k1::new(ops, params));
+    let curve = Box::new(Secp256k1::new(ops.clone(), params.clone()));
     let hasher = Box::new(Sha256());
     let mut ecdsa = Ecdsa::new(curve, hasher);
     let group = &ecdsa.curve.get_curve_group();

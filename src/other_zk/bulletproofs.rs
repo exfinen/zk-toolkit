@@ -207,18 +207,19 @@ mod tests {
   #[test]
   fn test_gg_ones_times_z() {
     let params = Secp256k1Params::new();
-    let ops = WeierstrassJacobianPointOps::new(&params.f);
-    let curve = Secp256k1::new(&ops, params);
+    let ops = Box::new(WeierstrassJacobianPointOps::new(&params.f));
+    let curve = Box::new(Secp256k1::new(ops, params));
     let bp: Bulletproofs<2, WeierstrassJacobianPointOps, WeierstrassEq> = Bulletproofs::new(curve);
+    let group = bp.curve.get_curve_group();
 
     let n = 2;
-    let z = bp.group.f_n.rand_elem(true);
+    let z = group.rand_elem(true);
     let gg = bp.rand_points(n);
     let gg = bp.ec_points(&gg);
 
     let r1 = &gg * &z;
 
-    let one = bp.group.f_n.elem(&1u8);
+    let one = group.elem(&1u8);
     let ones = one.repeat(n);
     let r2 = &gg * &(&ones * &z);
 
@@ -228,13 +229,13 @@ mod tests {
   #[test]
   fn test_offset_by_negation() {
     let params = Secp256k1Params::new();
-    let ops = WeierstrassJacobianPointOps::new(&params.f);
-    let curve = Secp256k1::new(&ops, params);
-    let bp: Bulletproofs<2> = Bulletproofs::new(curve);
-    let f_n = &bp.curve.get_curve_group();
+    let ops = Box::new(WeierstrassJacobianPointOps::new(&params.f));
+    let curve = Box::new(Secp256k1::new(ops, params.clone()));
+    let bp: Bulletproofs<2, WeierstrassJacobianPointOps, WeierstrassEq> = Bulletproofs::new(curve);
+    let group = bp.curve.get_curve_group();
     {
-        let z = f_n.elem(&100u8);
-        let basis = f_n.elem(&12345u16);
+        let z = group.elem(&100u8);
+        let basis = group.elem(&12345u16);
 
         let r1 = &basis - &z;
         let r2 = &basis + &z.negate();
@@ -242,9 +243,9 @@ mod tests {
         assert_eq!(r1, r2);
     }
     {
-        let z = f_n.elem(&100u8);
-        let basis = f_n.elem(&12345u16);
-        let g = bp.ec_point1(&bp.group.g);
+        let z = group.elem(&100u8);
+        let basis = group.elem(&12345u16);
+        let g = bp.ec_point1(&params.g);
 
         let r1 = bp.scalar_mul(&g, &(&basis - &z));
         let r2 = g * (basis + z.negate());
@@ -257,13 +258,13 @@ mod tests {
   #[allow(non_snake_case)]
   fn test_base_point_field_elem_mul() {
     let params = Secp256k1Params::new();
-    let ops = WeierstrassJacobianPointOps::new(&params.f);
-    let curve = Secp256k1::new(&ops, params);
-    let bp: Bulletproofs<2> = Bulletproofs::new(curve);
-    let f_n = &bp.curve.get_curve_group();
+    let ops = Box::new(WeierstrassJacobianPointOps::new(&params.f));
+    let curve = Box::new(Secp256k1::new(ops, params));
+    let bp: Bulletproofs<2, WeierstrassJacobianPointOps, WeierstrassEq> = Bulletproofs::new(curve);
+    let group = &bp.curve.get_curve_group();
 
-    let alpha = &f_n.rand_elem(true);
-    let rho = &f_n.rand_elem(true);
+    let alpha = &group.rand_elem(true);
+    let rho = &group.rand_elem(true);
     let h = &bp.rand_point();
 
     let a = h * alpha + h * rho;
@@ -275,20 +276,20 @@ mod tests {
   #[allow(non_snake_case)]
   fn test_field_elems_mul_field_elem() {
     let params = Secp256k1Params::new();
-    let ops = WeierstrassJacobianPointOps::new(&params.f);
-    let curve = Secp256k1::new(&ops, params);
-    let bp: Bulletproofs<2> = Bulletproofs::new(curve);
-    let f_n = &bp.curve.get_curve_group();
+    let ops = Box::new(WeierstrassJacobianPointOps::new(&params.f));
+    let curve = Box::new(Secp256k1::new(ops, params));
+    let bp: Bulletproofs<2, WeierstrassJacobianPointOps, WeierstrassEq> = Bulletproofs::new(curve);
+    let group = &bp.curve.get_curve_group();
 
-    let x = f_n.elem(&5u8);
+    let x = group.elem(&5u8);
     let sL = FieldElems(vec![
-      f_n.elem(&2u8),
-      f_n.elem(&3u8),
+      group.elem(&2u8),
+      group.elem(&3u8),
     ]);
 
     let exp = FieldElems(vec![
-      f_n.elem(&10u8),
-      f_n.elem(&15u8),
+      group.elem(&10u8),
+      group.elem(&15u8),
     ]);
     let act = sL * x;
     assert!(act == exp);
@@ -298,20 +299,20 @@ mod tests {
   #[allow(non_snake_case)]
   fn test_mul_field_elem_above_order() {
     let params = Secp256k1Params::new();
-    let ops = WeierstrassJacobianPointOps::new(&params.f);
-    let curve = Secp256k1::new(&ops, params);
-    let bp: Bulletproofs<2> = Bulletproofs::new(curve);
-    let f_n = &bp.curve.get_curve_group();
+    let ops = Box::new(WeierstrassJacobianPointOps::new(&params.f));
+    let curve = Box::new(Secp256k1::new(ops, params.clone()));
+    let bp: Bulletproofs<2, WeierstrassJacobianPointOps, WeierstrassEq> = Bulletproofs::new(curve);
+    let group = &bp.curve.get_curve_group();
 
     let gg = vec![
-      bp.group.g.clone(),
-      bp.group.g.clone(),
+      params.g.clone(),
+      params.g.clone(),
     ];
     let gg = &bp.ec_points(&gg);
 
-    let order_minus_1 = bp.group.n - &1u8;
-    let x = f_n.elem(&order_minus_1);
-    let sL = &f_n.rand_elems(gg.len(), true);
+    let order_minus_1 = params.n - &1u8;
+    let x = group.elem(&order_minus_1);
+    let sL = &group.rand_elems(gg.len(), true);
 
     let sLx = &(sL * &x);
 
@@ -322,20 +323,20 @@ mod tests {
   #[allow(non_snake_case)]
   fn test_range_proof() {
     let params = Secp256k1Params::new();
-    let ops = WeierstrassJacobianPointOps::new(&params.f);
-    let curve = Secp256k1::new(&ops, params);
-    let bp: Bulletproofs<2> = Bulletproofs::new(curve);
-    let f_n = &bp.curve.get_curve_group();
+    let ops = Box::new(WeierstrassJacobianPointOps::new(&params.f));
+    let curve = Box::new(Secp256k1::new(ops, params));
+    let bp: Bulletproofs<2, WeierstrassJacobianPointOps, WeierstrassEq> = Bulletproofs::new(curve);
+    let group = &bp.curve.get_curve_group();
 
     let aL = FieldElems::new(&vec![
-      f_n.elem(&1u8),
-      f_n.elem(&0u8),
-      f_n.elem(&0u8),
-      f_n.elem(&1u8),
+      group.elem(&1u8),
+      group.elem(&0u8),
+      group.elem(&0u8),
+      group.elem(&1u8),
     ]);
     let n = aL.len();
-    let upsilon = f_n.elem(&9u8);
-    let gamma = f_n.rand_elem(true);
+    let upsilon = group.elem(&9u8);
+    let gamma = group.rand_elem(true);
     let g = bp.rand_point();
     let h = bp.rand_point();
     let gg = bp.rand_points(n);

@@ -350,11 +350,11 @@ mod tests {
     let params = Secp256k1Params::new();
     let ops = Box::new(WeierstrassJacobianPointOps::new(&params.f));
 
-    let p1 = EcPointWithOps((ops, params.g));
+    let p1 = EcPointWithOps((ops.clone(), params.g));
     let p2 = &p1 * params.f_n.elem(&2u8);
 
-    let ps1 = EcPointsWithOps((ops, vec![p1.clone(), p2.clone()]));
-    let ps2 = EcPointsWithOps((ops, vec![p2.clone(), p1.clone()]));
+    let ps1 = EcPointsWithOps((ops.clone(), vec![p1.clone(), p2.clone()]));
+    let ps2 = EcPointsWithOps((ops.clone(), vec![p2.clone(), p1.clone()]));
     let ps3 = EcPointsWithOps((ops, vec![p1.clone(), p2.clone()]));
 
     assert!(ps1 == ps1);
@@ -367,7 +367,7 @@ mod tests {
     let params = Secp256k1Params::new();
     let ops = Box::new(WeierstrassJacobianPointOps::new(&params.f));
 
-    let p1 = EcPointWithOps((ops, params.g));
+    let p1 = EcPointWithOps((ops.clone(), params.g));
     let p2 = &p1 * params.f.elem(&2u8);
     let p3 = &p1 * params.f.elem(&3u8);
 
@@ -383,7 +383,7 @@ mod tests {
     let params = Secp256k1Params::new();
     let ops = Box::new(WeierstrassJacobianPointOps::new(&params.f));
 
-    let p1 = EcPointWithOps((ops, params.g));
+    let p1 = EcPointWithOps((ops.clone(), params.g));
     let p2 = &p1 * params.f.elem(&2u8);
     let p3 = &p1 * params.f.elem(&3u8);
 
@@ -423,7 +423,7 @@ mod tests {
     let params = Secp256k1Params::new();
     let ops = Box::new(WeierstrassJacobianPointOps::new(&params.f));
 
-    let p1 = EcPointWithOps((ops, params.g));
+    let p1 = EcPointWithOps((ops.clone(), params.g));
     let p2 = &p1 * params.f.elem(&2u8);
     let p3 = &p1 * params.f.elem(&3u8);
 
@@ -466,7 +466,7 @@ mod tests {
     let params = Secp256k1Params::new();
     let ops = Box::new(WeierstrassJacobianPointOps::new(&params.f));
 
-    let p1 = EcPointWithOps((ops, params.g));
+    let p1 = EcPointWithOps((ops.clone(), params.g));
     let p2 = &p1 * params.f.elem(&2u8);
     let p3 = &p1 * params.f.elem(&3u8);
 
@@ -483,11 +483,11 @@ mod tests {
     let params = Secp256k1Params::new();
     let ops = Box::new(WeierstrassJacobianPointOps::new(&params.f));
 
-    let p1 = EcPointWithOps((ops, params.g));
+    let p1 = EcPointWithOps((ops.clone(), params.g));
     let p2 = &p1 * params.f.elem(&2u8);
     let p4 = &p1 * params.f.elem(&4u8);
 
-    let act = EcPointsWithOps((ops, vec![p1, p2.clone()])) * params.f.elem(&2u8);
+    let act = EcPointsWithOps((ops.clone(), vec![p1, p2.clone()])) * params.f.elem(&2u8);
     let exp = EcPointsWithOps((ops, vec![p2, p4]));
 
     assert!(act == exp);
@@ -498,7 +498,7 @@ mod tests {
     let params = Secp256k1Params::new();
     let ops = Box::new(WeierstrassJacobianPointOps::new(&params.f));
 
-    let p1 = EcPointWithOps((ops, params.g));
+    let p1 = EcPointWithOps((ops.clone(), params.g));
     let p2 = &p1 * params.f.elem(&2u8);
 
     let ps = EcPointsWithOps((ops, vec![p1, p2.clone()]));
@@ -516,11 +516,11 @@ mod tests {
     let params = Secp256k1Params::new();
     let ops = Box::new(WeierstrassJacobianPointOps::new(&params.f));
 
-    let g = &EcPointWithOps((ops, params.g));
+    let g = &EcPointWithOps((ops.clone(), params.g));
     let g2 = g * params.f.elem(&2u8);
-    let zero = &EcPointWithOps((ops, ops.get_zero(&params.f)));
+    let zero = &EcPointWithOps((ops.clone(), ops.get_zero(&params.f)));
 
-    let g2s = EcPointsWithOps((ops, vec![g2.clone(), g2.clone()]));
+    let g2s = EcPointsWithOps((ops.clone(), vec![g2.clone(), g2.clone()]));
     let zeros = EcPointsWithOps((ops, vec![zero.clone(), zero.clone()]));
 
     let act = &g2s - &g2s;

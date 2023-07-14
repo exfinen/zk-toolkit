@@ -14,6 +14,7 @@ use crate::building_block::{
 };
 use num_bigint::BigUint;
 
+#[derive(Clone)]
 pub struct Secp256k1Params {
   pub f: Field,    // base prime field
   pub f_n: Field,  // field of order n for convenience
@@ -48,6 +49,7 @@ impl Secp256k1Params {
   }
 }
 
+#[derive(Clone)]
 pub struct Secp256k1<T, WeierstrassEq>
   where T: ?Sized + EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv {
   pub params: Secp256k1Params,
@@ -56,7 +58,7 @@ pub struct Secp256k1<T, WeierstrassEq>
 }
 
 impl<T> Secp256k1<T, WeierstrassEq>
-  where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv {
+  where T: ?Sized + EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv {
   pub fn new(ops: Box<T>, params: Secp256k1Params) -> Self {
     let a1 = BigUint::from(0u8);
     let a2 = BigUint::from(0u8);
@@ -120,10 +122,27 @@ mod tests {
     },
   };
 
-  trait EllipticCurveOperations: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv {}
+  trait EllipticCurveOperations: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv {
+    fn box_clone(&self) -> Box<dyn EllipticCurveOperations>;
+  }
 
-  impl EllipticCurveOperations for WeierstrassAffinePointOps {}
-  impl EllipticCurveOperations for WeierstrassJacobianPointOps {}
+  impl Clone for Box<dyn EllipticCurveOperations> {
+      fn clone(&self) -> Box<dyn EllipticCurveOperations> {
+          self.box_clone()
+      }
+  }
+
+  impl EllipticCurveOperations for WeierstrassAffinePointOps {
+    fn box_clone(&self) -> Box<dyn EllipticCurveOperations> {
+      Box::new(self.clone())
+    }
+  }
+
+  impl EllipticCurveOperations for WeierstrassJacobianPointOps {
+    fn box_clone(&self) -> Box<dyn EllipticCurveOperations> {
+      Box::new(self.clone())
+    }
+  }
 
   fn get_ops_list(f: &Field) -> Vec<Box<dyn EllipticCurveOperations>> {
     let affine = WeierstrassAffinePointOps::new(f);
@@ -230,7 +249,7 @@ mod tests {
   }
 
   fn get_g_multiples<'a, T>(curve: &Secp256k1<T, WeierstrassEq>) -> Vec<EcPoint>
-    where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv + Clone {
+    where T: ?Sized + EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv {
     let ps = vec![
       Xy { _n: "1", x: b"79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798", y: b"483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8" },
       Xy { _n: "2", x: b"C6047F9441ED7D6D3045406E95C07CD85C778E4B8CEF3CA7ABAC09B95C709EE5", y: b"1AE168FEA63DC339A3C58419466CEAEEF7F632653266D0E1236431A950CFE52A" },
@@ -256,7 +275,7 @@ mod tests {
     let params = Secp256k1Params::new();
     let g = &params.g;
     for ops in get_ops_list(&params.f) {
-      let curve = Secp256k1::new(ops, params);
+      let curve = Secp256k1::new(ops.clone(), params.clone());
       let gs = get_g_multiples(&curve);
 
       for n in 1usize..=10 {
@@ -306,7 +325,7 @@ mod tests {
     let params = Secp256k1Params::new();
     let g = &params.g;
     for ops in get_ops_list(&params.f) {
-      let curve = Secp256k1::new(&params, ops);
+      let curve = Secp256k1::new(ops.clone(), params.clone());
       for t in &test_cases {
         let k = BigUint::parse_bytes(t.k, 16).unwrap();
         let x = BigUint::parse_bytes(t.x, 16).unwrap();
@@ -346,7 +365,7 @@ mod tests {
     let params = Secp256k1Params::new();
     let f = &params.f;
     for ops in get_ops_list(f) {
-      let curve = Secp256k1::new(&params, ops);
+      let curve = Secp256k1::new(ops.clone(), params.clone());
       let gs = get_g_multiples(&curve);
 
       let test_cases = [
