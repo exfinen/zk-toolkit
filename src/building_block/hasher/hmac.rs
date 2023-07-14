@@ -1,4 +1,4 @@
-use crate::building_block::hasher::Hasher;
+use super::hasher::Hasher;
 
 // based on: https://datatracker.ietf.org/doc/html/rfc2104
 
@@ -48,7 +48,7 @@ impl <const N: usize> Hmac<N> {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::building_block::sha256::Sha256;
+  use super::super::sha256::Sha256;
   use hex::ToHex;
 
   #[test]

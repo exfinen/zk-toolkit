@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
-use crate::building_block::hasher::Hasher;
-use crate::building_block::sha_common::{Block, MessageSchedule, HashValue, CoreLogic};
+use super::hasher::Hasher;
+use super::sha_common::{Block, MessageSchedule, HashValue, CoreLogic};
 
 // implementation based on: https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf
 
@@ -93,7 +93,7 @@ impl Hasher<DIGEST_SIZE> for Sha512 {
     let blocks = Block::parse_padded_msg(&padded_msg, BLOCK_SIZE);
     let hash_value = self.compute_hash(&blocks);
     hash_value.to_u8_array()
-  } 
+  }
 
   fn get_block_size(&self) -> usize {
     BLOCK_SIZE

@@ -1,7 +1,9 @@
 use crate::building_block::{
   field::FieldElem,
-  hasher::Hasher,
-  sha256::Sha256,
+  hasher::{
+    hasher::Hasher,
+    sha256::Sha256,
+  },
   elliptic_curve::{
     curve::Curve,
     curve_equation::CurveEquation,

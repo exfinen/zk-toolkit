@@ -1,8 +1,10 @@
 #![allow(non_snake_case)]
 use crate::building_block::{
   field::{Field, FieldElem},
-  hasher::Hasher,
-  sha512::Sha512,
+  hasher::{
+    hasher::Hasher,
+    sha512::Sha512,
+  },
 };
 use super::{
   elliptic_curve_point_ops::{
