@@ -27,7 +27,7 @@ impl<'a, T, const N: usize, U> Bulletproofs<N, T, U>
   pub fn ec_points(&self, ec_points: &'a [EcPoint]) -> EcPointsWithOps<T> {
     assert!(ec_points.len() > 0);
     let ops = self.curve.get_point_ops();
-    let xs = ec_points.iter().map(|x| EcPointWithOps((ops, x.clone()))).collect::<_>();
+    let xs = ec_points.iter().map(|x| EcPointWithOps((ops.clone(), x.clone()))).collect::<_>();
     EcPointsWithOps((ops, xs))
   }
 
@@ -196,10 +196,10 @@ impl<'a, T, const N: usize, U> Bulletproofs<N, T, U>
 mod tests {
   use super::*;
   use crate::building_block::elliptic_curve::{
-    curve::Curve,
     weierstrass::{
       curves::secp256k1::{Secp256k1, Secp256k1Params},
       jacobian_point_ops::WeierstrassJacobianPointOps,
+      equation::WeierstrassEq,
     },
   };
 
@@ -209,7 +209,7 @@ mod tests {
     let params = Secp256k1Params::new();
     let ops = WeierstrassJacobianPointOps::new(&params.f);
     let curve = Secp256k1::new(&ops, params);
-    let bp: Bulletproofs<2> = Bulletproofs::new(curve);
+    let bp: Bulletproofs<2, WeierstrassJacobianPointOps, WeierstrassEq> = Bulletproofs::new(curve);
 
     let n = 2;
     let z = bp.group.f_n.rand_elem(true);

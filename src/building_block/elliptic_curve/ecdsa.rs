@@ -141,7 +141,7 @@ mod tests {
   fn sign_verify_bad_pub_key() {
     let params = Secp256k1Params::new();
     let ops = WeierstrassJacobianPointOps::new(&params.f);
-    let curve = Box::new(Secp256k1::new(ops, params));
+    let curve = Box::new(Secp256k1::new(&ops, params));
     let hasher = Box::new(Sha256());
     let mut ecdsa = Ecdsa::new(curve, hasher);
 
@@ -170,14 +170,15 @@ mod tests {
   #[test]
   fn sign_verify_inf_pub_key() {
     let params = Secp256k1Params::new();
-    let ops = WeierstrassJacobianPointOps::new(&params.f);
+    let ops = &WeierstrassJacobianPointOps::new(&params.f);
+    let curve = Box::new(Secp256k1::new(ops, params));
     let hasher = Box::new(Sha256());
-    let mut ecdsa = Ecdsa::new(ops, hasher);
+    let mut ecdsa = Ecdsa::new(curve, hasher);
 
     let message = vec![1u8, 2, 3];
 
     // sign with newly generated private key
-    let priv_key = ecdsa.group.f_n.rand_elem(true);
+    let priv_key = ecdsa.curve.get_curve_group().rand_elem(true);
     let sig = ecdsa.sign(&priv_key, &message).unwrap();
 
     // use inf public key for verifying
@@ -189,22 +190,24 @@ mod tests {
   #[test]
   fn sign_verify_sig_r_out_of_range() {
     let params = Secp256k1Params::new();
-    let ops = WeierstrassJacobianPointOps::new(&params.f);
+    let ops = &WeierstrassJacobianPointOps::new(&params.f);
+    let curve = Box::new(Secp256k1::new(ops, params));
     let hasher = Box::new(Sha256());
-    let mut ecdsa = Ecdsa::new(ops, hasher);
+    let mut ecdsa = Ecdsa::new(curve, hasher);
+    let group = &ecdsa.curve.get_curve_group();
 
     let message = vec![1u8, 2, 3];
 
     // sign with newly generated private key
-    let priv_key = ecdsa.group.f_n.rand_elem(true);
+    let priv_key = group.rand_elem(true);
 
     // create public key from the private key used for signing for verifying
-    let pub_key = ops.scalar_mul(&ecdsa.group.g, &priv_key.n);
+    let pub_key = ops.scalar_mul(&params.g, &priv_key.n);
 
     let sig = ecdsa.sign(&priv_key, &message).unwrap();
 
     let sig_r_too_large = Signature {
-      r: sig.clone().s.f.elem(&ecdsa.group.n),
+      r: sig.clone().s.f.elem(&params.n),
       s: sig.clone().s,
     };
     let is_verified = ecdsa.verify(&sig_r_too_large, &pub_key, &message);
@@ -221,23 +224,25 @@ mod tests {
   #[test]
   fn sign_verify_sig_s_out_of_range() {
     let params = Secp256k1Params::new();
-    let ops = WeierstrassJacobianPointOps::new(&params.f);
+    let ops = &WeierstrassJacobianPointOps::new(&params.f);
+    let curve = Box::new(Secp256k1::new(ops, params));
     let hasher = Box::new(Sha256());
-    let mut ecdsa = Ecdsa::new(ops, hasher);
+    let mut ecdsa = Ecdsa::new(curve, hasher);
+    let group = &ecdsa.curve.get_curve_group();
 
     let message = vec![1u8, 2, 3];
 
     // sign with newly generated private key
-    let priv_key = ecdsa.group.f_n.rand_elem(true);
+    let priv_key = group.rand_elem(true);
 
     // create public key from the private key used for signing for verifying
-    let pub_key = ops.scalar_mul(&ecdsa.group.g, &priv_key.n);
+    let pub_key = ops.scalar_mul(&params.g, &priv_key.n);
 
     let sig = ecdsa.sign(&priv_key, &message).unwrap();
 
     let sig_s_too_large = Signature {
       r: sig.clone().r,
-      s: sig.clone().s.f.elem(&ecdsa.group.n),
+      s: sig.clone().s.f.elem(&params.n),
     };
     let is_verified = ecdsa.verify(&sig_s_too_large, &pub_key, &message);
     assert_eq!(is_verified, false);
@@ -253,14 +258,16 @@ mod tests {
   #[test]
   fn sign_verify_all_good() {
     let params = Secp256k1Params::new();
-    let ops = WeierstrassJacobianPointOps::new(&params.f);
+    let ops = &WeierstrassJacobianPointOps::new(&params.f);
+    let curve = Box::new(Secp256k1::new(ops, params));
     let hasher = Box::new(Sha256());
-    let mut ecdsa = Ecdsa::new(ops, hasher);
+    let mut ecdsa = Ecdsa::new(curve, hasher);
+    let group = &ecdsa.curve.get_curve_group();
 
     let message = vec![1u8, 2, 3];
 
     // sign with newly generated private key
-    let priv_key = ecdsa.group.f_n.rand_elem(true);
+    let priv_key = group.rand_elem(true);
     let sig = ecdsa.sign(&priv_key, &message).unwrap();
 
     // create public key from the private key used for signing for verifying
@@ -272,19 +279,21 @@ mod tests {
   #[test]
   fn sign_verify_bad_priv_key() {
     let params = Secp256k1Params::new();
-    let ops = WeierstrassJacobianPointOps::new(&params.f);
+    let ops = &WeierstrassJacobianPointOps::new(&params.f);
+    let curve = Box::new(Secp256k1::new(ops, params));
     let hasher = Box::new(Sha256());
-    let mut ecdsa = Ecdsa::new(ops, hasher);
+    let mut ecdsa = Ecdsa::new(curve, hasher);
+    let group = &ecdsa.curve.get_curve_group();
 
     let message = vec![1u8, 2, 3];
 
     // sign with newly generated private key
-    let priv_key = ecdsa.group.f_n.rand_elem(true);
+    let priv_key = group.rand_elem(true);
     let sig = ecdsa.sign(&priv_key, &message).unwrap();
 
     // change private key and create public key from it
-    let priv_key = ecdsa.group.f_n.rand_elem(true);
-    let pub_key = ops.scalar_mul(&ecdsa.group.g, &priv_key.n);
+    let priv_key = group.rand_elem(true);
+    let pub_key = ops.scalar_mul(&params.g, &priv_key.n);
 
     let is_verified = ecdsa.verify(&sig, &pub_key, &message);
     assert_eq!(is_verified, false);
@@ -293,18 +302,20 @@ mod tests {
   #[test]
   fn sign_verify_different_message() {
     let params = Secp256k1Params::new();
-    let ops = WeierstrassJacobianPointOps::new(&params.f);
+    let ops = &WeierstrassJacobianPointOps::new(&params.f);
+    let curve = Box::new(Secp256k1::new(ops, params));
     let hasher = Box::new(Sha256());
-    let mut ecdsa = Ecdsa::new(ops, hasher);
+    let mut ecdsa = Ecdsa::new(curve, hasher);
+    let group = &ecdsa.curve.get_curve_group();
 
     let message = vec![1u8, 2, 3];
 
     // sign with newly generated private key
-    let priv_key = ecdsa.group.f_n.rand_elem(true);
+    let priv_key = group.rand_elem(true);
     let sig = ecdsa.sign(&priv_key, &message).unwrap();
 
     // create public key from the private key used for signing for verifying
-    let pub_key = ops.scalar_mul(&ecdsa.group.g, &priv_key.n);
+    let pub_key = ops.scalar_mul(&params.g, &priv_key.n);
 
     // change message and verify
     let message = vec![1u8, 2, 3, 4];

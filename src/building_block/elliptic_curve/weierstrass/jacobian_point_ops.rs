@@ -19,8 +19,6 @@ struct JacobianPoint {
   pub z: FieldElem,
 }
 
-struct JacobianConv;
-
 impl JacobianPoint {
   pub fn from_ec_point(pt: &EcPoint) -> Result<JacobianPoint, String> {
     if pt.is_inf {
@@ -48,6 +46,7 @@ impl JacobianPoint {
   }
 }
 
+#[derive(Clone)]
 pub struct WeierstrassJacobianPointOps {
   f: Field,
 }

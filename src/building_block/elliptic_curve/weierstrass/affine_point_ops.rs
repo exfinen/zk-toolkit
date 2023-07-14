@@ -12,6 +12,7 @@ use crate::building_block::{
 use num_bigint::BigUint;
 use num_traits::identities::Zero;
 
+#[derive(Clone)]
 pub struct WeierstrassAffinePointOps {
   f: Field,
 }

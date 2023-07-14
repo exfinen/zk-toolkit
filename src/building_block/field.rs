@@ -174,7 +174,7 @@ impl FieldElem {
   }
 
   pub fn minus(&self, rhs: &impl ToBigUint) -> FieldElem {
-    let rhs = rhs.to_biguint() % self.f.order;
+    let rhs = rhs.to_biguint() % &self.f.order;
     let f = self.f.clone();
     if self.n < rhs {
       let diff = &rhs - &self.n;
@@ -188,7 +188,7 @@ impl FieldElem {
   }
 
   pub fn times(&self, rhs: &impl ToBigUint) -> FieldElem {
-    let rhs = rhs.to_biguint() % self.f.order;
+    let rhs = rhs.to_biguint() % &self.f.order;
     let mut n = self.n.clone();
     n *= &rhs.to_biguint();
     n %= &self.f.order;

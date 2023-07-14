@@ -57,7 +57,7 @@ pub struct Secp256k1<T, WeierstrassEq>
 
 impl<T> Secp256k1<T, WeierstrassEq>
   where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv + Clone {
-  pub fn new(ops: T, params: Secp256k1Params) -> Self {
+  pub fn new(ops: &T, params: Secp256k1Params) -> Self {
     let a1 = BigUint::from(0u8);
     let a2 = BigUint::from(0u8);
     let a3 = BigUint::from(0u8);
@@ -67,14 +67,16 @@ impl<T> Secp256k1<T, WeierstrassEq>
 
     Self {
       params,
-      ops: Box::new(ops),
+      ops: Box::new(ops.clone()),
       eq,
     }
   }
 }
 
 impl<T, U> Curve<T, U> for Secp256k1<T, U>
-  where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv + Clone, U: CurveEquation {
+  where
+    T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv + Clone,
+    U: CurveEquation + Clone {
   fn get_curve_group(&self) -> Field {
     self.params.f_n.clone()
   }
@@ -84,11 +86,11 @@ impl<T, U> Curve<T, U> for Secp256k1<T, U>
   }
 
   fn get_point_ops(&self) -> Box<T> {
-    self.ops
+    self.ops.clone()
   }
 
   fn get_equation(&self) -> Box<U> {
-      self.eq
+      self.eq.clone()
   }
 }
 
@@ -99,7 +101,6 @@ impl<T, U> CurveEquation for Secp256k1<T, U>
   }
 }
 
-/*
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -224,7 +225,8 @@ mod tests {
     }
   }
 
-  fn get_g_multiples<'a, T>(curve: &Secp256k1<T>) -> Vec<EcPoint> where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv {
+  fn get_g_multiples<'a, T>(curve: &Secp256k1<T, WeierstrassEq>) -> Vec<EcPoint>
+    where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv + Clone {
     let ps = vec![
       Xy { _n: "1", x: b"79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798", y: b"483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8" },
       Xy { _n: "2", x: b"C6047F9441ED7D6D3045406E95C07CD85C778E4B8CEF3CA7ABAC09B95C709EE5", y: b"1AE168FEA63DC339A3C58419466CEAEEF7F632653266D0E1236431A950CFE52A" },
@@ -369,4 +371,3 @@ mod tests {
     }
   }
 }
- */

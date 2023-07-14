@@ -157,15 +157,17 @@ macro_rules! impl_ec_points_times_field_elems {
 
       fn mul(self, rhs: $rhs) -> Self::Output {
         assert!(self.len() > 0 && self.len() == rhs.len());
-        let (ops, lhs) = &self.0;
+        let lhs = &self.0.1;
 
         let mut xs = vec![];
         for i in 0..self.len() {
+          let ops = self.0.0.clone();
           let x = ops.scalar_mul(&lhs[i], &rhs[i]);
-          let x = EcPointWithOps((*ops, x));
+          let x = EcPointWithOps((ops, x));
           xs.push(x);
         }
-        EcPointsWithOps((*ops, xs))
+        let ops = self.0.0.clone();
+        EcPointsWithOps((ops, xs))
       }
     }
   };
@@ -184,15 +186,17 @@ macro_rules! impl_ec_points_times_ec_points {
 
       fn mul(self, rhs: $rhs) -> Self::Output {
         assert!(self.len() > 0 && self.len() == rhs.len());
-        let (ops, lhs) = &self.0;
+        let lhs = &self.0.1;
 
         let mut xs = vec![];
         for i in 0..self.len() {
+          let ops = self.0.0.clone();
           let x = ops.add(&lhs[i], &rhs[i]);
-          let x = EcPointWithOps((*ops, x));
+          let x = EcPointWithOps((ops, x));
           xs.push(x);
         }
-        EcPointsWithOps((*ops, xs))
+        let ops = self.0.0.clone();
+        EcPointsWithOps((ops, xs))
       }
     }
   };
@@ -211,14 +215,16 @@ macro_rules! impl_ec_points_times_field_elem {
 
       fn mul(self, rhs: $rhs) -> Self::Output {
         assert!(self.len() > 0);
-        let (ops, lhs) = &self.0;
+        let lhs = &self.0.1;
 
         let xs = lhs.iter().map(|pt| {
+          let ops = self.0.0.clone();
           let x = ops.scalar_mul(pt, &rhs.n);
-          EcPointWithOps((*ops, x))
+          EcPointWithOps((ops, x))
         }).collect();
 
-        EcPointsWithOps((*ops, xs))
+        let ops = self.0.0.clone();
+        EcPointsWithOps((ops, xs))
       }
     }
   };
@@ -236,15 +242,17 @@ macro_rules! impl_ec_points_plus_ec_points {
 
       fn add(self, rhs: $rhs) -> Self::Output {
         assert!(self.len() > 0 && self.len() == rhs.len());
-        let (ops, lhs) = &self.0;
+        let lhs = &self.0.1;
 
         let mut xs = vec![];
         for i in 0..self.len() {
+          let ops = self.0.0.clone();
           let x = ops.add(&lhs[i], &rhs[i]);
-          let x = EcPointWithOps((*ops, x));
+          let x = EcPointWithOps((ops, x));
           xs.push(x);
         }
-        EcPointsWithOps((*ops, xs))
+        let ops = self.0.0.clone();
+        EcPointsWithOps((ops, xs))
       }
     }
   };
@@ -262,15 +270,17 @@ macro_rules! impl_ec_points_minus_ec_points {
 
       fn sub(self, rhs: $rhs) -> Self::Output {
         assert!(self.len() > 0 && self.len() == rhs.len());
-        let (ops, lhs) = &self.0;
+        let lhs = &self.0.1;
 
         let mut xs = vec![];
         for i in 0..self.len() {
+          let ops = self.0.0.clone();
           let x = ops.add(&lhs[i], &ops.inv(&rhs[i]));
-          let x = EcPointWithOps((*ops, x));
+          let x = EcPointWithOps((ops, x));
           xs.push(x);
         }
-        EcPointsWithOps((*ops, xs))
+        let ops = self.0.0.clone();
+        EcPointsWithOps((ops, xs))
       }
     }
   };
@@ -294,9 +304,9 @@ mod tests {
   #[test]
   fn ec_point1_eq() {
     let params = Secp256k1Params::new();
-    let ops = WeierstrassJacobianPointOps::new(&params.f);
+    let ops = Box::new(WeierstrassJacobianPointOps::new(&params.f));
 
-    let p = EcPointWithOps((&ops, params.g));
+    let p = EcPointWithOps((ops, params.g));
     assert!(p == p);
 
     let q = &p + &p;
@@ -306,10 +316,10 @@ mod tests {
   #[test]
   fn ec_point1_times_field_elem() {
     let params = Secp256k1Params::new();
-    let ops = WeierstrassJacobianPointOps::new(&params.f);
+    let ops = Box::new(WeierstrassJacobianPointOps::new(&params.f));
 
     let p = params.g;
-    let p = EcPointWithOps((&ops, p));
+    let p = EcPointWithOps((ops, p));
     let p_plus_p = &p + &p;
 
     let two = params.f_n.elem(&2u8);
@@ -321,10 +331,10 @@ mod tests {
   #[test]
   fn ec_point1_plus_ec_point1() {
     let params = Secp256k1Params::new();
-    let ops = WeierstrassJacobianPointOps::new(&params.f);
+    let ops = Box::new(WeierstrassJacobianPointOps::new(&params.f));
 
     let g = params.g;
-    let g = EcPointWithOps((&ops, g));
+    let g = EcPointWithOps((ops, g));
 
     let g2 = &g + &g;
     let g4 = &g2 + &g2;
@@ -339,14 +349,14 @@ mod tests {
   #[test]
   fn ec_points_eq() {
     let params = Secp256k1Params::new();
-    let ops = WeierstrassJacobianPointOps::new(&params.f);
+    let ops = Box::new(WeierstrassJacobianPointOps::new(&params.f));
 
-    let p1 = EcPointWithOps((&ops, params.g));
+    let p1 = EcPointWithOps((ops, params.g));
     let p2 = &p1 * params.f_n.elem(&2u8);
 
-    let ps1 = EcPointsWithOps((&ops, vec![p1.clone(), p2.clone()]));
-    let ps2 = EcPointsWithOps((&ops, vec![p2.clone(), p1.clone()]));
-    let ps3 = EcPointsWithOps((&ops, vec![p1.clone(), p2.clone()]));
+    let ps1 = EcPointsWithOps((ops, vec![p1.clone(), p2.clone()]));
+    let ps2 = EcPointsWithOps((ops, vec![p2.clone(), p1.clone()]));
+    let ps3 = EcPointsWithOps((ops, vec![p1.clone(), p2.clone()]));
 
     assert!(ps1 == ps1);
     assert!(ps1 != ps2);
@@ -356,13 +366,13 @@ mod tests {
   #[test]
   fn ec_points_index() {
     let params = Secp256k1Params::new();
-    let ops = WeierstrassJacobianPointOps::new(&params.f);
+    let ops = Box::new(WeierstrassJacobianPointOps::new(&params.f));
 
-    let p1 = EcPointWithOps((&ops, params.g));
+    let p1 = EcPointWithOps((ops, params.g));
     let p2 = &p1 * params.f.elem(&2u8);
     let p3 = &p1 * params.f.elem(&3u8);
 
-    let ps = EcPointsWithOps((&ops, vec![p1.clone(), p2.clone(), p3.clone()]));
+    let ps = EcPointsWithOps((ops, vec![p1.clone(), p2.clone(), p3.clone()]));
     assert!(ps.len() == 3);
     assert!(ps[0] == p1);
     assert!(ps[1] == p2);
@@ -372,14 +382,14 @@ mod tests {
   #[test]
   fn ec_points_from() {
     let params = Secp256k1Params::new();
-    let ops = WeierstrassJacobianPointOps::new(&params.f);
+    let ops = Box::new(WeierstrassJacobianPointOps::new(&params.f));
 
-    let p1 = EcPointWithOps((&ops, params.g));
+    let p1 = EcPointWithOps((ops, params.g));
     let p2 = &p1 * params.f.elem(&2u8);
     let p3 = &p1 * params.f.elem(&3u8);
 
     let vec = vec![p1.clone(), p2.clone(), p3.clone()];
-    let ps = EcPointsWithOps((&ops, vec));
+    let ps = EcPointsWithOps((ops, vec));
 
     {
       let res = ps.from(0..);
@@ -412,14 +422,14 @@ mod tests {
   #[test]
   fn ec_points_to() {
     let params = Secp256k1Params::new();
-    let ops = WeierstrassJacobianPointOps::new(&params.f);
+    let ops = Box::new(WeierstrassJacobianPointOps::new(&params.f));
 
-    let p1 = EcPointWithOps((&ops, params.g));
+    let p1 = EcPointWithOps((ops, params.g));
     let p2 = &p1 * params.f.elem(&2u8);
     let p3 = &p1 * params.f.elem(&3u8);
 
     let vec = vec![p1.clone(), p2.clone(), p3.clone()];
-    let ps = EcPointsWithOps((&ops, vec));
+    let ps = EcPointsWithOps((ops, vec));
 
     {
       let res = ps.to(..0);
@@ -455,14 +465,14 @@ mod tests {
   #[test]
   fn ec_points_sum() {
     let params = Secp256k1Params::new();
-    let ops = WeierstrassJacobianPointOps::new(&params.f);
+    let ops = Box::new(WeierstrassJacobianPointOps::new(&params.f));
 
-    let p1 = EcPointWithOps((&ops, params.g));
+    let p1 = EcPointWithOps((ops, params.g));
     let p2 = &p1 * params.f.elem(&2u8);
     let p3 = &p1 * params.f.elem(&3u8);
 
     let vec = vec![p1.clone(), p2.clone(), p3.clone()];
-    let ps = EcPointsWithOps((&ops, vec));
+    let ps = EcPointsWithOps((ops, vec));
     let act = ps.sum();
     let exp = &p1 * params.f.elem(&6u8);
 
@@ -472,14 +482,14 @@ mod tests {
   #[test]
   fn ec_points_times_field_elem() {
     let params = Secp256k1Params::new();
-    let ops = WeierstrassJacobianPointOps::new(&params.f);
+    let ops = Box::new(WeierstrassJacobianPointOps::new(&params.f));
 
-    let p1 = EcPointWithOps((&ops, params.g));
+    let p1 = EcPointWithOps((ops, params.g));
     let p2 = &p1 * params.f.elem(&2u8);
     let p4 = &p1 * params.f.elem(&4u8);
 
-    let act = EcPointsWithOps((&ops, vec![p1, p2.clone()])) * params.f.elem(&2u8);
-    let exp = EcPointsWithOps((&ops, vec![p2, p4]));
+    let act = EcPointsWithOps((ops, vec![p1, p2.clone()])) * params.f.elem(&2u8);
+    let exp = EcPointsWithOps((ops, vec![p2, p4]));
 
     assert!(act == exp);
   }
@@ -487,12 +497,12 @@ mod tests {
   #[test]
   fn ec_points_plus_ec_points() {
     let params = Secp256k1Params::new();
-    let ops = WeierstrassJacobianPointOps::new(&params.f);
+    let ops = Box::new(WeierstrassJacobianPointOps::new(&params.f));
 
-    let p1 = EcPointWithOps((&ops, params.g));
+    let p1 = EcPointWithOps((ops, params.g));
     let p2 = &p1 * params.f.elem(&2u8);
 
-    let ps = EcPointsWithOps((&ops, vec![p1, p2.clone()]));
+    let ps = EcPointsWithOps((ops, vec![p1, p2.clone()]));
     let ps3 = &ps * params.f.elem(&3u8);
     let ps2 = &ps * params.f.elem(&2u8);
 
@@ -505,14 +515,14 @@ mod tests {
   #[test]
   fn ec_points_minus_ec_points() {
     let params = Secp256k1Params::new();
-    let ops = WeierstrassJacobianPointOps::new(&params.f);
+    let ops = Box::new(WeierstrassJacobianPointOps::new(&params.f));
 
-    let g = &EcPointWithOps((&ops, params.g));
+    let g = &EcPointWithOps((ops, params.g));
     let g2 = g * params.f.elem(&2u8);
-    let zero = &EcPointWithOps((&ops, ops.get_zero(&params.f)));
+    let zero = &EcPointWithOps((ops, ops.get_zero(&params.f)));
 
-    let g2s = EcPointsWithOps((&ops, vec![g2.clone(), g2.clone()]));
-    let zeros = EcPointsWithOps((&ops, vec![zero.clone(), zero.clone()]));
+    let g2s = EcPointsWithOps((ops, vec![g2.clone(), g2.clone()]));
+    let zeros = EcPointsWithOps((ops, vec![zero.clone(), zero.clone()]));
 
     let act = &g2s - &g2s;
     let exp = zeros;
