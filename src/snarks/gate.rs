@@ -1,4 +1,4 @@
-use crate::building_block::field::Field;
+use crate::building_block::field::prime_field::PrimeField;
 use crate::snarks::{
   term::Term,
   equation_parser::{Equation, MathExpr},
@@ -19,7 +19,7 @@ impl std::fmt::Debug for Gate {
 impl Gate {
   // traverse the Equation tree generating statement at each Add/Mul node
   fn traverse_lhs(
-    f: &Field, expr: &MathExpr, gates: &mut Vec<Gate>
+    f: &PrimeField, expr: &MathExpr, gates: &mut Vec<Gate>
   ) -> Term {
     match expr {
       MathExpr::Num(n) => Term::Num(n.clone()),
@@ -69,7 +69,7 @@ impl Gate {
     }
   }
 
-  pub fn build(f: &Field, eq: &Equation) -> Vec<Gate> {
+  pub fn build(f: &PrimeField, eq: &Equation) -> Vec<Gate> {
     let mut gates: Vec<Gate> = vec![];
     let root = Gate::traverse_lhs(f, &eq.lhs, &mut gates);
     let out_gate = Gate { a: root, b: Term::One, c: Term::Out };
@@ -86,7 +86,7 @@ mod tests {
 
   #[test]
   fn test_build_add() {
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
     let input = "x + 4 == 9";
     let eq = Parser::parse(f, input).unwrap();
     let gates = &Gate::build(f, &eq);
@@ -106,7 +106,7 @@ mod tests {
 
   #[test]
   fn test_build_sub() {
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
     let input = "x - 4 == 9";
     let eq = Parser::parse(f, input).unwrap();
     let gates = &Gate::build(f, &eq);
@@ -125,7 +125,7 @@ mod tests {
 
   #[test]
   fn test_build_mul() {
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
     let input = "x * 4 == 9";
     let eq = Parser::parse(f, input).unwrap();
     let gates = &Gate::build(f, &eq);
@@ -143,7 +143,7 @@ mod tests {
 
   #[test]
   fn test_build_div() {
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
     let input = "x / 4 == 2";
     let eq = Parser::parse(f, input).unwrap();
     let gates = &Gate::build(f, &eq);
@@ -161,7 +161,7 @@ mod tests {
 
   #[test]
   fn test_build_combined1() {
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
     let input = "(3 * x + 4) / 2 == 11";
     let eq = Parser::parse(f, input).unwrap();
     let gates = &Gate::build(f, &eq);
@@ -193,7 +193,7 @@ mod tests {
 
   #[test]
   fn test_build_combined2() {
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
     let input = "(x * x * x) + x + 5 == 35";
     println!("Equation: {}", input);
 
@@ -236,7 +236,7 @@ mod tests {
 
   #[test]
   fn blog_post_1_example_1() {
-    let f = &Field::new(&37u8);
+    let f = &PrimeField::new(&37u8);
     let expr = "(x * x * x) + x + 5 == 35";
     let eq = Parser::parse(f, expr).unwrap();
     let gates = &Gate::build(f, &eq);

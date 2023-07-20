@@ -1,4 +1,4 @@
-use crate::building_block::field::Field;
+use crate::building_block::field::prime_field::PrimeField;
 use crate::snarks::{
   term::Term,
   gate::Gate,
@@ -9,14 +9,14 @@ use std::collections::HashMap;
 use super::sparse_vec::SparseVec;
 
 pub struct R1CSTmpl<'a> {
-  pub f: &'a Field,
+  pub f: &'a PrimeField,
   pub constraints: Vec<Constraint>,
   pub witness: Vec<Term>,
   pub indices: HashMap<Term, usize>,  // Term's index in witness vector
 }
 
 impl<'a> R1CSTmpl<'a> {
-  pub fn new(f: &'a Field) -> Self {
+  pub fn new(f: &'a PrimeField) -> Self {
     let mut tmpl = R1CSTmpl {
       f,
       constraints: vec![],
@@ -42,7 +42,7 @@ impl<'a> R1CSTmpl<'a> {
     }
   }
 
-  fn build_constraint_vec(&mut self, f: &Field, vec: &mut SparseVec, term: &Term) {
+  fn build_constraint_vec(&mut self, f: &PrimeField, vec: &mut SparseVec, term: &Term) {
     match term {
       Term::Sum(a, b) => {
         self.build_constraint_vec(f, vec, &a);
@@ -58,7 +58,7 @@ impl<'a> R1CSTmpl<'a> {
     }
   }
 
-  pub fn from_gates(f: &'a Field, gates: &[Gate]) -> Self {
+  pub fn from_gates(f: &'a PrimeField, gates: &[Gate]) -> Self {
     let mut tmpl = R1CSTmpl::new(f);
 
     // build witness vector
@@ -95,7 +95,7 @@ mod tests {
 
   #[test]
   fn test_get_to_vec() {
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
     let terms = vec![
       Term::Out,
       Term::Var("x".to_string()),
@@ -150,7 +150,7 @@ mod tests {
 
   #[test]
   fn test_add_witness_term() {
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
     let mut tmpl = R1CSTmpl::new(f);
     assert_eq!(tmpl.indices.len(), 1);
 
@@ -222,7 +222,7 @@ mod tests {
 
   #[test]
   fn test_bulding_witness() {
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
     let input = "(3 * x + 4) / 2 == 11";
     let eq = Parser::parse(f, input).unwrap();
 
@@ -264,7 +264,7 @@ mod tests {
 
   #[test]
   fn test_r1cs_build_a_b_c_matrix() {
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
     let input = "3 * x + 4 == 11";
     let eq = Parser::parse(f, input).unwrap();
 
@@ -287,7 +287,7 @@ mod tests {
 
   #[test]
   fn blog_post_1_example_1() {
-    let f = &Field::new(&37u8);
+    let f = &PrimeField::new(&37u8);
     let expr = "(x * x * x) + x + 5 == 35";
     let eq = Parser::parse(f, expr).unwrap();
     let gates = &Gate::build(f, &eq);
@@ -298,7 +298,7 @@ mod tests {
 
   #[test]
   fn blog_post_1_example_2() {
-    let f = &Field::new(&37u8);
+    let f = &PrimeField::new(&37u8);
     let expr = "(x * x * x) + x + 5 == 35";
     let eq = Parser::parse(f, expr).unwrap();
     let gates = &Gate::build(f, &eq);

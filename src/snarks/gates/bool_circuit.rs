@@ -1,7 +1,7 @@
 use crate::snarks::gates::{
   arith_circuit::ArithCircuit,
 };
-use crate::building_block::field::Field;
+use crate::building_block::field::prime_field::PrimeField;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum BoolCircuit {
@@ -27,7 +27,7 @@ impl Processor {
     }
   }
 
-  pub fn to_arith_circuit(f: Field, root: BoolCircuit) -> ArithCircuit {
+  pub fn to_arith_circuit(f: PrimeField, root: BoolCircuit) -> ArithCircuit {
     match root {
       BoolCircuit::Leaf(x) => ArithCircuit::Leaf(f.elem(&x)),
       BoolCircuit::And(a, b) => {
@@ -46,7 +46,7 @@ impl Processor {
 
         // XOR(a, b) = (a + b) - 2 ab
         let t1 = ArithCircuit::Add(
-          Box::new(a.clone()), 
+          Box::new(a.clone()),
           Box::new(b.clone()),
         );
 

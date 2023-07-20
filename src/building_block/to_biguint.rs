@@ -27,3 +27,9 @@ impl ToBigUint for bool {
     BigUint::from(x)
   }
 }
+
+impl ToBigUint for BigUint {
+  fn to_biguint(&self) -> BigUint {
+    self.clone()
+  }
+}

@@ -1,50 +1,55 @@
 use crate::building_block::{
-  field::Field,
+  additive_identity::AdditiveIdentity,
   elliptic_curve::{
-    ec_point::EcPoint,
+    affine_point::AffinePoint,
     elliptic_curve_point_ops::{
       EllipticCurveField,
       EllipticCurvePointAdd,
       ElllipticCurvePointInv,
     },
+    new_affine_point::NewAffinePoint,
   },
+  zero::Zero,
 };
-use num_bigint::BigUint;
-use num_traits::identities::Zero;
 
 #[derive(Clone)]
-pub struct WeierstrassAffinePointOps {
-  f: Field,
+pub struct WeierstrassAffinePointOps<F> {
+  f: F,
 }
 
-impl WeierstrassAffinePointOps {
-  pub fn new(f: &Field) -> Self {
+impl<F> WeierstrassAffinePointOps<F> {
+  pub fn new(f: &F) -> Self {
     Self { f: f.clone() }
   }
 }
 
-impl EllipticCurveField for WeierstrassAffinePointOps {
-  fn get_field(&self) -> &Field {
+impl<F> EllipticCurveField<F> for WeierstrassAffinePointOps<F> {
+  fn get_field(&self) -> &F {
       &self.f
   }
 }
 
-impl EllipticCurvePointAdd for WeierstrassAffinePointOps {
-  fn add(&self, p1: &EcPoint, p2: &EcPoint) -> EcPoint {
+impl<P, E, F> EllipticCurvePointAdd<P, E> for WeierstrassAffinePointOps<F>
+  where
+    E: Zero<E>,
+    P: NewAffinePoint<P, E> + Zero<P> + AffinePoint<P, E> + Clone,
+    F: AdditiveIdentity<F>,
+{
+  fn add(&self, p1: &P, p2: &P) -> P {
     let f = self.get_field();
 
-    if p1.is_inf && p2.is_inf {  // inf + inf is inf
-      EcPoint::inf(f)
-    } else if p1.is_inf {  // adding p2 to inf is p2
+    if p1.is_zero() && p2.is_zero() {  // inf + inf is inf
+      F::get_zero(&f)
+    } else if p1.is_zero() {  // adding p2 to inf is p2
       p2.clone()
-    } else if p2.is_inf {  // adding p1 to inf is p1
+    } else if p2.is_zero() {  // adding p1 to inf is p1
       p1.clone()
     } else if p1.x == p2.x && p1.y != p2.y {  // if line through p1 and p2 is vertical line
-      EcPoint::inf(f)
+      F::get_zero(&f)
     } else if p1.x == p2.x && p1.y == p2.y {  // if adding the same point
       // special case: if y == 0, the tangent line is vertical
-      if p1.y.n == BigUint::zero() || p2.y.n == BigUint::zero() {
-        return EcPoint::inf(f);
+      if p1.x.is_zero() || p2.y.is_zero() {
+        return F::get_zero(&f);
       }
       // differentiate y^2 = x^3 + Ax + B w/ implicit differentiation
       // d/dx(y^2) = d/dx(x^3 + Ax + B)
@@ -86,7 +91,7 @@ impl EllipticCurvePointAdd for WeierstrassAffinePointOps {
       // reflecting y3 across the x-axis results in the addition result y-coordinate
       // result.y = -1 * y3 = m(p1.x - x3) - p1.y
       let p3y_neg = m * (&p1.x - &p3x) - &p1.y;
-      EcPoint::new(&p3x, &p3y_neg)
+      P::new(&p3x, &p3y_neg)
 
     } else {  // when line through p1 and p2 is non-vertical line
       // slope m of the line that intersects the curve at p1 and p2:
@@ -130,9 +135,12 @@ impl EllipticCurvePointAdd for WeierstrassAffinePointOps {
       let p3y = m * (&p3x - &p1.x) + &p1.y;
 
       // then (p3.x, -p3.y) is the result of adding p1 and p2
-      EcPoint::new(&p3x, &-p3y)
+      P::new(&p3x, &-p3y)
     }
   }
 }
 
-impl ElllipticCurvePointInv for WeierstrassAffinePointOps {}
+impl<P, E, F> ElllipticCurvePointInv<P, E> for WeierstrassAffinePointOps<F>
+  where
+    E: Zero<E>,
+    P: NewAffinePoint<P, E> + Zero<P> + AffinePoint<P, E> {}

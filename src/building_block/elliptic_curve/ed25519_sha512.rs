@@ -1,22 +1,27 @@
 #![allow(non_snake_case)]
 use crate::building_block::{
-  field::{Field, FieldElem},
+  field::{
+    prime_field::PrimeField,
+    prime_field_elem::PrimeFieldElem,
+  },
   hasher::{
     hasher::Hasher,
     sha512::Sha512,
   },
-};
-use super::{
-  elliptic_curve_point_ops::{
-    EllipticCurveField,
-    EllipticCurvePointAdd,
-    ElllipticCurvePointInv,
+  elliptic_curve::{
+    affine_point::AffinePoint,
+    ec_point::EcPoint,
+    elliptic_curve_point_ops::{
+      EllipticCurveField,
+      EllipticCurvePointAdd,
+      ElllipticCurvePointInv,
+    },
+    new_affine_point::NewAffinePoint,
   },
-  ec_point::EcPoint,
+  zero::Zero,
 };
 use num_bigint::BigUint;
 use core::ops::{Add, Sub, Rem};
-use num_traits::{Zero};
 
 // implementation based on:
 // - https://ed25519.cr.yp.to/ed25519-20110926.pdf
@@ -36,24 +41,24 @@ enum Parity {
 
 pub struct Ed25519Sha512 {
   H: Sha512,
-  f: Field,
+  f: PrimeField,
   l: BigUint,
-  B: EcPoint,
-  d: FieldElem,
-  one: FieldElem,
-  zero: FieldElem,
+  B: EcPoint<PrimeFieldElem>,
+  d: PrimeFieldElem,
+  one: PrimeFieldElem,
+  zero: PrimeFieldElem,
 }
 
-impl EllipticCurveField for Ed25519Sha512 {
-  fn get_field(&self) -> &Field {
+impl EllipticCurveField<PrimeField> for Ed25519Sha512 {
+  fn get_field(&self) -> &PrimeField {
      &self.f
   }
 }
 
-impl EllipticCurvePointAdd for Ed25519Sha512 {
+impl EllipticCurvePointAdd<EcPoint<PrimeFieldElem>, PrimeFieldElem> for Ed25519Sha512 {
   // Edwards Addition Law
   // (x1,y1) + (x2,y2) = ((x1y2 + x2y1) / (1 + d x1x2 y1y2), (y1y2 + x1x2) / (1 - d x1x2 y1y2))
-  fn add(&self, p1: &EcPoint, p2: &EcPoint) -> EcPoint {
+  fn add(&self, p1: &EcPoint<PrimeFieldElem>, p2: &EcPoint<PrimeFieldElem>) -> EcPoint<PrimeFieldElem> {
     let x1y2 = &p1.x * &p2.y;
     let x2y1 = &p2.x * &p1.y;
     let x1x2y1y2 = &x1y2 * &x2y1;
@@ -64,17 +69,20 @@ impl EllipticCurvePointAdd for Ed25519Sha512 {
     EcPoint::new(&x, &y)
   }
 
-  fn get_zero(&self, f: &Field) -> EcPoint {
+}
+
+impl Zero<EcPoint<PrimeFieldElem>> for Ed25519Sha512 {
+  fn get_zero(f: &PrimeField) -> EcPoint<PrimeFieldElem> {
       EcPoint::new(&f.elem(&0u8), &f.elem(&1u8))
   }
 
-  fn is_zero(&self, p: &EcPoint) -> bool {
-      p.x == self.zero && p.y == self.one
+  fn is_zero(&self) -> bool {
+      self.p.x == self.zero && self.p.y == self.one
   }
 }
 
-impl ElllipticCurvePointInv for Ed25519Sha512 {
-  fn inv(&self, _p: &EcPoint) -> EcPoint {
+impl ElllipticCurvePointInv<EcPoint<PrimeFieldElem>, PrimeFieldElem> for Ed25519Sha512 {
+  fn inv(&self, _p: &EcPoint<PrimeFieldElem>) -> EcPoint<PrimeFieldElem> {
     panic!("not implemented");
   }
 }
@@ -86,7 +94,7 @@ impl Ed25519Sha512 {
 
     // order of base field q: 2^255 - 19
     let q = two.pow(255u32).sub(19u8);
-    let f = Field::new(&q);
+    let f = PrimeField::new(&q);
 
     // order of base point l: 2^252 + 27742317777372353535851937790883648493
     let l = two.pow(252u32).add(27742317777372353535851937790883648493u128);
@@ -105,12 +113,12 @@ impl Ed25519Sha512 {
     Ed25519Sha512 { H, f, l, B, d, one, zero }
   }
 
-  fn get_parity(e: &FieldElem) -> Parity {
+  fn get_parity(e: &PrimeFieldElem) -> Parity {
     if (&e.n % 2u8).is_zero() { Parity::Even } else { Parity::Odd }
   }
 
   // d is passed to allow new() to call this function. ideally d should be replaced by &self
-  fn recover_x(d: &FieldElem, y: &FieldElem, x_parity: Parity) -> FieldElem {
+  fn recover_x(d: &PrimeFieldElem, y: &PrimeFieldElem, x_parity: Parity) -> PrimeFieldElem {
     let f = &d.f;
     let q = &d.f.order;
 
@@ -145,7 +153,7 @@ impl Ed25519Sha512 {
     buf
   }
 
-  fn encode_point(&self, pt: &EcPoint) -> [u8; 32] {
+  fn encode_point(&self, pt: &EcPoint<PrimeFieldElem>) -> [u8; 32] {
     // get parity of x
     let x_parity = if (&pt.x.n & &self.one.n) == self.zero.n { Parity::Even } else { Parity::Odd };
 
@@ -162,7 +170,7 @@ impl Ed25519Sha512 {
     buf
   }
 
-  fn decode_point(&self, pt_buf: &[u8; 32]) -> EcPoint {
+  fn decode_point(&self, pt_buf: &[u8; 32]) -> EcPoint<PrimeFieldElem> {
     let mut pt_buf = pt_buf.clone();
 
     // get parity of x
@@ -266,7 +274,7 @@ mod tests {
     let B = &ed25519.B;
     {
       let pt = ed25519.add(zero, zero);
-      assert!(ed25519.is_zero(&pt));
+      assert!(pt.is_zero());
     }
     {
       let pt = ed25519.add(B, zero);
@@ -278,7 +286,7 @@ mod tests {
     }
     {
       let pt = ed25519.add(B, B);
-      assert!(ed25519.is_zero(&pt) == false);
+      assert!(pt.is_zero() == false);
     }
   }
 

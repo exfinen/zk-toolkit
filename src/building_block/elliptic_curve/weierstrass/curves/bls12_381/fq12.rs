@@ -1,16 +1,25 @@
-use std::ops::{Add, Sub, Mul};
-use crate::building_block::bls12_381::additional_ops::AdditionalOps;
-use crate::building_block::bls12_381::fq6::Fq6;
-use std::fmt;
+use std::{
+  ops::{Add, Sub, Mul},
+  fmt,
+};
+use crate::building_block::{
+  additive_identity::AdditiveIdentity,
+  elliptic_curve::weierstrass::curves::bls12_381::{
+    reduce::Reduce,
+    fq6::Fq6,
+  },
+  field::{field_elem_ops::Inverse, prime_field_elem::PrimeFieldElem},
+};
+
 
 #[derive(Debug, Clone)]
-pub struct Fq12 {
-  pub w1: Fq6,
-  pub w0: Fq6,
+pub struct Fq12<E> {
+  pub w1: Fq6<E>,
+  pub w0: Fq6<E>,
 }
 
-impl Fq12 {
-  pub fn new(w1: &Fq6, w0: &Fq6) -> Self {
+impl<E> Fq12<E> {
+  pub fn new(w1: &Fq6<E>, w0: &Fq6<E>) -> Self {
       Fq12 {
         w1: w1.clone(),
         w0: w0.clone(),
@@ -18,34 +27,38 @@ impl Fq12 {
   }
 }
 
-impl AdditionalOps for Fq12 {
-  fn reduce(_n: &Self) -> Self {
-    panic!("Not implemented");
-  }
-
-  fn inv(n: &Self) -> Self {
+impl<E> Inverse<E> for Fq12<E> {
+  fn inv(&self) -> Self {
     let factor = Fq6::inv(&(
-      &n.w0 * &n.w0
-      - Fq6::reduce(&(&n.w1 * &n.w1))
+      self.w0 * self.w0
+      - Fq6::reduce(&(self.w1 * self.w1))
     ));
     Self {
-      w1: -n.w1.clone() * &factor,
-      w0: &n.w0 * &factor,
+      w1: -self.w1.clone() * &factor,
+      w0: self.w0 * &factor,
     }
   }
+}
 
-  fn zero() -> Self {
-      Self {
-        w1: Fq6::zero(),
-        w0: Fq6::zero(),
-      }
+impl<E> AdditiveIdentity<E> for Fq12<E> {
+  fn get_additive_identity() -> E {
+    Self {
+      w1: Fq6::zero(),
+      w0: Fq6::zero(),
+    }
+  }
+}
+
+impl<E> Reduce for Fq12<E> {
+  fn reduce(_n: &Self) -> Self {
+    panic!("Not implemented");
   }
 }
 
 macro_rules! impl_add {
   ($rhs: ty, $target: ty) => {
-    impl<'a> Add<$rhs> for $target {
-      type Output = Fq12;
+    impl<E> Add<$rhs> for $target {
+      type Output = Fq12<E>;
 
       fn add(self, rhs: $rhs) -> Self::Output {
         Fq12 {
@@ -56,15 +69,15 @@ macro_rules! impl_add {
     }
   };
 }
-impl_add!(Fq12, Fq12);
-impl_add!(Fq12, &Fq12);
-impl_add!(&Fq12, Fq12);
-impl_add!(&Fq12, &Fq12);
+impl_add!(Fq12<PrimeFieldElem>, Fq12<PrimeFieldElem>);
+impl_add!(Fq12<PrimeFieldElem>, &Fq12<PrimeFieldElem>);
+impl_add!(&Fq12<PrimeFieldElem>, Fq12<PrimeFieldElem>);
+impl_add!(&Fq12<PrimeFieldElem>, &Fq12<PrimeFieldElem>);
 
 macro_rules! impl_sub {
   ($rhs: ty, $target: ty) => {
-    impl<'a> Sub<$rhs> for $target {
-      type Output = Fq12;
+    impl<E> Sub<$rhs> for $target {
+      type Output = Fq12<E>;
 
       fn sub(self, rhs: $rhs) -> Self::Output {
         Fq12 {
@@ -75,15 +88,15 @@ macro_rules! impl_sub {
     }
   };
 }
-impl_sub!(Fq12, Fq12);
-impl_sub!(Fq12, &Fq12);
-impl_sub!(&Fq12, Fq12);
-impl_sub!(&Fq12, &Fq12);
+impl_sub!(Fq12<PrimeFieldElem>, Fq12<PrimeFieldElem>);
+impl_sub!(Fq12<PrimeFieldElem>, &Fq12<PrimeFieldElem>);
+impl_sub!(&Fq12<PrimeFieldElem>, Fq12<PrimeFieldElem>);
+impl_sub!(&Fq12<PrimeFieldElem>, &Fq12<PrimeFieldElem>);
 
 macro_rules! impl_mul {
   ($rhs: ty, $target: ty) => {
-    impl<'a> Mul<$rhs> for $target {
-      type Output = Fq12;
+    impl<E> Mul<$rhs> for $target {
+      type Output = Fq12<E>;
 
       fn mul(self, rhs: $rhs) -> Self::Output {
         Fq12 {
@@ -94,12 +107,12 @@ macro_rules! impl_mul {
     }
   };
 }
-impl_mul!(Fq12, Fq12);
-impl_mul!(Fq12, &Fq12);
-impl_mul!(&Fq12, Fq12);
-impl_mul!(&Fq12, &Fq12);
+impl_mul!(Fq12<PrimeFieldElem>, Fq12<PrimeFieldElem>);
+impl_mul!(Fq12<PrimeFieldElem>, &Fq12<PrimeFieldElem>);
+impl_mul!(&Fq12<PrimeFieldElem>, Fq12<PrimeFieldElem>);
+impl_mul!(&Fq12<PrimeFieldElem>, &Fq12<PrimeFieldElem>);
 
-impl fmt::Display for Fq12 {
+impl<E> fmt::Display for Fq12<E> {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "{{ w1: {}, w0: {} }}", self.w1, self.w0)
   }
@@ -107,10 +120,10 @@ impl fmt::Display for Fq12 {
 
 #[cfg(test)]
 mod tests {
-  use crate::building_block::bls12_381::fq_test_helper::get_fq6_values;
   use super::*;
+  use crate::building_block::elliptic_curve::weierstrass::curves::bls12_381::fq_test_helper::get_fq6_values;
 
-  fn to_strs(x: &Fq12) -> [String; 12] {
+  fn to_strs(x: &Fq12<PrimeFieldElem>) -> [String; 12] {
     [
       x.w1.v2.u1.n.to_string(),
       x.w1.v2.u0.n.to_string(),

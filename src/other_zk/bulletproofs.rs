@@ -1,26 +1,45 @@
-use crate::building_block::elliptic_curve::curve_equation::CurveEquation;
-use crate::building_block::field::{FieldElem, FieldElems};
-use crate::building_block::elliptic_curve::{
-  ec_point::EcPoint,
-  curve::Curve,
-  ec_point_with_ops::{EcPointsWithOps, EcPointWithOps},
-  elliptic_curve_point_ops::{
-    EllipticCurveField,
-    EllipticCurvePointAdd,
-    ElllipticCurvePointInv,
+use crate::building_block::{
+  field::{
+    prime_field_elem::PrimeFieldElem,
+    prime_field_elems::PrimeFieldElems,
   },
+  elliptic_curve::{
+    affine_point::AffinePoint,
+    ec_point::EcPoint,
+    curve::Curve,
+    curve_equation::CurveEquation,
+    //ec_point_with_ops::{EcPointsWithOps, EcPointWithOps},
+    elliptic_curve_point_ops::{
+      EllipticCurveField,
+      EllipticCurvePointAdd,
+      ElllipticCurvePointInv,
+    },
+    new_affine_point::NewAffinePoint,
+  },
+  zero::Zero,
 };
+
 // implementation based on https://eprint.iacr.org/2017/1066.pdf
 
-pub struct Bulletproofs<const N: usize, T, U>
-  where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv + Clone, U: CurveEquation {
-  curve: Box<dyn Curve<T, U>>,
+pub struct Bulletproofs<const N: usize, Op, Eq, P, E>
+  where
+    E: Zero<E>,
+    P: Zero<P> + NewAffinePoint<P, E> + AffinePoint<P, E> + Clone,
+    Op: EllipticCurveField + EllipticCurvePointAdd<P, E> + ElllipticCurvePointInv<P, E> + Clone,
+    Eq: CurveEquation,
+  {
+  curve: Box<dyn Curve<Op, Eq, P, E>>,
 }
 
-impl<'a, T, const N: usize, U> Bulletproofs<N, T, U>
-  where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv + Clone, U: CurveEquation {
+impl<'a, T, const N: usize, Eq, P, E> Bulletproofs<N, T, Eq, P, E>
+  where
+    E: Zero<E>,
+    P: Zero<P> + NewAffinePoint<P, E> + AffinePoint<P, E> + Clone,
+    T: EllipticCurveField + EllipticCurvePointAdd<P, E> + ElllipticCurvePointInv<P, E> + Clone,
+    Eq: CurveEquation,
+  {
 
-  pub fn new(curve: Box<dyn Curve<T, U>>) -> Self {
+  pub fn new(curve: Box<dyn Curve<T, Eq, P, E>>) -> Self {
     Bulletproofs { curve }
   }
 
@@ -36,12 +55,12 @@ impl<'a, T, const N: usize, U> Bulletproofs<N, T, U>
     EcPointWithOps((ops, ec_point.clone()))
   }
 
-  pub fn rand_point(&self) -> EcPointWithOps<T> {
+  pub fn rand_point(&self) -> P {
     let ops = self.curve.ops();
     let group = &self.curve.group();
     let fe = group.rand_elem(true);
     let p = ops.scalar_mul(&self.curve.g(), &fe);
-    EcPointWithOps((ops, p))
+    p
   }
 
   pub fn rand_points(&self, n: usize) -> Vec<EcPoint> {
@@ -52,7 +71,7 @@ impl<'a, T, const N: usize, U> Bulletproofs<N, T, U>
     xs
   }
 
-  pub fn scalar_mul(&self, pt: &EcPointWithOps<T>, fe: &FieldElem) -> EcPointWithOps<T> {
+  pub fn scalar_mul(&self, pt: &P, fe: &E) -> P {
     let ops = self.curve.ops();
     let x = ops.scalar_mul(&pt, &fe);
     EcPointWithOps((ops, x))
@@ -195,12 +214,10 @@ impl<'a, T, const N: usize, U> Bulletproofs<N, T, U>
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::building_block::elliptic_curve::{
-    weierstrass::{
-      curves::secp256k1::{Secp256k1, Secp256k1Params},
-      jacobian_point_ops::WeierstrassJacobianPointOps,
-      equation::WeierstrassEq,
-    },
+  use crate::building_block::elliptic_curve::weierstrass::{
+    curves::secp256k1::{Secp256k1, Secp256k1Params},
+    jacobian_point_ops::WeierstrassJacobianPointOps,
+    equation::WeierstrassEq,
   };
 
   // gg^z == gg^(ones * z)

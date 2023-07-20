@@ -1,37 +1,30 @@
-use std::ops::{Add, Sub, Mul};
-use crate::building_block::bls12_381::additional_ops::AdditionalOps;
-use crate::building_block::bls12_381::fq1::Fq1;
-use std::fmt;
+use std::{
+  ops::{Add, Sub, Mul},
+  fmt,
+};
+use crate::building_block::{
+  additive_identity::AdditiveIdentity,
+  elliptic_curve::weierstrass::curves::bls12_381::{
+    reduce::Reduce,
+    fq1::Fq1,
+  },
+  field::{field_elem_ops::Inverse, prime_field_elem::PrimeFieldElem},
+};
 
 #[derive(Debug, Clone)]
-pub struct Fq2 {
-  pub u1: Fq1,
-  pub u0: Fq1,
+pub struct Fq2<E> {
+  pub u1: Fq1<E>,
+  pub u0: Fq1<E>,
 }
 
-impl Fq2 {
-    pub fn new(u1: &Fq1, u0: &Fq1) -> Self {
+impl<E> Fq2<E> {
+    pub fn new(u1: &Fq1<E>, u0: &Fq1<E>) -> Self {
         Fq2 { u1: u1.clone(), u0: u0.clone() }
     }
 }
 
-impl AdditionalOps for Fq2 {
-  fn reduce(n: &Self) -> Self {
-    Self {
-      u1: &n.u1 + &n.u0,
-      u0: &n.u0 - &n.u1,
-    }
-  }
-
-  fn inv(n: &Self) -> Self {
-    let factor = &(&n.u1 * &n.u1 + &n.u0 * &n.u0).inv();
-    Self {
-      u1: n.u1.negate() * factor,
-      u0: &n.u0 * factor,
-    }
-  }
-
-  fn zero() -> Self {
+impl<E> AdditiveIdentity<E> for Fq2<E> {
+  fn get_additive_identity() -> E {
       Self {
         u1: Fq1::zero(),
         u0: Fq1::zero(),
@@ -39,10 +32,29 @@ impl AdditionalOps for Fq2 {
   }
 }
 
+impl<E> Inverse<E> for Fq2<E> {
+  fn inv(&self) -> E {
+    let factor = &(self.u1 * self.u1 + self.u0 * self.u0).inv();
+    Self {
+      u1: self.u1.negate() * factor,
+      u0: self.u0 * factor,
+    }
+  }
+}
+
+impl<E> Reduce for Fq2<E> {
+  fn reduce(&self) -> Self {
+    Self {
+      u1: self.u1 + self.u0,
+      u0: self.u0 - self.u1,
+    }
+  }
+}
+
 macro_rules! impl_add {
   ($rhs: ty, $target: ty) => {
-    impl<'a> Add<$rhs> for $target {
-      type Output = Fq2;
+    impl<E> Add<$rhs> for $target {
+      type Output = Fq2<E>;
 
       fn add(self, rhs: $rhs) -> Self::Output {
         Fq2 {
@@ -53,15 +65,15 @@ macro_rules! impl_add {
     }
   };
 }
-impl_add!(Fq2, Fq2);
-impl_add!(Fq2, &Fq2);
-impl_add!(&Fq2, Fq2);
-impl_add!(&Fq2, &Fq2);
+impl_add!(Fq2<PrimeFieldElem>, Fq2<PrimeFieldElem>);
+impl_add!(Fq2<PrimeFieldElem>, &Fq2<PrimeFieldElem>);
+impl_add!(&Fq2<PrimeFieldElem>, Fq2<PrimeFieldElem>);
+impl_add!(&Fq2<PrimeFieldElem>, &Fq2<PrimeFieldElem>);
 
 macro_rules! impl_sub {
   ($rhs: ty, $target: ty) => {
-    impl<'a> Sub<$rhs> for $target {
-      type Output = Fq2;
+    impl<E> Sub<$rhs> for $target {
+      type Output = Fq2<E>;
 
       fn sub(self, rhs: $rhs) -> Self::Output {
         Fq2 {
@@ -72,15 +84,15 @@ macro_rules! impl_sub {
     }
   };
 }
-impl_sub!(Fq2, Fq2);
-impl_sub!(Fq2, &Fq2);
-impl_sub!(&Fq2, Fq2);
-impl_sub!(&Fq2, &Fq2);
+impl_sub!(Fq2<PrimeFieldElem>, Fq2<PrimeFieldElem>);
+impl_sub!(Fq2<PrimeFieldElem>, &Fq2<PrimeFieldElem>);
+impl_sub!(&Fq2<PrimeFieldElem>, Fq2<PrimeFieldElem>);
+impl_sub!(&Fq2<PrimeFieldElem>, &Fq2<PrimeFieldElem>);
 
 macro_rules! impl_mul {
   ($rhs: ty, $target: ty) => {
-    impl<'a> Mul<$rhs> for $target {
-      type Output = Fq2;
+    impl<E> Mul<$rhs> for $target {
+      type Output = Fq2<E>;
 
       fn mul(self, rhs: $rhs) -> Self::Output {
         Fq2 {
@@ -91,12 +103,12 @@ macro_rules! impl_mul {
     }
   };
 }
-impl_mul!(Fq2, Fq2);
-impl_mul!(Fq2, &Fq2);
-impl_mul!(&Fq2, Fq2);
-impl_mul!(&Fq2, &Fq2);
+impl_mul!(Fq2<PrimeFieldElem>, Fq2<PrimeFieldElem>);
+impl_mul!(Fq2<PrimeFieldElem>, &Fq2<PrimeFieldElem>);
+impl_mul!(&Fq2<PrimeFieldElem>, Fq2<PrimeFieldElem>);
+impl_mul!(&Fq2<PrimeFieldElem>, &Fq2<PrimeFieldElem>);
 
-impl fmt::Display for Fq2 {
+impl<E> fmt::Display for Fq2<E> {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "{{ u1: {}, u0: {} }}", self.u1, self.u0)
   }
@@ -104,10 +116,10 @@ impl fmt::Display for Fq2 {
 
 #[cfg(test)]
 mod tests {
-  use crate::building_block::bls12_381::fq_test_helper::get_fq1_values;
+  use crate::building_block::elliptic_curve::weierstrass::curves::bls12_381::fq_test_helper::get_fq1_values;
   use super::*;
 
-  fn to_strs(x: &Fq2) -> [String; 2] {
+  fn to_strs(x: &Fq2<PrimeFieldElem>) -> [String; 2] {
     [x.u1.n.to_string(), x.u0.n.to_string()]
   }
 

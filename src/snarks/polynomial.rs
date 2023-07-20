@@ -1,5 +1,8 @@
 use crate::building_block::{
-  field::{Field, FieldElem},
+  field::{
+    prime_field::PrimeField,
+    prime_field_elem::PrimeFieldElem,
+  },
   to_biguint::ToBigUint,
 };
 use num_bigint::BigUint;
@@ -20,13 +23,13 @@ use super::sparse_vec::SparseVec;
 
 #[derive(Clone)]
 pub struct Polynomial {
-  pub f: Field,
-  pub coeffs: Vec<FieldElem>,
+  pub f: PrimeField,
+  pub coeffs: Vec<PrimeFieldElem>,
   _private: (),  // to force using new()
 }
 
 impl Deref for Polynomial {
-  type Target = Vec<FieldElem>;
+  type Target = Vec<PrimeFieldElem>;
 
   fn deref(&self) -> &Self::Target {
     &self.coeffs
@@ -106,7 +109,7 @@ pub enum DivResult {
 }
 
 impl Polynomial {
-  pub fn new(f: &Field, coeffs: Vec<FieldElem>) -> Self {
+  pub fn new(f: &PrimeField, coeffs: Vec<PrimeFieldElem>) -> Self {
     if coeffs.len() == 0 { panic!("coeffs is empty"); }
     let x = Polynomial { f: f.clone(), coeffs, _private: () };
     x.normalize()
@@ -218,7 +221,7 @@ impl Polynomial {
     }
   }
 
-  pub fn eval_at(&self, x: &impl ToBigUint) -> FieldElem {
+  pub fn eval_at(&self, x: &impl ToBigUint) -> PrimeFieldElem {
     let mut multiplier = self.f.elem(&1u8);
     let mut sum = self.f.elem(&0u8);
     let x = &self.f.elem(x);
@@ -244,7 +247,7 @@ impl Polynomial {
     vec
   }
 
-  pub fn degree(&self) -> FieldElem {
+  pub fn degree(&self) -> PrimeFieldElem {
     if self.coeffs.len() == 0 {
       panic!("should have at least 1 coeff. check code");
     }
@@ -289,13 +292,13 @@ impl<'a> Sub<&Polynomial> for Polynomial {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::building_block::field::Field;
+  use crate::building_block::field::prime_field::PrimeField;
   use rand::Rng;
   use super::DivResult::{Quotient, QuotientRemainder};
 
   #[test]
   fn test_to_sparse_vec() {
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
     let zero = &f.elem(&0u8);
     let one = &f.elem(&1u8);
     let two = &f.elem(&2u8);
@@ -319,7 +322,7 @@ mod tests {
 
   #[test]
   fn test_degree() {
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
     // degree 0
     {
       let p = Polynomial::new(f, vec![
@@ -343,7 +346,7 @@ mod tests {
 
   #[test]
   fn test_from_sparse_vec() {
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
     let zero = &f.elem(&0u8);
     let one = &f.elem(&1u8);
     let two = &f.elem(&2u8);
@@ -371,7 +374,7 @@ mod tests {
 
   #[test]
   fn test_eval_at() {
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
     { // 8
       let zero = &0u8;
       let eight = &f.elem(&8u8);
@@ -403,7 +406,7 @@ mod tests {
 
   #[test]
   fn test_div_3_2_no_remainder() {
-    let f = &Field::new(&7u8);
+    let f = &PrimeField::new(&3911u16);
     {
       /* in GF(7)
               x +  6
@@ -442,7 +445,7 @@ mod tests {
 
   #[test]
   fn test_div_2_2() {
-    let f = &Field::new(&7u8);
+    let f = &PrimeField::new(&7u8);
     {
       /* in GF(7)
               2
@@ -481,7 +484,7 @@ mod tests {
 
   #[test]
   fn test_div_2_2_non_divisible_coeff_with_remainder() {
-    let f = &Field::new(&7u8);
+    let f = &PrimeField::new(&7u8);
     {
       /* in GF(7)
               6        // 6*2=12=5 mod 7
@@ -519,7 +522,7 @@ mod tests {
 
   #[test]
   fn test_div_1_1() {
-    let f = &Field::new(&7u8);
+    let f = &PrimeField::new(&7u8);
     {
       /* in GF(7)
             5     // 2*5=10=3 mod 7
@@ -552,7 +555,7 @@ mod tests {
 
   #[test]
   fn test_div_5_2() {
-    let f = &Field::new(&11u8);
+    let f = &PrimeField::new(&11u8);
     {
       let dividend = Polynomial::new(f, vec![
         f.elem(&5u8), // 0
@@ -593,7 +596,7 @@ mod tests {
     }
   }
 
-  fn gen_random_polynomial(f: &Field, degree: usize, max_coeff: u32) -> Polynomial {
+  fn gen_random_polynomial(f: &PrimeField, degree: usize, max_coeff: u32) -> Polynomial {
     let mut coeffs = vec![];
 
     for _ in 0..degree {
@@ -605,7 +608,7 @@ mod tests {
 
   #[test]
   fn test_div_random_divisible() {
-    let f = &Field::new(&11u8);
+    let f = &PrimeField::new(&11u8);
     let max_coeff = 100;
     let min_divisor_degree = 30;
     let max_divisor_degree = 100;
@@ -631,7 +634,7 @@ mod tests {
 
   #[test]
   fn test_is_zero() {
-    let f = &Field::new(&11u8);
+    let f = &PrimeField::new(&11u8);
     {
       let a = Polynomial::new(f, vec![
         f.elem(&12u8),
@@ -655,7 +658,7 @@ mod tests {
 
   #[test]
   fn test_sub_2_2() {
-    let f = &Field::new(&23u8);
+    let f = &PrimeField::new(&23u8);
     // subtract small poly
     {
       let a = Polynomial::new(f, vec![
@@ -706,7 +709,7 @@ mod tests {
   #[should_panic]
   fn test_bad_sub() {
     std::panic::set_hook(Box::new(|_| {}));
-    let f = &Field::new(&3299u16);
+    let f = &PrimeField::new(&3299u16);
     let a = Polynomial::new(f, vec![
       f.elem(&7u8),
     ]);
@@ -719,7 +722,7 @@ mod tests {
 
   #[test]
   fn test_debug_print() {
-    let f = &Field::new(&3299u16);
+    let f = &PrimeField::new(&3299u16);
     {
       let a = Polynomial::new(f, vec![
         f.elem(&12u8),
@@ -745,7 +748,7 @@ mod tests {
 
   #[test]
   fn test_new_non_empty_vec() {
-    let f = &Field::new(&3299u16);
+    let f = &PrimeField::new(&3299u16);
     let p = Polynomial::new(f, vec![
       f.elem(&12u8),
     ]);
@@ -757,13 +760,13 @@ mod tests {
   #[should_panic]
   fn test_new_empty_vec() {
     std::panic::set_hook(Box::new(|_| {}));
-    let f = &Field::new(&3299u16);
+    let f = &PrimeField::new(&3299u16);
     Polynomial::new(f, vec![]);
   }
 
   #[test]
   fn test_normalize() {
-    let f = &Field::new(&3299u16);
+    let f = &PrimeField::new(&3299u16);
     {
       let a = Polynomial::new(f, vec![
         f.elem(&0u8),
@@ -835,7 +838,7 @@ mod tests {
 
   #[test]
   fn test_eq() {
-    let f = &Field::new(&3299u16);
+    let f = &PrimeField::new(&3299u16);
     {
       let a = Polynomial::new(f, vec![
         f.elem(&0u8),
@@ -904,7 +907,7 @@ mod tests {
 
   #[test]
   fn test_add() {
-    let f = &Field::new(&3299u16);
+    let f = &PrimeField::new(&3299u16);
     // zero + zero
     {
       let a = Polynomial::new(f, vec![
@@ -951,7 +954,7 @@ mod tests {
 
   #[test]
   fn test_add_zero_terms() {
-    let f = &Field::new(&7u8);
+    let f = &PrimeField::new(&7u8);
     // 1st term only and it becomes zero
     {
       let a = Polynomial::new(f, vec![
@@ -986,7 +989,7 @@ mod tests {
 
   #[test]
   fn test_mul_deg_0_0() {
-    let f = &Field::new(&3299u16);
+    let f = &PrimeField::new(&3299u16);
     {
       // 0 * 0
       let a = Polynomial::new(f, vec![
@@ -1048,7 +1051,7 @@ mod tests {
 
   #[test]
   fn test_mul_deg_1_0() {
-    let f = &Field::new(&3299u16);
+    let f = &PrimeField::new(&3299u16);
     {
       // (2x - 3) * 4
       let a = Polynomial::new(f, vec![
@@ -1069,7 +1072,7 @@ mod tests {
 
   #[test]
   fn test_mul_deg_1_1() {
-    let f = &Field::new(&3299u16);
+    let f = &PrimeField::new(&3299u16);
     {
       // 2x + 3
       let a = &Polynomial::new(f, vec![
@@ -1095,7 +1098,7 @@ mod tests {
 
   #[test]
   fn test_eval_from_1_to_n() {
-    let f = &Field::new(&3299u16);
+    let f = &PrimeField::new(&3299u16);
     {
       // evaluating for the same degree as the polynomial degree
       let p = Polynomial::new(f, vec![

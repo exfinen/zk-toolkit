@@ -1,9 +1,9 @@
 use crate::snarks::config::SignalId;
-use crate::building_block::field::FieldElem;
+use crate::building_block::field::prime_field_elem::PrimeFieldElem;
 
 #[derive(Clone, Hash, PartialEq, Eq)]
 pub enum Term {
-  Num(FieldElem),
+  Num(PrimeFieldElem),
   One,
   Out,
   Sum(Box<Term>, Box<Term>),  // Sum will not contain Out and Sum itself

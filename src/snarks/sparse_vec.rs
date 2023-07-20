@@ -3,17 +3,20 @@ use std::{
   convert::From,
   ops::Mul,
 };
-use crate::building_block::field::{Field, FieldElem};
+use crate::building_block::field::{
+  prime_field::PrimeField,
+  prime_field_elem::PrimeFieldElem,
+};
 use num_traits::Zero;
 use core::ops::{Index, IndexMut};
 use crate::building_block::to_biguint::ToBigUint;
 
 #[derive(Clone)]
 pub struct SparseVec {
-  pub f: Field,
-  pub size: FieldElem,
-  zero: FieldElem,
-  elems: HashMap<FieldElem, FieldElem>,  // HashMap<index, value>
+  pub f: PrimeField,
+  pub size: PrimeFieldElem,
+  zero: PrimeFieldElem,
+  elems: HashMap<PrimeFieldElem, PrimeFieldElem>,  // HashMap<index, value>
 }
 
 impl std::fmt::Debug for SparseVec {
@@ -28,7 +31,7 @@ impl std::fmt::Debug for SparseVec {
 }
 
 impl SparseVec {
-  pub fn new(f: &Field, size: &impl ToBigUint) -> Self {
+  pub fn new(f: &PrimeField, size: &impl ToBigUint) -> Self {
     let size = f.elem(size);
     if size == f.elem(&0u8) {
       panic!("Size must be greater than 0");
@@ -37,7 +40,7 @@ impl SparseVec {
       f: f.clone(),
       zero: f.elem(&0u8),
       size,
-      elems: HashMap::<FieldElem, FieldElem>::new(),
+      elems: HashMap::<PrimeFieldElem, PrimeFieldElem>::new(),
     }
   }
 
@@ -52,7 +55,7 @@ impl SparseVec {
     }
   }
 
-  pub fn get(&self, index: &impl ToBigUint) -> &FieldElem {
+  pub fn get(&self, index: &impl ToBigUint) -> &PrimeFieldElem {
     let index = &self.f.elem(index);
     if index >= &self.size {
       panic!("Index {:?} is out of range. The size of vector is {:?}", index.n, self.size.n);
@@ -64,7 +67,7 @@ impl SparseVec {
     }
   }
 
-  pub fn indices(&self) -> Vec<FieldElem> {
+  pub fn indices(&self) -> Vec<PrimeFieldElem> {
     let mut vec = vec![];
     for x in self.elems.keys() {
       vec.push(x.clone());
@@ -73,7 +76,7 @@ impl SparseVec {
   }
 
   // TODO clean up
-  pub fn sum(&self) -> FieldElem {
+  pub fn sum(&self) -> PrimeFieldElem {
     let mut values = vec![];
     for value in self.elems.values() {
       values.push(value);
@@ -130,16 +133,16 @@ impl PartialEq for SparseVec {
   }
 }
 
-impl Index<&FieldElem> for SparseVec {
-  type Output = FieldElem;
+impl Index<&PrimeFieldElem> for SparseVec {
+  type Output = PrimeFieldElem;
 
-  fn index(&self, index: &FieldElem) -> &Self::Output {
+  fn index(&self, index: &PrimeFieldElem) -> &Self::Output {
     &self.get(index)
   }
 }
 
-impl IndexMut<&FieldElem> for SparseVec {
-  fn index_mut(&mut self, index: &FieldElem) -> &mut Self::Output {
+impl IndexMut<&PrimeFieldElem> for SparseVec {
+  fn index_mut(&mut self, index: &PrimeFieldElem) -> &mut Self::Output {
     if !self.elems.contains_key(index) {
       self.elems.insert(index.clone(), self.f.elem(&0u8));
     }
@@ -147,8 +150,8 @@ impl IndexMut<&FieldElem> for SparseVec {
   }
 }
 
-impl From<&Vec<FieldElem>> for SparseVec {
-  fn from(elems: &Vec<FieldElem>) -> Self {
+impl From<&Vec<PrimeFieldElem>> for SparseVec {
+  fn from(elems: &Vec<PrimeFieldElem>) -> Self {
     let size = &elems.len();
     assert!(elems.len() != 0, "Cannot build vector from empty element list");
     let f = &elems[0].f;
@@ -187,7 +190,7 @@ impl Mul<&SparseVec> for &SparseVec {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::building_block::field::Field;
+  use crate::building_block::field::prime_field::PrimeField;
 
   #[test]
   #[should_panic]
@@ -198,7 +201,7 @@ mod tests {
 
   #[test]
   fn test_from_non_empty_list() {
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
     let zero = &f.elem(&0u8);
     let one = &f.elem(&1u8);
     let two = &f.elem(&2u8);
@@ -211,7 +214,7 @@ mod tests {
 
   #[test]
   fn test_from_non_empty_zero_only_list() {
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
     let zero = &f.elem(&0u8);
     let two = &f.elem(&2u8);
     let elems = vec![zero.clone(), zero.clone()];
@@ -224,7 +227,7 @@ mod tests {
   #[should_panic]
   fn test_new_empty_vec() {
     std::panic::set_hook(Box::new(|_| {}));  // suppress stack trace
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
     SparseVec::new(f, &0u8);
   }
 
@@ -233,21 +236,21 @@ mod tests {
   fn test_bad_set() {
     std::panic::set_hook(Box::new(|_| {}));  // suppress stack trace
 
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
     let mut vec = SparseVec::new(f, &3u8);
     assert_eq!(vec.elems.len(), 0);
 
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
     vec.set(&3u8, &f.elem(&2u8));
   }
 
   #[test]
   fn test_good_set() {
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
     let mut vec = SparseVec::new(f, &3u8);
     assert_eq!(vec.elems.len(), 0);
 
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
     let two = &f.elem(&2u8);
     vec.set(&2u8, two);
     assert_eq!(vec.elems.len(), 1);
@@ -266,11 +269,11 @@ mod tests {
 
   #[test]
   fn test_assign() {
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
     let mut vec = SparseVec::new(f, &3u8);
     assert_eq!(vec.elems.len(), 0);
 
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
     vec.set(&2u8, &f.elem(&2u8));
     assert_eq!(vec.elems.len(), 1);
     assert_eq!(vec.elems.get(&f.elem(&2u8)).unwrap(), &f.elem(&2u8));
@@ -287,7 +290,7 @@ mod tests {
 
   #[test]
   fn test_good_get() {
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
     let zero = &f.elem(&0u8);
     let one = &f.elem(&1u8);
     let two = &f.elem(&2u8);
@@ -305,7 +308,7 @@ mod tests {
   fn test_get_index_out_of_range() {
     std::panic::set_hook(Box::new(|_| {}));  // suppress stack trace
 
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
     let vec = SparseVec::new(f, &1u8);
     vec.get(&2u8);
   }
@@ -314,7 +317,7 @@ mod tests {
   fn test_get_index_without_value() {
     std::panic::set_hook(Box::new(|_| {}));  // suppress stack trace
 
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
     let zero = &f.elem(&0u8);
     let vec = SparseVec::new(f, &3u8);
     assert_eq!(vec.get(&0u8), zero);
@@ -324,7 +327,7 @@ mod tests {
 
   #[test]
   fn test_indices() {
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
     let mut vec = SparseVec::new(f, &3u8);
 
     vec.set(&1u8, &2u8);
@@ -339,7 +342,7 @@ mod tests {
 
   #[test]
   fn test_mutiply_no_matching_elems() {
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
     let mut vec_a = SparseVec::new(f, &3u8);
     let mut vec_b = SparseVec::new(f, &3u8);
 
@@ -353,7 +356,7 @@ mod tests {
 
   #[test]
   fn test_mutiply_elems_fully_matching_1_elem() {
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
     let mut vec_a = SparseVec::new(f, &3u8);
     let mut vec_b = SparseVec::new(f, &3u8);
 
@@ -368,7 +371,7 @@ mod tests {
 
   #[test]
   fn test_mutiply_elems_fully_matching_2_elems() {
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
     let mut vec_a = SparseVec::new(f, &3u8);
     let mut vec_b = SparseVec::new(f, &3u8);
 
@@ -386,7 +389,7 @@ mod tests {
 
   #[test]
   fn test_mutiply_elems_partially_matching() {
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
     let mut vec_a = SparseVec::new(f, &3u8);
     let mut vec_b = SparseVec::new(f, &3u8);
 
@@ -402,7 +405,7 @@ mod tests {
 
   #[test]
   fn test_sum() {
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
     let mut vec = SparseVec::new(f, &3u8);
 
     vec.set(&1u8, &2u8);
@@ -414,7 +417,7 @@ mod tests {
 
   #[test]
   fn test_eq_different_sizes() {
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
     let vec_a = SparseVec::new(f, &3u8);
     let vec_b = SparseVec::new(f, &4u8);
     assert_ne!(vec_a, vec_b);
@@ -423,7 +426,7 @@ mod tests {
 
   #[test]
   fn test_eq_empty() {
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
     let vec_a = SparseVec::new(f, &3u8);
     let vec_b = SparseVec::new(f, &3u8);
     assert_eq!(vec_a, vec_b);
@@ -432,7 +435,7 @@ mod tests {
 
   #[test]
   fn test_eq_non_empty() {
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
     let mut vec_a = SparseVec::new(f, &3u8);
     let mut vec_b = SparseVec::new(f, &3u8);
 
@@ -444,7 +447,7 @@ mod tests {
 
   #[test]
   fn test_not_eq_non_empty() {
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
     let mut vec_a = SparseVec::new(f, &3u8);
     let mut vec_b = SparseVec::new(f, &3u8);
 

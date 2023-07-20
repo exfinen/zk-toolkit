@@ -1,10 +1,10 @@
 use crate::building_block::{
-  field::FieldElem,
   hasher::{
     hasher::Hasher,
     sha256::Sha256,
   },
   elliptic_curve::{
+    affine_point::AffinePoint,
     curve::Curve,
     curve_equation::CurveEquation,
     elliptic_curve_point_ops::{
@@ -13,38 +13,48 @@ use crate::building_block::{
       ElllipticCurvePointInv,
     },
     ec_point::EcPoint,
+    new_affine_point::NewAffinePoint,
   },
+  zero::Zero,
 };
 use num_bigint::BigUint;
-use num_traits::identities::Zero;
 
-pub struct Ecdsa<const HASHER_OUT_SIZE: usize, T, U>
-where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv, U: CurveEquation {
-  pub curve: Box<dyn Curve<T, U>>,
+pub struct Ecdsa<const HASHER_OUT_SIZE: usize, Op, Eq, P, E, F>
+where
+  E: Zero<E>,
+  P: Zero<P> + NewAffinePoint<P, E> + AffinePoint<P, E> + Clone,
+  Op: EllipticCurveField<F> + EllipticCurvePointAdd<P, E> + ElllipticCurvePointInv<P, E>,
+  Eq: CurveEquation<P> {
+  pub curve: Box<dyn Curve<Op, Eq, P, E, F>>,
   pub hasher: Box<dyn Hasher<HASHER_OUT_SIZE>>,
 }
 
 #[derive(Debug, Clone)]
-pub struct Signature {
-  pub r: FieldElem,   // mod n
-  pub s: FieldElem,   // mod n
+pub struct Signature<E> {
+  pub r: E,
+  pub s: E,
 }
 
-impl<const HASHER_OUT_SIZE: usize, T, U> Ecdsa<HASHER_OUT_SIZE, T, U>
-  where T: EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv, U: CurveEquation {
+impl<const HASHER_OUT_SIZE: usize, Op, Eq, P, E, F> Ecdsa<HASHER_OUT_SIZE, Op, Eq, P, E, F>
+  where
+    E: Zero<E>,
+    P: Zero<P> + NewAffinePoint<P, E> + AffinePoint<P, E> + Clone,
+    Op: EllipticCurveField<F> + EllipticCurvePointAdd<P, E> + ElllipticCurvePointInv<P, E>,
+    Eq: CurveEquation<P> {
+
   pub fn new(
-    curve: Box<dyn Curve<T, U>>,
+    curve: Box<dyn Curve<Op, Eq, P, E, F>>,
     hasher: Box<dyn Hasher<HASHER_OUT_SIZE>>,
   ) -> Self {
     Ecdsa { curve, hasher }
   }
 
-  pub fn gen_pub_key(&self, priv_key: &FieldElem) -> EcPoint {
+  pub fn gen_pub_key(&self, priv_key: &E) -> P {
     let g = &self.curve.g();
-    self.curve.ops().scalar_mul(g, &priv_key.n)
+    self.curve.ops().scalar_mul(g, &priv_key)
   }
 
-  pub fn sign(&mut self, priv_key: &FieldElem, message: &[u8]) -> Result<Signature, String> {
+  pub fn sign(&mut self, priv_key: &E, message: &[u8]) -> Result<Signature<E>, String> {
     // n is 32-byte long in secp256k1
     // dA = private key in [1, n-1]
     let f_n = self.curve.group();
@@ -86,7 +96,7 @@ impl<const HASHER_OUT_SIZE: usize, T, U> Ecdsa<HASHER_OUT_SIZE, T, U>
   }
 
   // pub key is modulo p. not n which is the order of g
-  pub fn verify(&self, sig: &Signature, pub_key: &EcPoint, message: &[u8]) -> bool {
+  pub fn verify(&self, sig: &Signature<E>, pub_key: &P, message: &[u8]) -> bool {
     let curve_group = &self.curve.group();
     let n = &curve_group.order;
     let g = &self.curve.g();

@@ -1,89 +1,60 @@
 use crate::building_block::{
-  field::{Field, FieldElem},
+  additive_identity::AdditiveIdentity,
   elliptic_curve::{
-    ec_point::EcPoint,
+    affine_point::AffinePoint,
     elliptic_curve_point_ops::{
       EllipticCurveField,
       EllipticCurvePointAdd,
       ElllipticCurvePointInv,
     },
+    jacobian_point::JacobianPoint,
+    new_affine_point::NewAffinePoint,
   },
+  zero::Zero,
 };
-use num_bigint::BigUint;
-use num_traits::identities::{One, Zero};
-
-#[derive(Debug, Clone)]
-struct JacobianPoint {
-  pub x: FieldElem,
-  pub y: FieldElem,
-  pub z: FieldElem,
-}
-
-impl JacobianPoint {
-  pub fn from_ec_point(pt: &EcPoint) -> Result<JacobianPoint, String> {
-    if pt.is_inf {
-      Err("Cannot convert inf to Jacobian point".to_string())
-    } else {
-      let pt = pt.clone();
-      Ok(JacobianPoint {
-        x: pt.x.clone(),
-        y: pt.y,
-        z: pt.x.f.elem(&BigUint::one()),
-      })
-    }
-  }
-
-  fn to_ec_point(&self) -> Result<EcPoint, String> {
-    if self.z.n == BigUint::zero() {
-      Err("z is not expected to be zero".to_string())
-    } else {
-      let z2 = self.z.sq();
-      let z3 = &z2 * &self.z;
-      let x = &self.x / z2;
-      let y = &self.y / z3;
-      Ok(EcPoint { x, y, is_inf: false })
-    }
-  }
-}
 
 #[derive(Clone)]
-pub struct WeierstrassJacobianPointOps {
-  f: Field,
+pub struct WeierstrassJacobianPointOps<F> {
+  f: F,
 }
 
-impl WeierstrassJacobianPointOps {
-  pub fn new(f: &Field) -> Self {
+impl<F> WeierstrassJacobianPointOps<F> where F: Clone {
+  pub fn new(f: &F) -> Self {
     Self { f: f.clone() }
   }
 }
 
-impl EllipticCurveField for WeierstrassJacobianPointOps {
-  fn get_field(&self) -> &Field {
+impl<F> EllipticCurveField<F> for WeierstrassJacobianPointOps<F> {
+  fn get_field(&self) -> &F {
       &self.f
   }
 }
 
-impl EllipticCurvePointAdd for WeierstrassJacobianPointOps {
-  fn add(&self, p1: &EcPoint, p2: &EcPoint) -> EcPoint {
-    let f = self.get_field();
+impl<P, E, F> EllipticCurvePointAdd<P, E> for WeierstrassJacobianPointOps<F>
+  where
+    P: From<JacobianPoint<E>> + Into<JacobianPoint<E>> + Zero<P> + Clone,
+    F: AdditiveIdentity<F>
+{
+  fn add(&self, p1: &P, p2: &P) -> P {
+    let f = &self.get_field();
 
-    if p1.is_inf && p2.is_inf {  // inf + inf is inf
-      EcPoint::inf(f)
-    } else if p1.is_inf {  // adding p2 to inf is p2
+    if p1.is_zero() && p2.is_zero() {  // zero + zero is zero
+      F::get_zero(&f)
+    } else if p1.is_zero() {  // adding p2 to zero is p2
       p2.clone()
-    } else if p2.is_inf {  // adding p1 to inf is p1
+    } else if p2.is_zero() {  // adding p1 to zero is p1
       p1.clone()
     } else if p1.x == p2.x && p1.y != p2.y {  // if line through p1 and p2 is vertical line
-      EcPoint::inf(f)
+      F::get_zero(&f)
     } else if p1.x == p2.x && p1.y == p2.y {  // if adding the same point
       // special case: if y == 0, the tangent line is vertical
-      if p1.y.n == BigUint::zero() || p2.y.n == BigUint::zero() {
-        return EcPoint::inf(f);
+      if p1.y.is_zero() || p2.y.is_zero() {
+        return F::get_zero(&f);
       }
 
       // formula described in: http://hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#doubling-dbl-2009-l
       // w/ unnecessary computation removed
-      let jp = JacobianPoint::from_ec_point(p1).unwrap();
+      let jp: JacobianPoint<E> = p1.into();
 
       let a = &jp.x.sq();
       let b = &jp.y.sq();
@@ -100,11 +71,11 @@ impl EllipticCurvePointAdd for WeierstrassJacobianPointOps {
         y: y3,
         z: z3,
       };
-      jp2.to_ec_point().unwrap()
+      jp2.into()
 
     } else {  // when line through p1 and p2 is non-vertical line
-      let jp1 = JacobianPoint::from_ec_point(p1).unwrap();
-      let jp2 = JacobianPoint::from_ec_point(p2).unwrap();
+      let jp1: JacobianPoint<E> = p1.into();
+      let jp2: JacobianPoint<E> = p2.into();
 
       // formula described in: https://hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-3.html#addition-add-2007-bl
       // w/ unnecessary computation removed
@@ -122,9 +93,12 @@ impl EllipticCurvePointAdd for WeierstrassJacobianPointOps {
         y: y3,
         z: z3,
       };
-      jp3.to_ec_point().unwrap()
+      jp3.into()
     }
   }
 }
 
-impl ElllipticCurvePointInv for WeierstrassJacobianPointOps {}
+impl<P, E, F> ElllipticCurvePointInv<P, E> for WeierstrassJacobianPointOps<F>
+  where
+    E: Zero<E>,
+    P: NewAffinePoint<P, E> + Zero<P> + AffinePoint<P, E> {}

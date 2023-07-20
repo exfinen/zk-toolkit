@@ -3,7 +3,7 @@ use std::ops::Mul;
 use num_traits::Zero;
 
 use crate::building_block::{
-  field::Field,
+  field::prime_field::PrimeField,
   to_biguint::ToBigUint,
 };
 use crate::snarks::{
@@ -22,7 +22,7 @@ pub enum ApplyWitness {
 }
 
 pub struct QAP {
-  pub f: Field,
+  pub f: PrimeField,
   pub a_polys: SparseMatrix,
   pub b_polys: SparseMatrix,
   pub c_polys: SparseMatrix,
@@ -35,7 +35,7 @@ impl QAP {
   // (x - 2) * (x - 3) * 3 / ((1 - 2) * (1 - 3))
   // where x in [1, 2, 3]; evaluates to 3 if x == 1 and 0 if x != 1
   fn build_polynomial_for_target_values(
-    f: &Field,
+    f: &PrimeField,
     target_vals: &SparseVec,
   ) -> Polynomial {
     let mut target_val_polys = vec![];
@@ -101,7 +101,7 @@ impl QAP {
   }
 
   pub fn build(
-    f: &Field,
+    f: &PrimeField,
     r1cs: &R1CS,
     apply_witness: &ApplyWitness,
   ) -> QAP {
@@ -150,7 +150,7 @@ impl QAP {
   }
 
   // build polynomial (x-1)(x-2)..(x-num_constraints)
-  pub fn build_z(f: &Field, num_constraints: &impl ToBigUint) -> Polynomial {
+  pub fn build_z(f: &PrimeField, num_constraints: &impl ToBigUint) -> Polynomial {
     let num_constraints = f.elem(num_constraints);
     let mut i = f.elem(&1u8);
     let mut polys = vec![];
@@ -213,7 +213,10 @@ impl QAP {
 mod tests {
   use super::*;
   use crate::{
-    building_block::field::FieldElem,
+    building_block::field::{
+      prime_field::PrimeField,
+      prime_field_elem::PrimeFieldElem,
+    },
     snarks::{
       constraint::Constraint,
       gate::Gate,
@@ -227,7 +230,7 @@ mod tests {
 
   #[test]
   fn test_r1cs_to_polynomial() {
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
 
     //     x  out t1 y   t2
     //  0  1   2  3   4   5
@@ -315,7 +318,7 @@ mod tests {
 
   #[test]
   fn test_build_z() {
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
 
     let one = &f.elem(&1u8);
     let two = &f.elem(&2u8);
@@ -331,7 +334,7 @@ mod tests {
 
   #[test]
   fn blog_post_1_example_1() {
-    let f = &Field::new(&37u8);
+    let f = &PrimeField::new(&37u8);
     let expr = "(x * x * x) + x + 5 == 35";
     let eq = Parser::parse(f, expr).unwrap();
     let gates = &Gate::build(f, &eq);
@@ -348,7 +351,7 @@ mod tests {
     */
     let witness = {
       use crate::snarks::term::Term::*;
-      HashMap::<Term, FieldElem>::from([
+      HashMap::<Term, PrimeFieldElem>::from([
         (Term::var("x"), f.elem(&3u8)),
         (TmpVar(1), f.elem(&9u8)),
         (TmpVar(2), f.elem(&27u8)),
@@ -368,7 +371,7 @@ mod tests {
 
   #[test]
   fn blog_post_1_example_2() {
-    let f = &Field::new(&37u8);
+    let f = &PrimeField::new(&37u8);
     let expr = "(x * x * x) + x + 5 == 35";
     let eq = Parser::parse(f, expr).unwrap();
     let gates = &Gate::build(f, &eq);
@@ -377,7 +380,7 @@ mod tests {
     // build witness
     let good_witness = {
       use crate::snarks::term::Term::*;
-      HashMap::<Term, FieldElem>::from([
+      HashMap::<Term, PrimeFieldElem>::from([
         (Term::var("x"), f.elem(&3u8)),
         (TmpVar(1), f.elem(&9u8)),
         (TmpVar(2), f.elem(&27u8)),
@@ -388,7 +391,7 @@ mod tests {
     };
     let bad_witness = {
       use crate::snarks::term::Term::*;
-      HashMap::<Term, FieldElem>::from([
+      HashMap::<Term, PrimeFieldElem>::from([
         (Term::var("x"), f.elem(&4u8)),  // replaced 3 with 4
         (TmpVar(1), f.elem(&9u8)),
         (TmpVar(2), f.elem(&27u8)),

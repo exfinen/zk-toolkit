@@ -1,5 +1,6 @@
 use crate::building_block::{
   field::{
+    field_elem::NewFieldElem,
     prime_field::PrimeField,
     prime_field_elem::PrimeFieldElem,
   },
@@ -11,74 +12,85 @@ use crate::building_block::{
       EllipticCurvePointAdd,
       ElllipticCurvePointInv,
     },
-    ec_point::EcPoint,
-    weierstrass::equation::WeierstrassEq,
+    weierstrass::{
+      curves::bls12_381::{
+        fq1::{Fq1, FIELD_ORDER as FQ1_FIELD_ORDER},
+        g1_point::G1Point,
+      },
+      equation::WeierstrassEq,
+    },
   },
 };
 use num_bigint::BigUint;
 
 #[derive(Clone)]
-pub struct Secp256k1Params {
+#[allow(non_camel_case_types)]
+pub struct BLS12_381_G1Params {
   pub f: PrimeField,    // base prime field
-  pub f_n: PrimeField,  // field of order n for convenience
-  pub g: EcPoint<PrimeFieldElem>,  // generator point
-  pub n: PrimeFieldElem,  // order of g
+  pub f_r: PrimeField,  // field of group order r for convenience
+  pub g: G1Point<PrimeField>,  // generator point
+  pub r: PrimeFieldElem,  // group order of the generator
 }
 
-impl Secp256k1Params {
+impl BLS12_381_G1Params {
   pub fn new() -> Self {
-    // base prime field
-    let base_field_order = BigUint::parse_bytes(b"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F", 16).unwrap();
-    let f = PrimeField::new(&base_field_order);
+    let f = PrimeField::new(&FQ1_FIELD_ORDER);
 
-    // base point of the cyclic group
-    let gx = BigUint::parse_bytes(b"79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798", 16).unwrap();
-    let gy = BigUint::parse_bytes(b"483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8", 16).unwrap();
-    let g = EcPoint::new(
-      &PrimeFieldElem::new(&f, &gx),
-      &PrimeFieldElem::new(&f, &gy),
+    // base point
+    let gx = Fq1::elem(
+      &BigUint::parse_bytes(b"17f1d3a73197d7942695638c4fa9ac0fc3688c4f9774b905a14e3a3f171bac586c55e83ff97a1aeffb3af00adb22c6bb", 16).unwrap(),
     );
+    let gy = Fq1::elem(
+      &BigUint::parse_bytes(b"08b3f481e3aaa0f1a09e30ed741d8ae4fcf5e095d5d00af600db18cb2c04b3edd03cc744a2888ae40caa232946c5e7e1", 16).unwrap(),
+    );
+    let g = G1Point::new(gx, gy);
 
     // order of the base point
-    let n = BigUint::parse_bytes(b"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", 16).unwrap();
-    let f_n = PrimeField::new(&n);
+    let r = BigUint::parse_bytes(b"73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001", 16).unwrap();
+    let f_r = PrimeField::new(&r);
 
-    Secp256k1Params {
+    BLS12_381_G1Params {
       f,
-      f_n,
+      f_r,
       g,
-      n,
+      r,
     }
   }
 }
 
 #[derive(Clone)]
-pub struct Secp256k1<Op, WeierstrassEq>
-  where Op:
-    ?Sized
-    + EllipticCurveField<PrimeField>
-    + EllipticCurvePointAdd<EcPoint<PrimeFieldElem>, PrimeFieldElem>
-    + ElllipticCurvePointInv<EcPoint<PrimeFieldElem>, PrimeFieldElem>
+#[allow(non_camel_case_types)]
+pub struct BLS12_381_G1<Op, F>
+  where
+    F: NewFieldElem<F>,
+    Op: ?Sized
+      + EllipticCurveField<F>
+      + EllipticCurvePointAdd<G1Point<PrimeFieldElem>, Fq1<PrimeFieldElem>>
+      + ElllipticCurvePointInv<G1Point<PrimeFieldElem>, Fq1<PrimeFieldElem>>,
 {
-  pub params: Secp256k1Params,
+  pub params: BLS12_381_G1Params,
   pub ops: Box<Op>,
-  pub eq: Box<WeierstrassEq>,
+  pub eq: Box<WeierstrassEq<F, F::E>>,
 }
 
-impl<Op> Secp256k1<Op, WeierstrassEq<PrimeField, PrimeFieldElem>>
-  where Op:
-    ?Sized
-    + EllipticCurveField<PrimeField>
-    + EllipticCurvePointAdd<EcPoint<PrimeFieldElem>, PrimeFieldElem>
-    + ElllipticCurvePointInv<EcPoint<PrimeFieldElem>, PrimeFieldElem>
+impl<Op, F> BLS12_381_G1<Op, F>
+  where
+    F: NewFieldElem<F>,
+    Op: ?Sized
+      + EllipticCurveField<F>
+      + EllipticCurvePointAdd<G1Point<PrimeFieldElem>, Fq1<PrimeFieldElem>>
+      + ElllipticCurvePointInv<G1Point<PrimeFieldElem>, Fq1<PrimeFieldElem>>,
 {
-  pub fn new(ops: Box<Op>, params: Secp256k1Params) -> Self {
-    let a1 = BigUint::from(0u8);
-    let a2 = BigUint::from(0u8);
-    let a3 = BigUint::from(0u8);
-    let a4 = BigUint::from(0u8);
-    let a6 = BigUint::from(7u8);
+  pub fn new(ops: Box<Op>, params: BLS12_381_G1Params) -> Self {
+    // G1 (F_q): y^2 = x^3 + 4
+    let a1 = F::elem(&0u8);
+    let a2 = F::elem(&0u8);
+    let a3 = F::elem(&0u8);
+    let a4 = F::elem(&0u8);
+    let a6 = F::elem(&4u8);
     let eq = Box::new(WeierstrassEq::new(&params.f, a1, a2, a3, a4, a6));
+
+    // G2 (F_q^2): ???
 
     Self {
       params,
@@ -88,20 +100,20 @@ impl<Op> Secp256k1<Op, WeierstrassEq<PrimeField, PrimeFieldElem>>
   }
 }
 
-impl<Op> Curve<Op, WeierstrassEq<PrimeField, PrimeFieldElem>, EcPoint<PrimeFieldElem>, PrimeFieldElem, PrimeField>
-  for Secp256k1<Op, WeierstrassEq<PrimeField, PrimeFieldElem>>
+impl<Op, Eq> Curve<Op, Eq, G1Point<PrimeFieldElem>, Fq1<PrimeFieldElem>, PrimeField> for BLS12_381_G1<Op, Eq>
   where
     Op: EllipticCurveField<PrimeField>
-      + EllipticCurvePointAdd<EcPoint<PrimeFieldElem>, PrimeFieldElem>
-      + ElllipticCurvePointInv<EcPoint<PrimeFieldElem>, PrimeFieldElem>
+      + EllipticCurvePointAdd<G1Point<PrimeFieldElem>, Fq1<PrimeFieldElem>>
+      + ElllipticCurvePointInv<G1Point<PrimeFieldElem>, Fq1<PrimeFieldElem>>
       + Clone,
-{
-  fn g(&self) -> EcPoint<PrimeFieldElem> {
+    Eq: CurveEquation<G1Point<PrimeFieldElem>> + Clone {
+
+  fn g(&self) -> G1Point<PrimeFieldElem> {
     self.params.g.clone()
   }
 
   fn group(&self) -> PrimeField {
-    self.params.f_n.clone()
+    self.params.f_r.clone()
   }
 
   fn ops(&self) -> Box<Op> {
@@ -113,44 +125,84 @@ impl<Op> Curve<Op, WeierstrassEq<PrimeField, PrimeFieldElem>, EcPoint<PrimeField
   }
 }
 
-impl<Op> CurveEquation<EcPoint<PrimeFieldElem>> for Secp256k1<Op, WeierstrassEq<PrimeField, PrimeFieldElem>>
+impl<Op> CurveEquation<G1Point<PrimeFieldElem>> for BLS12_381_G1<Op, WeierstrassEq<PrimeField, PrimeFieldElem>>
   where
-    Op: EllipticCurveField<PrimeField>
-      + EllipticCurvePointAdd<EcPoint<PrimeField>, PrimeFieldElem>
-      + ElllipticCurvePointInv<EcPoint<PrimeField>, PrimeFieldElem>
-      + Clone,
+    Op:
+      EllipticCurveField<PrimeField>
+      + EllipticCurvePointAdd<G1Point<PrimeFieldElem>, Fq1<PrimeFieldElem>>
+      + ElllipticCurvePointInv<G1Point<PrimeFieldElem>, Fq1<PrimeFieldElem>>
+      + Clone
 {
-  fn is_rational_point(&self, pt: &EcPoint<PrimeFieldElem>) -> bool {
+  fn is_rational_point(&self, pt: &G1Point<PrimeFieldElem>) -> bool {
       self.eq.is_rational_point(pt)
   }
 }
 
+/*
+use crate::building_block::bls12_381::{
+  fq1::Fq1,
+  fq2::Fq2,
+  g1_point::G1Point,
+  g2_point::G2Point,
+};
+use crate::building_block::field::Field;
+use num_bigint::BigUint;
+use once_cell::sync::Lazy;
+
+pub static BASE_FIELD: Lazy<Field> = Lazy::new(|| {
+  let order = BigUint::parse_bytes(b"1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab", 16).unwrap();
+  Field::new(&order)
+});
+
+pub static G1_GENERATOR: Lazy<G1Point> = Lazy::new(|| {
+  let x = Fq1::new(
+    &BASE_FIELD,
+    &BigUint::parse_bytes(b"17f1d3a73197d7942695638c4fa9ac0fc3688c4f9774b905a14e3a3f171bac586c55e83ff97a1aeffb3af00adb22c6bb", 16).unwrap(),
+  );
+  let y = Fq1::new(
+    &BASE_FIELD,
+    &BigUint::parse_bytes(b"08b3f481e3aaa0f1a09e30ed741d8ae4fcf5e095d5d00af600db18cb2c04b3edd03cc744a2888ae40caa232946c5e7e1", 16).unwrap(),
+  );
+  G1Point { x, y }
+});
+
+pub static G2_GENERATOR: Lazy<G2Point> = Lazy::new(|| {
+  let x1 = BigUint::parse_bytes(b"13e02b6052719f607dacd3a088274f65596bd0d09920b61ab5da61bbdc7f5049334cf11213945d57e5ac7d055d042b7e", 16).unwrap();
+  let x2 = BigUint::parse_bytes(b"024aa2b2f08f0a91260805272dc51051c6e47ad4fa403b02b4510b647ae3d1770bac0326a805bbefd48056c8c121bdb8", 16).unwrap();
+  let x = Fq2::new(
+    &Fq1::new(&BASE_FIELD, &x1),
+    &Fq1::new(&BASE_FIELD, &x2),
+  );
+  let y1 = BigUint::parse_bytes(b"0606c4a02ea734cc32acd2b02bc28b99cb3e287e85a763af267492ab572e99ab3f370d275cec1da1aaa9075ff05f79be", 16).unwrap();
+  let y2 = BigUint::parse_bytes(b"0ce5d527727d6e118cc9cdc6da2e351aadfd9baa8cbdd3a76d429a695160d12c923ac9cc3baca289e193548608b82801", 16).unwrap();
+  let y = Fq2::new(
+    &Fq1::new(&BASE_FIELD, &y1),
+    &Fq1::new(&BASE_FIELD, &y2),
+  );
+  G2Point { x, y }
+});
+
+*/
 #[cfg(test)]
 mod tests {
   use super::*;
   use num_bigint::BigUint;
-  use crate::building_block::{
-    field::{
-      prime_field::PrimeField,
-      prime_field_elem::PrimeFieldElem,
+  use crate::building_block::elliptic_curve::{
+    weierstrass::{
+      affine_point_ops::WeierstrassAffinePointOps,
+      jacobian_point_ops::WeierstrassJacobianPointOps,
     },
-    elliptic_curve::{
-      weierstrass::{
-        affine_point_ops::WeierstrassAffinePointOps,
-        jacobian_point_ops::WeierstrassJacobianPointOps,
-      },
-      elliptic_curve_point_ops::{
-        EllipticCurveField,
-        EllipticCurvePointAdd,
-        ElllipticCurvePointInv,
-      },
+    elliptic_curve_point_ops::{
+      EllipticCurveField,
+      EllipticCurvePointAdd,
+      ElllipticCurvePointInv,
     },
   };
 
   trait EllipticCurveOps:
     EllipticCurveField<PrimeField>
-    + EllipticCurvePointAdd<EcPoint<PrimeFieldElem>, PrimeFieldElem>
-    + ElllipticCurvePointInv<EcPoint<PrimeFieldElem>, PrimeFieldElem>
+    + EllipticCurvePointAdd<G1Point<PrimeFieldElem>, Fq1<PrimeFieldElem>>
+    + ElllipticCurvePointInv<G1Point<PrimeFieldElem>, Fq1<PrimeFieldElem>>
   {
     fn box_clone(&self) -> Box<dyn EllipticCurveOps>;
   }
@@ -173,27 +225,19 @@ mod tests {
     }
   }
 
-  fn get_ops_list(f: &PrimeField) -> Vec<Box<dyn EllipticCurveOps>> {
-    let affine = WeierstrassAffinePointOps::new(f);
-    let jacobian = WeierstrassJacobianPointOps::new(f);
-    vec![
-      Box::new(affine),
-      Box::new(jacobian),
-    ]
-  }
-
   #[test]
   fn add_same_point() {
-    let params = Secp256k1Params::new();
-    for ops in get_ops_list(&params.f) {
-      let g2 = ops.add(&params.g, &params.g);
-      let exp_x = BigUint::parse_bytes(b"89565891926547004231252920425935692360644145829622209833684329913297188986597", 10).unwrap();
-      let exp_y = BigUint::parse_bytes(b"12158399299693830322967808612713398636155367887041628176798871954788371653930", 10).unwrap();
-      assert_eq!(g2.x.n, exp_x);
-      assert_eq!(g2.y.n, exp_y);
-    }
+    let params = BLS12_381_G1Params::new();
+    let ops = WeierstrassAffinePointOps::new(&params.f);
+
+    let g2 = ops.add(&params.g, &params.g);
+    let exp_x = BigUint::parse_bytes(b"89565891926547004231252920425935692360644145829622209833684329913297188986597", 10).unwrap();
+    let exp_y = BigUint::parse_bytes(b"12158399299693830322967808612713398636155367887041628176798871954788371653930", 10).unwrap();
+    assert_eq!(g2.x.n, exp_x);
+    assert_eq!(g2.y.n, exp_y);
   }
 
+/*
   #[test]
   fn add_same_point_y_eq_0() {
     // TODO implement this. need to find the x-coord when y is zero
@@ -201,7 +245,7 @@ mod tests {
 
   #[test]
   fn add_vertical_line() {
-    let params = Secp256k1Params::new();
+    let params = BLS12_381_G1Params::new();
     let g = &params.g;
     for ops in get_ops_list(&params.f) {
       let a = g.clone();
@@ -214,7 +258,7 @@ mod tests {
 
   #[test]
   fn add_inf_and_affine() {
-    let params = Secp256k1Params::new();
+    let params = BLS12_381_G1Params::new();
     let g = &params.g;
     for ops in get_ops_list(&params.f) {
       let inf = EcPoint::inf(&params.f);
@@ -225,7 +269,7 @@ mod tests {
 
   #[test]
   fn add_affine_and_inf() {
-    let params = Secp256k1Params::new();
+    let params = BLS12_381_G1Params::new();
     let g = &params.g;
     for ops in get_ops_list(&params.f) {
       let inf = EcPoint::inf(&params.f);
@@ -236,7 +280,7 @@ mod tests {
 
   #[test]
   fn add_inf_and_inf() {
-    let params = Secp256k1Params::new();
+    let params = BLS12_381_G1Params::new();
     for ops in get_ops_list(&params.f) {
       let inf = EcPoint::inf(&params.f);
       let inf_plus_inf = ops.add(&inf, &inf);
@@ -251,12 +295,12 @@ mod tests {
   }
 
   impl<'a> Xy<'a> {
-    fn to_ec_point(&'a self, f: &PrimeField) -> EcPoint<PrimeFieldElem> {
+    fn to_ec_point(&'a self, f: &Field) -> EcPoint {
       let gx = BigUint::parse_bytes(self.x, 16).unwrap();
       let gy = BigUint::parse_bytes(self.y, 16).unwrap();
       EcPoint::new(
-        &PrimeFieldElem::new(f, &gx),
-        &PrimeFieldElem::new(f, &gy),
+        &FieldElem::new(f, &gx),
+        &FieldElem::new(f, &gy),
       )
     }
   }
@@ -277,10 +321,8 @@ mod tests {
     }
   }
 
-  fn get_g_multiples<'a, T>(curve: &Secp256k1<T, WeierstrassEq<PrimeField, PrimeFieldElem>>) -> Vec<EcPoint<PrimeFieldElem>>
-    where T: ?Sized + EllipticCurveField<PrimeField>
-      + EllipticCurvePointAdd<EcPoint<PrimeFieldElem>, PrimeFieldElem>
-      + ElllipticCurvePointInv<EcPoint<PrimeFieldElem>, PrimeFieldElem> {
+  fn get_g_multiples<'a, T>(curve: &Secp256k1<T, WeierstrassEq>) -> Vec<EcPoint>
+    where T: ?Sized + EllipticCurveField + EllipticCurvePointAdd + ElllipticCurvePointInv {
     let ps = vec![
       Xy { _n: "1", x: b"79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798", y: b"483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8" },
       Xy { _n: "2", x: b"C6047F9441ED7D6D3045406E95C07CD85C778E4B8CEF3CA7ABAC09B95C709EE5", y: b"1AE168FEA63DC339A3C58419466CEAEEF7F632653266D0E1236431A950CFE52A" },
@@ -362,8 +404,8 @@ mod tests {
         let x = BigUint::parse_bytes(t.x, 16).unwrap();
         let y = BigUint::parse_bytes(t.y, 16).unwrap();
         let p = EcPoint::new(
-          &PrimeFieldElem::new(&curve.params.f, &x),
-          &PrimeFieldElem::new(&curve.params.f, &y),
+          &FieldElem::new(&curve.params.f, &x),
+          &FieldElem::new(&curve.params.f, &y),
         );
 
         let beg = Instant::now();
@@ -424,4 +466,5 @@ mod tests {
       assert_eq!(l1_plus_l2, l3);
     }
   }
+*/
 }

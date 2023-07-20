@@ -1,4 +1,7 @@
-use crate::building_block::field::{Field, FieldElem};
+use crate::building_block::field::{
+  prime_field::PrimeField,
+  prime_field_elem::PrimeFieldElem,
+};
 use crate::snarks::{
   constraint::Constraint,
   r1cs_tmpl::R1CSTmpl,
@@ -23,9 +26,9 @@ pub struct ConstraintMatrices {
 
 impl R1CS {
   fn build_witness_vec(
-    f: &Field,
+    f: &PrimeField,
     tmpl: &R1CSTmpl,
-    term_values: &HashMap<Term, FieldElem>,
+    term_values: &HashMap<Term, PrimeFieldElem>,
   ) -> Result<SparseVec, String> {
     // generate SparseVec from the witness
     let mut witness = SparseVec::new(f, &tmpl.witness.len());
@@ -71,7 +74,7 @@ impl R1CS {
     Ok(())
   }
 
-  pub fn from_tmpl(f: &Field, tmpl: &R1CSTmpl, witness: &HashMap<Term, FieldElem>) -> Result<R1CS, String> {
+  pub fn from_tmpl(f: &PrimeField, tmpl: &R1CSTmpl, witness: &HashMap<Term, PrimeFieldElem>) -> Result<R1CS, String> {
     let witness = R1CS::build_witness_vec(&f, tmpl, witness)?;
     let r1cs = R1CS {
       constraints: tmpl.constraints.clone(),
@@ -129,14 +132,14 @@ mod tests {
 
   #[test]
   fn test_validate() {
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
     let input = "x + 4 * y == 11";
     let eq = Parser::parse(f, input).unwrap();
 
     let gates = &Gate::build(f, &eq);
     let tmpl = &R1CSTmpl::from_gates(f, gates);
 
-    let witness = HashMap::<Term, FieldElem>::from([
+    let witness = HashMap::<Term, PrimeFieldElem>::from([
       (Term::Var("x".to_string()), f.elem(&3u8)),
       (Term::Var("y".to_string()), f.elem(&2u8)),
       (Term::TmpVar(1), f.elem(&8u8)),

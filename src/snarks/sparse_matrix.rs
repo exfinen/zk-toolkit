@@ -1,6 +1,9 @@
 use num_traits::Zero;
 
-use crate::building_block::field::{Field, FieldElem};
+use crate::building_block::field::{
+  prime_field::PrimeField,
+  prime_field_elem::PrimeFieldElem,
+};
 use crate::building_block::to_biguint::ToBigUint;
 use crate::snarks::sparse_vec::SparseVec;
 use std::{
@@ -10,15 +13,15 @@ use std::{
 };
 
 pub struct SparseMatrix {
-  pub width: FieldElem,
-  pub height: FieldElem,
-  f: Field,
-  rows: HashMap<FieldElem, SparseVec>,
-  zero: FieldElem,
+  pub width: PrimeFieldElem,
+  pub height: PrimeFieldElem,
+  f: PrimeField,
+  rows: HashMap<PrimeFieldElem, SparseVec>,
+  zero: PrimeFieldElem,
 }
 
 impl SparseMatrix {
-  pub fn new(f: &Field, width: &impl ToBigUint, height: &impl ToBigUint) -> Self {
+  pub fn new(f: &PrimeField, width: &impl ToBigUint, height: &impl ToBigUint) -> Self {
     let zero = f.elem(&0u8);
     let rows = HashMap::new();
     SparseMatrix {
@@ -105,7 +108,7 @@ impl SparseMatrix {
     self.rows.get_mut(&y).unwrap().set(&x, &v);
   }
 
-  pub fn get(&self, x: &impl ToBigUint, y: &impl ToBigUint) -> &FieldElem {
+  pub fn get(&self, x: &impl ToBigUint, y: &impl ToBigUint) -> &PrimeFieldElem {
     let x = self.f.elem(x);
     let y = self.f.elem(y);
     if x >= self.width || y >= self.height {
@@ -292,7 +295,7 @@ mod tests {
 
   #[test]
   fn test_size() {
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
     let m = SparseMatrix::new(f, &2u8, &3u8);
     assert_eq!(m.width, f.elem(&2u8));
     assert_eq!(m.height, f.elem(&3u8));
@@ -302,7 +305,7 @@ mod tests {
   #[should_panic]
   fn test_get_x_out_of_range() {
     std::panic::set_hook(Box::new(|_| {}));  // suppress stack trace
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
 
     let m = SparseMatrix::new(f, &2u8, &3u8);
     m.get(&2u8, &1u8);
@@ -312,7 +315,7 @@ mod tests {
   #[should_panic]
   fn test_get_y_out_of_range() {
     std::panic::set_hook(Box::new(|_| {}));  // suppress stack trace
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
 
     let m = SparseMatrix::new(f, &2u8, &3u8);
     m.get(&1u8, &3u8);
@@ -322,7 +325,7 @@ mod tests {
   #[should_panic]
   fn test_set_x_out_of_range() {
     std::panic::set_hook(Box::new(|_| {}));  // suppress stack trace
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
 
     let mut m = SparseMatrix::new(f, &2u8, &3u8);
     m.set(&2u8, &1u8, &f.elem(&12u8));
@@ -332,7 +335,7 @@ mod tests {
   #[should_panic]
   fn test_set_y_out_of_range() {
     std::panic::set_hook(Box::new(|_| {}));  // suppress stack trace
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
 
     let mut m = SparseMatrix::new(f, &2u8, &3u8);
     m.set(&1u8, &3u8, &f.elem(&12u8));
@@ -340,7 +343,7 @@ mod tests {
 
   #[test]
   fn test_get_empty() {
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
     let zero = &f.elem(&0u8);
 
     let m = SparseMatrix::new(f, &2u8, &3u8);
@@ -353,7 +356,7 @@ mod tests {
 
   #[test]
   fn test_mul() {
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
     let zero = &f.elem(&0u8);
 
     let m = SparseMatrix::new(f, &2u8, &3u8);
@@ -366,7 +369,7 @@ mod tests {
 
   #[test]
   fn test_get_existing_and_non_existing_cells() {
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
     let zero = &f.elem(&0u8);
     let one = &f.elem(&1u8);
     let two = &f.elem(&2u8);
@@ -393,7 +396,7 @@ mod tests {
   // |1 0|
   // |0 1|
   fn gen_test_2x2_identity_matrix() -> SparseMatrix {
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
     let zero = &f.elem(&0u8);
     let one = &f.elem(&1u8);
 
@@ -408,7 +411,7 @@ mod tests {
   // |1 2|
   // |3 4|
   fn gen_test_2x2_matrix() -> SparseMatrix {
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
     let zero = &f.elem(&0u8);
     let one = &f.elem(&1u8);
     let two = &f.elem(&2u8);
@@ -429,7 +432,7 @@ mod tests {
   // |0 2|
   // |3 0|
   fn gen_test_2x3_matrix() -> SparseMatrix {
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
     let zero = &f.elem(&0u8);
     let one = &f.elem(&1u8);
     let two = &f.elem(&2u8);
@@ -448,7 +451,7 @@ mod tests {
   // |1 2 3|
   // |3 2 1|
   fn gen_test_3x2_matrix() -> SparseMatrix {
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
     let zero = &f.elem(&0u8);
     let one = &f.elem(&1u8);
     let two = &f.elem(&2u8);
@@ -469,7 +472,7 @@ mod tests {
   // |1 2|
   // |0 0|
   fn gen_test_2x2_redundant_matrix(use_empty_row: bool) -> SparseMatrix {
-    let f = &Field::new(&3911u16);
+    let f = &PrimeField::new(&3911u16);
     let zero = &f.elem(&0u8);
     let one = &f.elem(&1u8);
     let two = &f.elem(&2u8);
@@ -479,7 +482,7 @@ mod tests {
     v1.set(one, two);
 
     if use_empty_row {
-      let mut rows = HashMap::<FieldElem, SparseVec>::new();
+      let mut rows = HashMap::<PrimeFieldElem, SparseVec>::new();
       rows.insert(zero.clone(), v1.clone());
       rows.insert(one.clone(), SparseVec::new(f, &2u8));
 
@@ -491,7 +494,7 @@ mod tests {
         zero: zero.clone(),
       }
     } else {
-      let mut rows = HashMap::<FieldElem, SparseVec>::new();
+      let mut rows = HashMap::<PrimeFieldElem, SparseVec>::new();
       rows.insert(zero.clone(), v1.clone());
 
       SparseMatrix {
