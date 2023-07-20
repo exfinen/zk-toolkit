@@ -1,10 +1,10 @@
 use std::ops::Add;
-use crate::building_block::field::field::Field;
 
-pub trait PointAdder<P, F>
+pub trait PointAdder<P>
   where
-    F: Field<F>,
     P: Add<P>,
 {
-    fn add(f: &F, p1: &P, p2: &P) -> P;
+  type Element;
+
+  fn add(&self, p1: &P, p2: &P) -> P;
 }

@@ -8,15 +8,17 @@ use crate::building_block::{
   field::field::Field,
   zero::Zero,
 };
+use std::ops::Add;
 
 pub struct AffinePointAdder();
 
-impl<P, E, F> PointAdder<P, F> for AffinePointAdder
+impl<P, E> PointAdder<P> for AffinePointAdder
   where
-    F: Field<F>,
-    P: NewAffinePoint<P, E> + Zero<P> + AdditiveIdentity<E> + AffinePoint<P, E> + Clone,
+    P: Add<P> + NewAffinePoint<P, E> + Zero<P> + AdditiveIdentity<E> + AdditiveIdentity<P> + AffinePoint<P, E> + Clone,
 {
-  fn add(f: &F, p1: &P, p2: &P) -> P {
+  type Element = E;
+
+  fn add(&self, p1: &P, p2: &P) -> P {
     if p1.is_zero() && p2.is_zero() {  // inf + inf is inf
       F::get_zero(&f)
     } else if p1.is_zero() {  // adding p2 to inf is p2

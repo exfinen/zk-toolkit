@@ -44,7 +44,7 @@ impl WeierstrassEq<PrimeField, PrimeFieldElem> {
 impl<F, E, P> CurveEquation<P> for WeierstrassEq<F, E>
   where
     E: Zero<E> + AdditiveIdentity<E>,
-    P: AffinePoint<P, E> + AdditiveIdentity<E> + Zero<P> + std::ops::Mul<P>
+    P: AffinePoint<P, E> + AdditiveIdentity<E> + AdditiveIdentity<P> + Zero<P>
 {
   fn is_rational_point(&self, pt: &P) -> bool {
     if pt.is_zero() {

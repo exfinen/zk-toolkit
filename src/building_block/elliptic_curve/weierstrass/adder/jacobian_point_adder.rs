@@ -8,15 +8,17 @@ use crate::building_block::{
   field::field::Field,
   zero::Zero,
 };
+use std::ops::Add;
 
 #[derive(Clone)]
 pub struct JacobianPointAdder();
 
-impl<P, E, F> PointAdder<P, F> for JacobianPointAdder
+impl<P> PointAdder<P> for JacobianPointAdder
   where
-    P: From<JacobianPoint<E>> + Into<JacobianPoint<E>> + Zero<P> + AdditiveIdentity<E> + Clone,
-    F: Field<F>,
+    P: Add<P> + From<JacobianPoint<E>> + Into<JacobianPoint<E>> + Zero<P> + AdditiveIdentity<P> + Clone,
 {
+  type Element = E;
+
   fn add(f: &F, p1: &P, p2: &P) -> P {
     if p1.is_zero() && p2.is_zero() {  // zero + zero is zero
       f.get_additive_identity()

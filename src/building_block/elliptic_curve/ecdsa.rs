@@ -8,7 +8,10 @@ use crate::building_block::{
     new_affine_point::NewAffinePoint,
     weierstrass::adder::point_adder::PointAdder,
   },
-  field::field::Field,
+  field::{
+    field_elem_ops::Inverse,
+    field::Field,
+  },
   hasher::{
     hasher::Hasher,
     sha256::Sha256,
@@ -16,13 +19,14 @@ use crate::building_block::{
   zero::Zero, additive_identity::AdditiveIdentity,
 };
 use num_bigint::BigUint;
+use std::ops::Add;
 
 pub struct Ecdsa<const HASHER_OUT_SIZE: usize, Op, Eq, P, E, F, A>
 where
   F: Field<F>,
   E: Zero<E> + AdditiveIdentity<E>,
-  P: Zero<P> + AdditiveIdentity<E> + NewAffinePoint<P, E> + AffinePoint<P, E> + Clone,
-  A: PointAdder<P, F>,
+  P: Add<P> + Inverse + Zero<P> + AdditiveIdentity<P> + AdditiveIdentity<E> + NewAffinePoint<P, E> + AffinePoint<P, E> + Clone,
+  A: PointAdder<P, F, E>,
   Op: EllipticCurvePointOps<P, E, F, Adder = A>,
   Eq: CurveEquation<P> {
   pub curve: Box<dyn Curve<Op, Eq, P, E, F>>,
@@ -39,8 +43,8 @@ impl<const HASHER_OUT_SIZE: usize, Op, Eq, P, E, F, A> Ecdsa<HASHER_OUT_SIZE, Op
   where
     F: Field<F>,
     E: Zero<E> + AdditiveIdentity<E>,
-    P: Zero<P> + AdditiveIdentity<E> + NewAffinePoint<P, E> + AffinePoint<P, E> + Clone,
-    A: PointAdder<P, F>,
+    P: Add<P> + Zero<P> + Inverse + AdditiveIdentity<P> + AdditiveIdentity<E> + NewAffinePoint<P, E> + AffinePoint<P, E> + Clone,
+    A: PointAdder<P, F, E>,
     Op: EllipticCurvePointOps<P, E, F, Adder = A>,
     Eq: CurveEquation<P> {
 

@@ -5,6 +5,10 @@ use crate::building_block::{
     weierstrass::curves::bls12_381::fq1::Fq1,
     new_affine_point::NewAffinePoint,
   },
+  field::{
+    field_elem_ops::Inverse,
+    prime_field_elem::PrimeFieldElem,
+  },
   zero::Zero,
 };
 use std::ops::Add;
@@ -13,6 +17,15 @@ use std::ops::Add;
 pub struct G1Point {
   pub x: Fq1,
   pub y: Fq1,
+}
+
+impl Inverse for G1Point {
+  fn inv(&self) -> Self {
+    G1Point {
+      x: self.x.clone(),
+      y: self.y.inc(),
+    }
+  }
 }
 
 impl Zero<G1Point> for G1Point {
@@ -40,6 +53,12 @@ impl AdditiveIdentity<G1Point> for G1Point {
       x: self.x.get_additive_identity(),
       y: self.x.get_additive_identity(),
     }
+  }
+}
+
+impl AdditiveIdentity<PrimeFieldElem> for G1Point {
+  fn get_additive_identity(&self) -> PrimeFieldElem {
+    self.x.get_additive_identity()
   }
 }
 

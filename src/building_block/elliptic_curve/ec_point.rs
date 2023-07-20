@@ -1,6 +1,7 @@
 use crate::building_block::{
   additive_identity::AdditiveIdentity,
   field::{
+    field_elem_ops::Inverse,
     prime_field_elem::PrimeFieldElem,
   },
   elliptic_curve::{
@@ -10,6 +11,7 @@ use crate::building_block::{
   },
   zero::Zero,
 };
+use std::ops::Add;
 
 #[derive(Debug, Clone)]
 pub struct EcPoint {
@@ -36,6 +38,27 @@ impl From<JacobianPoint<EcPoint>> for EcPoint {
   }
 }
 
+impl Add for EcPoint {
+  type Output = EcPoint;
+
+  fn add(self, rhs: Self) -> Self::Output {
+    rhs   // TODO implement this
+  }
+}
+
+impl Inverse for EcPoint {
+  fn inv(&self) -> Self {
+    if self.is_inf {
+      panic!("Cannot calculate the inverse of zero");
+    }
+    EcPoint {
+      x: self.x.clone(),
+      y: self.y.inv(),
+      is_inf: false,
+    }
+  }
+}
+
 impl Zero<EcPoint> for EcPoint {
   fn get_zero(t: &EcPoint) -> EcPoint {
       EcPoint {
@@ -50,7 +73,15 @@ impl Zero<EcPoint> for EcPoint {
   }
 }
 
+impl AdditiveIdentity<PrimeFieldElem> for EcPoint {
+  fn get_additive_identity(&self) -> PrimeFieldElem {
+    self.x.get_additive_identity()
+  }
+}
+
 impl AffinePoint<EcPoint, PrimeFieldElem> for EcPoint {
+  type E = PrimeFieldElem;
+
   fn x(&self) -> PrimeFieldElem {
     self.x
   }

@@ -97,7 +97,9 @@ impl<Op> Curve<Op, WeierstrassEq<PrimeField, PrimeFieldElem>, EcPoint, PrimeFiel
   }
 }
 
-impl<Op> CurveEquation<EcPoint> for Secp256k1<Op, WeierstrassEq<PrimeField, PrimeFieldElem>> {
+impl<Op> CurveEquation<EcPoint> for Secp256k1<Op, WeierstrassEq<PrimeField, PrimeFieldElem>>
+  where Op: EllipticCurvePointOps<EcPoint, PrimeFieldElem, PrimeField> + Clone,
+{
   fn is_rational_point(&self, pt: &EcPoint) -> bool {
       self.eq.is_rational_point(pt)
   }

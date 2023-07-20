@@ -14,7 +14,7 @@ use std::ops::{BitAnd, ShrAssign};
 pub trait EllipticCurvePointOps<P, E, F>
   where
     F: Field<F>,
-    P: Zero<P> + AdditiveIdentity<E> + Clone + Inverse,
+    P: Zero<P> + AdditiveIdentity<P> + AdditiveIdentity<E> + Clone + Inverse,
 {
   type Adder;
 
