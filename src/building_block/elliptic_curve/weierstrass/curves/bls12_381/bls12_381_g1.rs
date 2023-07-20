@@ -70,7 +70,7 @@ pub struct BLS12_381_G1<Op, F>
 {
   pub params: BLS12_381_G1Params,
   pub ops: Box<Op>,
-  pub eq: Box<WeierstrassEq<F, F::E>>,
+  pub eq: Box<WeierstrassEq<PrimeField, PrimeFieldElem>>,
 }
 
 impl<Op, F> BLS12_381_G1<Op, F>
