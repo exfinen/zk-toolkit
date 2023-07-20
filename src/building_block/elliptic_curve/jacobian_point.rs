@@ -14,8 +14,8 @@ pub struct JacobianPoint<E> {
 
 impl<P, E> From<P> for JacobianPoint<E>
   where
-    E: Zero<E> + AdditiveIdentity,
-    P: AffinePoint<P, E> + Zero<P> + AdditiveIdentity
+    E: Zero<E> + AdditiveIdentity<E>,
+    P: AffinePoint<P, E> + Zero<P> + AdditiveIdentity<E>
 {
   fn from(pt: P) -> Self {
     if pt.is_zero() {

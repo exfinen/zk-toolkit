@@ -13,6 +13,7 @@ use crate::building_block::{
     ec_point::EcPoint,
     new_affine_point::NewAffinePoint,
     elliptic_curve_point_ops::EllipticCurvePointOps,
+    weierstrass::adder::affine_point_adder::AffinePointAdder,
   },
   zero::Zero,
 };
@@ -45,7 +46,9 @@ pub struct Ed25519Sha512 {
   zero: PrimeFieldElem,
 }
 
-impl EllipticCurvePointOps<EcPoint, PrimeFieldElem> for Ed25519Sha512 {
+impl EllipticCurvePointOps<EcPoint, PrimeFieldElem, PrimeField> for Ed25519Sha512 {
+  type Adder = AffinePointAdder;
+
   // Edwards Addition Law
   // (x1,y1) + (x2,y2) = ((x1y2 + x2y1) / (1 + d x1x2 y1y2), (y1y2 + x1x2) / (1 - d x1x2 y1y2))
   fn add(&self, p1: &EcPoint, p2: &EcPoint) -> EcPoint {

@@ -8,7 +8,7 @@ use crate::building_block::{
     reduce::Reduce,
     fq2::Fq2,
   },
-  field::{field_elem_ops::Inverse, prime_field_elem::PrimeFieldElem},
+  field::field_elem_ops::Inverse,
 };
 
 #[derive(Debug, Clone)]
@@ -36,7 +36,7 @@ impl Inverse for Fq6 {
   }
 }
 
-impl AdditiveIdentity for Fq6 {
+impl AdditiveIdentity<Fq6> for Fq6 {
   fn get_additive_identity() -> Self {
     Self {
       v2: Fq2::zero(),

@@ -1,6 +1,7 @@
 use crate::building_block::{
   additive_identity::AdditiveIdentity,
   field::{
+    field::Field,
     prime_field_elem::PrimeFieldElem,
     prime_field_elems::PrimeFieldElems,
   },
@@ -17,8 +18,14 @@ pub struct PrimeField {
   pub order: BigUint,
 }
 
-impl AdditiveIdentity for PrimeField {
-  fn get_additive_identity(&self) -> Self {
+impl Field<PrimeField> for PrimeField {
+  fn get(&self) -> PrimeField {
+     self.clone()
+  }
+}
+
+impl AdditiveIdentity<PrimeFieldElem> for PrimeField {
+  fn get_additive_identity(&self) -> PrimeFieldElem {
     PrimeFieldElem {
       f: self.clone(),
       e: BigUint::from(0u8),

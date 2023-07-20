@@ -23,7 +23,7 @@ impl Fq2 {
     }
 }
 
-impl AdditiveIdentity for Fq2 {
+impl AdditiveIdentity<Fq2> for Fq2 {
   fn get_additive_identity(&self) -> Self {
       Self {
         u1: Fq1::get_zero(),

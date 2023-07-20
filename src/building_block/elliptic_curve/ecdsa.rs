@@ -1,8 +1,4 @@
 use crate::building_block::{
-  hasher::{
-    hasher::Hasher,
-    sha256::Sha256,
-  },
   elliptic_curve::{
     affine_point::AffinePoint,
     curve::Curve,
@@ -10,16 +6,24 @@ use crate::building_block::{
     elliptic_curve_point_ops::EllipticCurvePointOps,
     ec_point::EcPoint,
     new_affine_point::NewAffinePoint,
+    weierstrass::adder::point_adder::PointAdder,
+  },
+  field::field::Field,
+  hasher::{
+    hasher::Hasher,
+    sha256::Sha256,
   },
   zero::Zero, additive_identity::AdditiveIdentity,
 };
 use num_bigint::BigUint;
 
-pub struct Ecdsa<const HASHER_OUT_SIZE: usize, Op, Eq, P, E, F>
+pub struct Ecdsa<const HASHER_OUT_SIZE: usize, Op, Eq, P, E, F, A>
 where
-  E: Zero<E> + AdditiveIdentity,
-  P: Zero<P> + AdditiveIdentity + NewAffinePoint<P, E> + AffinePoint<P, E> + Clone,
-  Op: EllipticCurvePointOps<P, E>,
+  F: Field<F>,
+  E: Zero<E> + AdditiveIdentity<E>,
+  P: Zero<P> + AdditiveIdentity<E> + NewAffinePoint<P, E> + AffinePoint<P, E> + Clone,
+  A: PointAdder<P, F>,
+  Op: EllipticCurvePointOps<P, E, F, Adder = A>,
   Eq: CurveEquation<P> {
   pub curve: Box<dyn Curve<Op, Eq, P, E, F>>,
   pub hasher: Box<dyn Hasher<HASHER_OUT_SIZE>>,
@@ -31,11 +35,13 @@ pub struct Signature<E> {
   pub s: E,
 }
 
-impl<const HASHER_OUT_SIZE: usize, Op, Eq, P, E, F> Ecdsa<HASHER_OUT_SIZE, Op, Eq, P, E, F>
+impl<const HASHER_OUT_SIZE: usize, Op, Eq, P, E, F, A> Ecdsa<HASHER_OUT_SIZE, Op, Eq, P, E, F, A>
   where
-    E: Zero<E> + AdditiveIdentity,
-    P: Zero<P> + AdditiveIdentity + NewAffinePoint<P, E> + AffinePoint<P, E> + Clone,
-    Op: EllipticCurvePointOps<P, E>,
+    F: Field<F>,
+    E: Zero<E> + AdditiveIdentity<E>,
+    P: Zero<P> + AdditiveIdentity<E> + NewAffinePoint<P, E> + AffinePoint<P, E> + Clone,
+    A: PointAdder<P, F>,
+    Op: EllipticCurvePointOps<P, E, F, Adder = A>,
     Eq: CurveEquation<P> {
 
   pub fn new(
@@ -139,17 +145,32 @@ impl<const HASHER_OUT_SIZE: usize, Op, Eq, P, E, F> Ecdsa<HASHER_OUT_SIZE, Op, E
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::building_block::elliptic_curve::weierstrass::{
-    curves::secp256k1::{Secp256k1, Secp256k1Params},
-    jacobian_point_ops::WeierstrassJacobianPointOps,
+  use crate::building_block::{
+    elliptic_curve::{
+      elliptic_curve_point_ops::EllipticCurvePointOps,
+      weierstrass::{
+        adder::affine_point_adder::AffinePointAdder,
+        curves::secp256k1::{Secp256k1, Secp256k1Params},
+      },
+    },
+    field::{
+      prime_field::PrimeField,
+      prime_field_elem::PrimeFieldElem,
+    },
   };
+
+  #[derive(Clone)]
+  struct AffineOps();
+
+  impl EllipticCurvePointOps<EcPoint, PrimeFieldElem, PrimeField> for AffineOps {
+    type Adder = AffinePointAdder;
+  }
 
   #[test]
   // TODO create separate tests for not-on-curve and pub_key-not-order-n cases
   fn sign_verify_bad_pub_key() {
     let params = Secp256k1Params::new();
-    let ops = Box::new(WeierstrassJacobianPointOps::new(&params.f));
-    let curve = Box::new(Secp256k1::new(ops, params));
+    let curve = Box::new(Secp256k1::new(AffineOps(), params));
     let hasher = Box::new(Sha256());
     let mut ecdsa = Ecdsa::new(curve.clone(), hasher);
 
@@ -176,8 +197,7 @@ mod tests {
   #[test]
   fn sign_verify_inf_pub_key() {
     let params = Secp256k1Params::new();
-    let ops = Box::new(WeierstrassJacobianPointOps::new(&params.f));
-    let curve = Box::new(Secp256k1::new(ops, params.clone()));
+    let curve = Box::new(Secp256k1::new(AffineOps(), params));
     let hasher = Box::new(Sha256());
     let mut ecdsa = Ecdsa::new(curve, hasher);
 
@@ -196,8 +216,8 @@ mod tests {
   #[test]
   fn sign_verify_sig_r_out_of_range() {
     let params = Secp256k1Params::new();
-    let ops = Box::new(WeierstrassJacobianPointOps::new(&params.f));
-    let curve = Box::new(Secp256k1::new(ops.clone(), params.clone()));
+    let ops = AffineOps();
+    let curve = Box::new(Secp256k1::new(ops.clone(), params));
     let hasher = Box::new(Sha256());
     let mut ecdsa = Ecdsa::new(curve, hasher);
     let group = &ecdsa.curve.group();
@@ -230,8 +250,8 @@ mod tests {
   #[test]
   fn sign_verify_sig_s_out_of_range() {
     let params = Secp256k1Params::new();
-    let ops = Box::new(WeierstrassJacobianPointOps::new(&params.f));
-    let curve = Box::new(Secp256k1::new(ops.clone(), params.clone()));
+    let ops = AffineOps();
+    let curve = Box::new(Secp256k1::new(ops.clone(), params));
     let hasher = Box::new(Sha256());
     let mut ecdsa = Ecdsa::new(curve, hasher);
     let group = &ecdsa.curve.group();
@@ -264,8 +284,8 @@ mod tests {
   #[test]
   fn sign_verify_all_good() {
     let params = Secp256k1Params::new();
-    let ops = Box::new(WeierstrassJacobianPointOps::new(&params.f));
-    let curve = Box::new(Secp256k1::new(ops, params));
+    let ops = AffineOps();
+    let curve = Box::new(Secp256k1::new(ops.clone(), params));
     let hasher = Box::new(Sha256());
     let mut ecdsa = Ecdsa::new(curve, hasher);
     let group = &ecdsa.curve.group();
@@ -285,8 +305,8 @@ mod tests {
   #[test]
   fn sign_verify_bad_priv_key() {
     let params = Secp256k1Params::new();
-    let ops = Box::new(WeierstrassJacobianPointOps::new(&params.f));
-    let curve = Box::new(Secp256k1::new(ops.clone(), params.clone()));
+    let ops = AffineOps();
+    let curve = Box::new(Secp256k1::new(ops.clone(), params));
     let hasher = Box::new(Sha256());
     let mut ecdsa = Ecdsa::new(curve, hasher);
     let group = &ecdsa.curve.group();
@@ -308,8 +328,8 @@ mod tests {
   #[test]
   fn sign_verify_different_message() {
     let params = Secp256k1Params::new();
-    let ops = Box::new(WeierstrassJacobianPointOps::new(&params.f));
-    let curve = Box::new(Secp256k1::new(ops.clone(), params.clone()));
+    let ops = AffineOps();
+    let curve = Box::new(Secp256k1::new(ops.clone(), params));
     let hasher = Box::new(Sha256());
     let mut ecdsa = Ecdsa::new(curve, hasher);
     let group = &ecdsa.curve.group();

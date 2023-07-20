@@ -2,32 +2,21 @@ use crate::building_block::{
   additive_identity::AdditiveIdentity,
   elliptic_curve::{
     affine_point::AffinePoint,
-    elliptic_curve_point_ops::EllipticCurvePointOps,
     new_affine_point::NewAffinePoint,
+    weierstrass::adder::point_adder::PointAdder,
   },
+  field::field::Field,
   zero::Zero,
 };
 
-#[derive(Clone)]
-pub struct WeierstrassAffinePointOps<F> {
-  f: F,
-}
+pub struct AffinePointAdder();
 
-impl<F> WeierstrassAffinePointOps<F> {
-  pub fn new(f: &F) -> Self {
-    Self { f: f.clone() }
-  }
-}
-
-impl<P, E, F> EllipticCurvePointOps<P, E> for WeierstrassAffinePointOps<F>
+impl<P, E, F> PointAdder<P, F> for AffinePointAdder
   where
-    E: Zero<E> + AdditiveIdentity,
-    P: NewAffinePoint<P, E> + Zero<P> + AdditiveIdentity + AffinePoint<P, E> + Clone,
-    F: AdditiveIdentity,
+    F: Field<F>,
+    P: NewAffinePoint<P, E> + Zero<P> + AdditiveIdentity<E> + AffinePoint<P, E> + Clone,
 {
-  fn add(&self, p1: &P, p2: &P) -> P {
-    let f = self.get_field();
-
+  fn add(f: &F, p1: &P, p2: &P) -> P {
     if p1.is_zero() && p2.is_zero() {  // inf + inf is inf
       F::get_zero(&f)
     } else if p1.is_zero() {  // adding p2 to inf is p2
@@ -48,8 +37,8 @@ impl<P, E, F> EllipticCurvePointOps<P, E> for WeierstrassAffinePointOps<F>
       //
       // dy/dx is the slope m of the tangent line at the point
       // m = (3x^2 + A) / 2y
-      let m1 = p1.x.sq() * 3u8;
-      let m2 = &p1.y * 2u8;
+      let m1 = p1.x().sq() * 3u8;
+      let m2 = &p1.y() * 2u8;
       let m = m1 / &m2;
 
       // equation of intersecting line is
@@ -73,14 +62,14 @@ impl<P, E, F> EllipticCurvePointOps<P, E> for WeierstrassAffinePointOps<F>
       // since p1 and p2 are the same point, replace r and s w/ p1.x
       // to get the x-coordinate of the point where (1) intersects the curve
       // x3 = m^2 − 2*p1.x
-      let p3x = m.sq() - (&p1.x * 2u8);
+      let p3x = m.sq() - (&p1.x() * 2u8);
 
       // then get the y-coordinate by substituting x in (1) w/ x3 to get y3
       // y3 = m(x3 − p1.x) + p1.y
       //
       // reflecting y3 across the x-axis results in the addition result y-coordinate
       // result.y = -1 * y3 = m(p1.x - x3) - p1.y
-      let p3y_neg = m * (&p1.x - &p3x) - &p1.y;
+      let p3y_neg = m * (&p1.x() - &p3x) - &p1.y();
       P::new(&p3x, &p3y_neg)
 
     } else {  // when line through p1 and p2 is non-vertical line
@@ -88,7 +77,7 @@ impl<P, E, F> EllipticCurvePointOps<P, E> for WeierstrassAffinePointOps<F>
       // p2.y - p1.y = m(p2.x - p1.x)
       // m(p2.x - p1.x) = p2.y - p1.y
       // m = (p2.y - p1.y) / (p2.x - p1.x)
-      let m = (&p2.y - &p1.y) / (&p2.x - &p1.x);
+      let m = (&p2.y() - &p1.y()) / (&p2.x() - &p1.x());
 
       // then the equation of the line is:
       // y = m(x − p1.x) + p1.y  (1)
@@ -117,12 +106,12 @@ impl<P, E, F> EllipticCurvePointOps<P, E> for WeierstrassAffinePointOps<F>
       //
       // here t is the x coordinate of the p3 we're trying to find:
       // p3.x = m^2 - p1.x - p2.x
-      let p3x = m.sq() - &p1.x - &p2.x;
+      let p3x = m.sq() - &p1.x() - &p2.x();
 
       // using (1), find the y-coordinate of the 3rd intersecting point and p3x obtained above
       // y = m(x − p1.x) + p1.y
       // p3.y = m(p3.x − p1.x) + p1.y
-      let p3y = m * (&p3x - &p1.x) + &p1.y;
+      let p3y = m * (&p3x - &p1.x()) + &p1.y();
 
       // then (p3.x, -p3.y) is the result of adding p1 and p2
       P::new(&p3x, &-p3y)

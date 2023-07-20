@@ -91,11 +91,11 @@ impl Eq for EcPoint {}
 //   }
 // }
 
-impl AdditiveIdentity for EcPoint {
-  fn get_additive_identity(&self) -> Self {
+impl AdditiveIdentity<EcPoint> for EcPoint {
+  fn get_additive_identity(&self) -> EcPoint {
     EcPoint {
-      x: self.get_zero(),
-      y: self.get_zero(),
+      x: self.x.get_zero(),
+      y: self.x.get_zero(),
       is_inf: true,
     }
   }

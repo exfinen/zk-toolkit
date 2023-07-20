@@ -25,13 +25,13 @@ pub struct PrimeFieldElem {
   pub e: BigUint,
 }
 
-impl AdditiveIdentity for BigUint {
+impl AdditiveIdentity<BigUint> for BigUint {
   fn get_additive_identity(&self) -> BigUint {
     BigUint::from(0u8)
   }
 }
 
-impl AdditiveIdentity for PrimeFieldElem {
+impl AdditiveIdentity<PrimeFieldElem> for PrimeFieldElem {
   fn get_additive_identity(&self) -> BigUint {
     PrimeFieldElem {
       f: self.f.clone(),

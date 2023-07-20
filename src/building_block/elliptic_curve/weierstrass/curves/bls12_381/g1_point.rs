@@ -34,7 +34,7 @@ impl Add<G1Point> for G1Point {
   }
 }
 
-impl AdditiveIdentity for G1Point {
+impl AdditiveIdentity<G1Point> for G1Point {
   fn get_additive_identity(&self) -> Self {
     G1Point {
       x: self.x.get_additive_identity(),
