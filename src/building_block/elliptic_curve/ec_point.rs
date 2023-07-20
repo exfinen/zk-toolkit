@@ -1,6 +1,8 @@
 use crate::building_block::{
   additive_identity::AdditiveIdentity,
-  field::field_elem::NewFieldElem,
+  field::{
+    prime_field_elem::PrimeFieldElem,
+  },
   elliptic_curve::{
     affine_point::AffinePoint,
     jacobian_point::JacobianPoint,
@@ -10,14 +12,14 @@ use crate::building_block::{
 };
 
 #[derive(Debug, Clone)]
-pub struct EcPoint<E> {
-  pub x: E,
-  pub y: E,
+pub struct EcPoint {
+  pub x: PrimeFieldElem,
+  pub y: PrimeFieldElem,
   pub is_inf: bool,
 }
 
-impl<E> From<JacobianPoint<EcPoint<E>>> for EcPoint<E> {
-  fn from(pt: JacobianPoint<EcPoint<E>>) -> Self {
+impl From<JacobianPoint<EcPoint>> for EcPoint {
+  fn from(pt: JacobianPoint<EcPoint>) -> Self {
     if pt.z.is_zero() {
       panic!("z is not expected to be zero");
     } else {
@@ -25,19 +27,20 @@ impl<E> From<JacobianPoint<EcPoint<E>>> for EcPoint<E> {
       let z3 = &z2 * &pt.z;
       let x = &pt.x / z2;
       let y = &pt.y / z3;
-      EcPoint { x, y, is_inf: false }
+      EcPoint {
+        x,
+        y,
+        is_inf: false,
+      }
     }
   }
 }
 
-impl<F, E> Zero<EcPoint<E>> for EcPoint<E>
-  where
-    F: NewFieldElem<E>,
-{
-  fn get_zero(f: &F) -> EcPoint<E> {
+impl Zero<EcPoint> for EcPoint {
+  fn get_zero(t: &EcPoint) -> EcPoint {
       EcPoint {
-        x: f.elem(&0u8),
-        y: f.elem(&0u8),
+        x: t.x.get_additive_identity(),
+        y: t.x.get_additive_identity(),
         is_inf: true,
       }
   }
@@ -47,19 +50,17 @@ impl<F, E> Zero<EcPoint<E>> for EcPoint<E>
   }
 }
 
-impl<E> AffinePoint<EcPoint<E>, E> for EcPoint<E> {
-  fn x(&self) -> Self::E {
+impl AffinePoint<EcPoint, PrimeFieldElem> for EcPoint {
+  fn x(&self) -> PrimeFieldElem {
     self.x
   }
-  fn y(&self) -> Self::E {
+  fn y(&self) -> PrimeFieldElem {
     self.y
   }
 }
 
-impl<E> NewAffinePoint<EcPoint<E>, E> for EcPoint<E>
-  where E: Clone,
-{
-  fn new(x: &E, y: &E) -> Self {
+impl NewAffinePoint<EcPoint, PrimeFieldElem> for EcPoint {
+  fn new(x: &PrimeFieldElem, y: &PrimeFieldElem) -> Self {
     EcPoint {
       x: x.clone(),
       y: y.clone(),
@@ -68,7 +69,7 @@ impl<E> NewAffinePoint<EcPoint<E>, E> for EcPoint<E>
   }
 }
 
-impl<E> PartialEq for EcPoint<E> {
+impl PartialEq for EcPoint {
   fn eq(&self, other: &Self) -> bool {
     if self.is_inf != other.is_inf {
       false
@@ -80,7 +81,7 @@ impl<E> PartialEq for EcPoint<E> {
   }
 }
 
-impl<E> Eq for EcPoint<E> {}
+impl Eq for EcPoint {}
 
 // impl<Op, E> From<EcPointWithOps<Op, E>> for EcPoint<E>
 //   where Op: EllipticCurveField + EllipticCurvePointAdd<EcPoint<E>, E> + ElllipticCurvePointInv<EcPoint<E>, E> {
@@ -90,11 +91,11 @@ impl<E> Eq for EcPoint<E> {}
 //   }
 // }
 
-impl<E> AdditiveIdentity<E> for EcPoint<E> {
-  fn get_additive_identity() -> E {
+impl AdditiveIdentity for EcPoint {
+  fn get_additive_identity(&self) -> Self {
     EcPoint {
-      x: E::elem(&0u8),
-      y: E::elem(&0u8),
+      x: self.get_zero(),
+      y: self.get_zero(),
       is_inf: true,
     }
   }

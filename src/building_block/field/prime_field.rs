@@ -17,7 +17,7 @@ pub struct PrimeField {
   pub order: BigUint,
 }
 
-impl AdditiveIdentity<PrimeFieldElem> for PrimeField {
+impl AdditiveIdentity for PrimeField {
   fn get_additive_identity(&self) -> Self {
     PrimeFieldElem {
       f: self.clone(),

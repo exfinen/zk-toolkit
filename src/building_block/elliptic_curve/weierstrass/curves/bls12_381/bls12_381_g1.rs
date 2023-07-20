@@ -1,6 +1,5 @@
 use crate::building_block::{
   field::{
-    field_elem::NewFieldElem,
     prime_field::PrimeField,
     prime_field_elem::PrimeFieldElem,
   },
@@ -22,31 +21,32 @@ use crate::building_block::{
   },
 };
 use num_bigint::BigUint;
+use once_cell::sync::Lazy;
 
 #[derive(Clone)]
 #[allow(non_camel_case_types)]
 pub struct BLS12_381_G1Params {
   pub f: PrimeField,    // base prime field
   pub f_r: PrimeField,  // field of group order r for convenience
-  pub g: G1Point<PrimeField>,  // generator point
+  pub g: G1Point,  // generator point
   pub r: PrimeFieldElem,  // group order of the generator
 }
 
 impl BLS12_381_G1Params {
   pub fn new() -> Self {
-    let f = PrimeField::new(&FQ1_FIELD_ORDER);
+    let f = PrimeField::new(Lazy::get(&FQ1_FIELD_ORDER).unwrap());
 
     // base point
-    let gx = Fq1::elem(
+    let gx = f.elem(
       &BigUint::parse_bytes(b"17f1d3a73197d7942695638c4fa9ac0fc3688c4f9774b905a14e3a3f171bac586c55e83ff97a1aeffb3af00adb22c6bb", 16).unwrap(),
     );
-    let gy = Fq1::elem(
+    let gy = f.elem(
       &BigUint::parse_bytes(b"08b3f481e3aaa0f1a09e30ed741d8ae4fcf5e095d5d00af600db18cb2c04b3edd03cc744a2888ae40caa232946c5e7e1", 16).unwrap(),
     );
-    let g = G1Point::new(gx, gy);
+    let g = G1Point { x: gx, y: gy };
 
     // order of the base point
-    let r = BigUint::parse_bytes(b"73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001", 16).unwrap();
+    let r = PrimeFieldElem::new(&f, &BigUint::parse_bytes(b"73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001", 16).unwrap());
     let f_r = PrimeField::new(&r);
 
     BLS12_381_G1Params {
@@ -60,34 +60,33 @@ impl BLS12_381_G1Params {
 
 #[derive(Clone)]
 #[allow(non_camel_case_types)]
-pub struct BLS12_381_G1<Op, F>
+pub struct BLS12_381_G1<Op>
   where
-    F: NewFieldElem<F>,
     Op: ?Sized
-      + EllipticCurveField<F>
-      + EllipticCurvePointAdd<G1Point<PrimeFieldElem>, Fq1<PrimeFieldElem>>
-      + ElllipticCurvePointInv<G1Point<PrimeFieldElem>, Fq1<PrimeFieldElem>>,
+      + EllipticCurveField<PrimeField>
+      + EllipticCurvePointAdd<G1Point, Fq1>
+      + ElllipticCurvePointInv<G1Point, Fq1, PrimeField>,
 {
   pub params: BLS12_381_G1Params,
   pub ops: Box<Op>,
   pub eq: Box<WeierstrassEq<PrimeField, PrimeFieldElem>>,
 }
 
-impl<Op, F> BLS12_381_G1<Op, F>
+impl<Op> BLS12_381_G1<Op>
   where
-    F: NewFieldElem<F>,
     Op: ?Sized
-      + EllipticCurveField<F>
-      + EllipticCurvePointAdd<G1Point<PrimeFieldElem>, Fq1<PrimeFieldElem>>
-      + ElllipticCurvePointInv<G1Point<PrimeFieldElem>, Fq1<PrimeFieldElem>>,
+      + EllipticCurveField<PrimeField>
+      + EllipticCurvePointAdd<G1Point, Fq1>
+      + ElllipticCurvePointInv<G1Point, Fq1, PrimeField>,
 {
   pub fn new(ops: Box<Op>, params: BLS12_381_G1Params) -> Self {
+    let f = params.f;
     // G1 (F_q): y^2 = x^3 + 4
-    let a1 = F::elem(&0u8);
-    let a2 = F::elem(&0u8);
-    let a3 = F::elem(&0u8);
-    let a4 = F::elem(&0u8);
-    let a6 = F::elem(&4u8);
+    let a1 = &f.elem(&0u8);
+    let a2 = &f.elem(&0u8);
+    let a3 = &f.elem(&0u8);
+    let a4 = &f.elem(&0u8);
+    let a6 = &f.elem(&4u8);
     let eq = Box::new(WeierstrassEq::new(&params.f, a1, a2, a3, a4, a6));
 
     // G2 (F_q^2): ???
@@ -100,15 +99,14 @@ impl<Op, F> BLS12_381_G1<Op, F>
   }
 }
 
-impl<Op, Eq> Curve<Op, Eq, G1Point<PrimeFieldElem>, Fq1<PrimeFieldElem>, PrimeField> for BLS12_381_G1<Op, Eq>
+impl<Op> Curve<Op, WeierstrassEq<PrimeField, PrimeFieldElem>, G1Point, Fq1, PrimeField> for BLS12_381_G1<Op>
   where
     Op: EllipticCurveField<PrimeField>
-      + EllipticCurvePointAdd<G1Point<PrimeFieldElem>, Fq1<PrimeFieldElem>>
-      + ElllipticCurvePointInv<G1Point<PrimeFieldElem>, Fq1<PrimeFieldElem>>
+      + EllipticCurvePointAdd<G1Point, Fq1>
+      + ElllipticCurvePointInv<G1Point, Fq1, PrimeField>
       + Clone,
-    Eq: CurveEquation<G1Point<PrimeFieldElem>> + Clone {
-
-  fn g(&self) -> G1Point<PrimeFieldElem> {
+{
+  fn g(&self) -> G1Point {
     self.params.g.clone()
   }
 
@@ -125,15 +123,15 @@ impl<Op, Eq> Curve<Op, Eq, G1Point<PrimeFieldElem>, Fq1<PrimeFieldElem>, PrimeFi
   }
 }
 
-impl<Op> CurveEquation<G1Point<PrimeFieldElem>> for BLS12_381_G1<Op, WeierstrassEq<PrimeField, PrimeFieldElem>>
+impl<Op> CurveEquation<G1Point> for BLS12_381_G1<Op>
   where
     Op:
       EllipticCurveField<PrimeField>
-      + EllipticCurvePointAdd<G1Point<PrimeFieldElem>, Fq1<PrimeFieldElem>>
-      + ElllipticCurvePointInv<G1Point<PrimeFieldElem>, Fq1<PrimeFieldElem>>
-      + Clone
+      + EllipticCurvePointAdd<G1Point, Fq1>
+      + ElllipticCurvePointInv<G1Point, Fq1, PrimeField>
+      + Clone,
 {
-  fn is_rational_point(&self, pt: &G1Point<PrimeFieldElem>) -> bool {
+  fn is_rational_point(&self, pt: &G1Point) -> bool {
       self.eq.is_rational_point(pt)
   }
 }
@@ -201,8 +199,8 @@ mod tests {
 
   trait EllipticCurveOps:
     EllipticCurveField<PrimeField>
-    + EllipticCurvePointAdd<G1Point<PrimeFieldElem>, Fq1<PrimeFieldElem>>
-    + ElllipticCurvePointInv<G1Point<PrimeFieldElem>, Fq1<PrimeFieldElem>>
+    + EllipticCurvePointAdd<G1Point, Fq1>
+    + ElllipticCurvePointInv<G1Point, Fq1, PrimeField>
   {
     fn box_clone(&self) -> Box<dyn EllipticCurveOps>;
   }

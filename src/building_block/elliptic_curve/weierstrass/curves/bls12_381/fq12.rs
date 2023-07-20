@@ -13,13 +13,13 @@ use crate::building_block::{
 
 
 #[derive(Debug, Clone)]
-pub struct Fq12<E> {
-  pub w1: Fq6<E>,
-  pub w0: Fq6<E>,
+pub struct Fq12 {
+  pub w1: Fq6,
+  pub w0: Fq6,
 }
 
-impl<E> Fq12<E> {
-  pub fn new(w1: &Fq6<E>, w0: &Fq6<E>) -> Self {
+impl Fq12 {
+  pub fn new(w1: &Fq6, w0: &Fq6) -> Self {
       Fq12 {
         w1: w1.clone(),
         w0: w0.clone(),
@@ -27,7 +27,7 @@ impl<E> Fq12<E> {
   }
 }
 
-impl<E> Inverse<E> for Fq12<E> {
+impl Inverse for Fq12 {
   fn inv(&self) -> Self {
     let factor = Fq6::inv(&(
       self.w0 * self.w0
@@ -40,8 +40,8 @@ impl<E> Inverse<E> for Fq12<E> {
   }
 }
 
-impl<E> AdditiveIdentity<E> for Fq12<E> {
-  fn get_additive_identity() -> E {
+impl AdditiveIdentity for Fq12 {
+  fn get_additive_identity() -> Self {
     Self {
       w1: Fq6::zero(),
       w0: Fq6::zero(),
@@ -49,7 +49,7 @@ impl<E> AdditiveIdentity<E> for Fq12<E> {
   }
 }
 
-impl<E> Reduce for Fq12<E> {
+impl Reduce for Fq12 {
   fn reduce(_n: &Self) -> Self {
     panic!("Not implemented");
   }
@@ -57,8 +57,8 @@ impl<E> Reduce for Fq12<E> {
 
 macro_rules! impl_add {
   ($rhs: ty, $target: ty) => {
-    impl<E> Add<$rhs> for $target {
-      type Output = Fq12<E>;
+    impl Add<$rhs> for $target {
+      type Output = Fq12;
 
       fn add(self, rhs: $rhs) -> Self::Output {
         Fq12 {
@@ -69,15 +69,15 @@ macro_rules! impl_add {
     }
   };
 }
-impl_add!(Fq12<PrimeFieldElem>, Fq12<PrimeFieldElem>);
-impl_add!(Fq12<PrimeFieldElem>, &Fq12<PrimeFieldElem>);
-impl_add!(&Fq12<PrimeFieldElem>, Fq12<PrimeFieldElem>);
-impl_add!(&Fq12<PrimeFieldElem>, &Fq12<PrimeFieldElem>);
+impl_add!(Fq12, Fq12);
+impl_add!(Fq12, &Fq12);
+impl_add!(&Fq12, Fq12);
+impl_add!(&Fq12, &Fq12);
 
 macro_rules! impl_sub {
   ($rhs: ty, $target: ty) => {
-    impl<E> Sub<$rhs> for $target {
-      type Output = Fq12<E>;
+    impl Sub<$rhs> for $target {
+      type Output = Fq12;
 
       fn sub(self, rhs: $rhs) -> Self::Output {
         Fq12 {
@@ -88,15 +88,15 @@ macro_rules! impl_sub {
     }
   };
 }
-impl_sub!(Fq12<PrimeFieldElem>, Fq12<PrimeFieldElem>);
-impl_sub!(Fq12<PrimeFieldElem>, &Fq12<PrimeFieldElem>);
-impl_sub!(&Fq12<PrimeFieldElem>, Fq12<PrimeFieldElem>);
-impl_sub!(&Fq12<PrimeFieldElem>, &Fq12<PrimeFieldElem>);
+impl_sub!(Fq12, Fq12);
+impl_sub!(Fq12, &Fq12);
+impl_sub!(&Fq12, Fq12);
+impl_sub!(&Fq12, &Fq12);
 
 macro_rules! impl_mul {
   ($rhs: ty, $target: ty) => {
-    impl<E> Mul<$rhs> for $target {
-      type Output = Fq12<E>;
+    impl Mul<$rhs> for $target {
+      type Output = Fq12;
 
       fn mul(self, rhs: $rhs) -> Self::Output {
         Fq12 {
@@ -107,12 +107,12 @@ macro_rules! impl_mul {
     }
   };
 }
-impl_mul!(Fq12<PrimeFieldElem>, Fq12<PrimeFieldElem>);
-impl_mul!(Fq12<PrimeFieldElem>, &Fq12<PrimeFieldElem>);
-impl_mul!(&Fq12<PrimeFieldElem>, Fq12<PrimeFieldElem>);
-impl_mul!(&Fq12<PrimeFieldElem>, &Fq12<PrimeFieldElem>);
+impl_mul!(Fq12, Fq12);
+impl_mul!(Fq12, &Fq12);
+impl_mul!(&Fq12, Fq12);
+impl_mul!(&Fq12, &Fq12);
 
-impl<E> fmt::Display for Fq12<E> {
+impl fmt::Display for Fq12 {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "{{ w1: {}, w0: {} }}", self.w1, self.w0)
   }
@@ -123,7 +123,7 @@ mod tests {
   use super::*;
   use crate::building_block::elliptic_curve::weierstrass::curves::bls12_381::fq_test_helper::get_fq6_values;
 
-  fn to_strs(x: &Fq12<PrimeFieldElem>) -> [String; 12] {
+  fn to_strs(x: &Fq12) -> [String; 12] {
     [
       x.w1.v2.u1.n.to_string(),
       x.w1.v2.u0.n.to_string(),

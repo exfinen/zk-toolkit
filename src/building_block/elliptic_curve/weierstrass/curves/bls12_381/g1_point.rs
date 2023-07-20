@@ -1,4 +1,5 @@
 use crate::building_block::{
+  additive_identity::AdditiveIdentity,
   elliptic_curve::{
     affine_point::AffinePoint,
     weierstrass::curves::bls12_381::fq1::Fq1,
@@ -8,13 +9,13 @@ use crate::building_block::{
 };
 
 #[derive(Clone)]
-pub struct G1Point<E> {
-  pub x: Fq1<E>,
-  pub y: Fq1<E>,
+pub struct G1Point {
+  pub x: Fq1,
+  pub y: Fq1,
 }
 
-impl<E, T> Zero<G1Point<E>> for G1Point<E> {
-  fn get_zero(f: &T) -> G1Point<E> {
+impl Zero<G1Point> for G1Point {
+  fn get_zero(_f: &G1Point) -> G1Point {
     G1Point {
       x: Fq1::zero(),
       y: Fq1::zero(),
@@ -26,18 +27,27 @@ impl<E, T> Zero<G1Point<E>> for G1Point<E> {
   }
 }
 
-impl<E> AffinePoint<G1Point<E>, Fq1<E>> for G1Point<E> {
-  fn x(&self) -> Fq1<E> {
+impl AdditiveIdentity for G1Point {
+  fn get_additive_identity(&self) -> Self {
+    G1Point {
+      x: self.x.get_additive_identity(),
+      y: self.x.get_additive_identity(),
+    }
+  }
+}
+
+impl AffinePoint<G1Point, Fq1> for G1Point {
+  fn x(&self) -> Fq1 {
     self.x
   }
 
-  fn y(&self) -> Fq1<E> {
+  fn y(&self) -> Fq1 {
     self.y
   }
 }
 
-impl<E> NewAffinePoint<G1Point<E>, Fq1<E>> for G1Point<E> {
-  fn new(x: &Fq1<E>, y: &Fq1<E>) -> Self {
+impl NewAffinePoint<G1Point, Fq1> for G1Point {
+  fn new(x: &Fq1, y: &Fq1) -> Self {
     G1Point {
       x: x.clone(),
       y: y.clone(),

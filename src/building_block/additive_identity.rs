@@ -1,3 +1,3 @@
-pub trait AdditiveIdentity<E> {
-  fn get_additive_identity() -> E;
+pub trait AdditiveIdentity {
+  fn get_additive_identity(&self) -> Self;
 }

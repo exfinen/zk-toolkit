@@ -43,7 +43,7 @@ pub struct Ed25519Sha512 {
   H: Sha512,
   f: PrimeField,
   l: BigUint,
-  B: EcPoint<PrimeFieldElem>,
+  B: EcPoint,
   d: PrimeFieldElem,
   one: PrimeFieldElem,
   zero: PrimeFieldElem,
@@ -55,10 +55,10 @@ impl EllipticCurveField<PrimeField> for Ed25519Sha512 {
   }
 }
 
-impl EllipticCurvePointAdd<EcPoint<PrimeFieldElem>, PrimeFieldElem> for Ed25519Sha512 {
+impl EllipticCurvePointAdd<EcPoint, PrimeFieldElem> for Ed25519Sha512 {
   // Edwards Addition Law
   // (x1,y1) + (x2,y2) = ((x1y2 + x2y1) / (1 + d x1x2 y1y2), (y1y2 + x1x2) / (1 - d x1x2 y1y2))
-  fn add(&self, p1: &EcPoint<PrimeFieldElem>, p2: &EcPoint<PrimeFieldElem>) -> EcPoint<PrimeFieldElem> {
+  fn add(&self, p1: &EcPoint, p2: &EcPoint) -> EcPoint {
     let x1y2 = &p1.x * &p2.y;
     let x2y1 = &p2.x * &p1.y;
     let x1x2y1y2 = &x1y2 * &x2y1;
@@ -71,8 +71,8 @@ impl EllipticCurvePointAdd<EcPoint<PrimeFieldElem>, PrimeFieldElem> for Ed25519S
 
 }
 
-impl Zero<EcPoint<PrimeFieldElem>> for Ed25519Sha512 {
-  fn get_zero(f: &PrimeField) -> EcPoint<PrimeFieldElem> {
+impl Zero<EcPoint> for Ed25519Sha512 {
+  fn get_zero(f: &PrimeField) -> EcPoint {
       EcPoint::new(&f.elem(&0u8), &f.elem(&1u8))
   }
 
@@ -81,8 +81,8 @@ impl Zero<EcPoint<PrimeFieldElem>> for Ed25519Sha512 {
   }
 }
 
-impl ElllipticCurvePointInv<EcPoint<PrimeFieldElem>, PrimeFieldElem> for Ed25519Sha512 {
-  fn inv(&self, _p: &EcPoint<PrimeFieldElem>) -> EcPoint<PrimeFieldElem> {
+impl ElllipticCurvePointInv<EcPoint, PrimeFieldElem, PrimeField> for Ed25519Sha512 {
+  fn inv(&self, _p: &EcPoint) -> EcPoint {
     panic!("not implemented");
   }
 }
@@ -153,7 +153,7 @@ impl Ed25519Sha512 {
     buf
   }
 
-  fn encode_point(&self, pt: &EcPoint<PrimeFieldElem>) -> [u8; 32] {
+  fn encode_point(&self, pt: &EcPoint) -> [u8; 32] {
     // get parity of x
     let x_parity = if (&pt.x.n & &self.one.n) == self.zero.n { Parity::Even } else { Parity::Odd };
 
@@ -170,7 +170,7 @@ impl Ed25519Sha512 {
     buf
   }
 
-  fn decode_point(&self, pt_buf: &[u8; 32]) -> EcPoint<PrimeFieldElem> {
+  fn decode_point(&self, pt_buf: &[u8; 32]) -> EcPoint {
     let mut pt_buf = pt_buf.clone();
 
     // get parity of x

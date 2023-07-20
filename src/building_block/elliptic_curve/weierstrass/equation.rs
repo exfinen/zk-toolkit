@@ -7,7 +7,7 @@ use crate::building_block::{
     prime_field::PrimeField,
     prime_field_elem::PrimeFieldElem,
   },
-  zero::Zero,
+  zero::Zero, additive_identity::AdditiveIdentity,
 };
 
 // Y^2 + a_1XY + a_3Y = X^3 + a_2X^2 + a_4X + a_6
@@ -42,10 +42,12 @@ impl WeierstrassEq<PrimeField, PrimeFieldElem> {
 }
 
 impl<F, E, P> CurveEquation<P> for WeierstrassEq<F, E>
-  where P: AffinePoint<P, E> + Zero<P>
+  where
+    E: Zero<E> + AdditiveIdentity,
+    P: AffinePoint<P, E> + AdditiveIdentity + Zero<P> + std::ops::Mul<P>
 {
   fn is_rational_point(&self, pt: &P) -> bool {
-    if pt.is_inf {
+    if pt.is_zero() {
       false
     } else {
       // check if Y^2 + a_1XY + a_3Y = X^3 + a_2X^2 + a_4X + a_6 holds

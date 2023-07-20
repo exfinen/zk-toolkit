@@ -12,12 +12,13 @@ use crate::building_block::{
   },
   zero::Zero,
 };
+use std::ops::{Add, Mul, Sub, Div};
 
 pub trait Curve<Op, Eq, P, E, F>
 where
-  E: Zero<E> + AdditiveIdentity<E>,
-  P: Zero<P> + NewAffinePoint<P, E> + AffinePoint<P, E> + AdditiveIdentity<P> + Clone,
-  Op: EllipticCurveField<F> + EllipticCurvePointAdd<P, E> + ElllipticCurvePointInv<P, E>,
+  E: Zero<E> + AdditiveIdentity + Add<E> + Sub<E> + Mul<E> + Div<E>,
+  P: Zero<P> + NewAffinePoint<P, E> + AffinePoint<P, E> + AdditiveIdentity + Clone + Add<P>,
+  Op: EllipticCurveField<F> + EllipticCurvePointAdd<P, E> + ElllipticCurvePointInv<P, E, F>,
   Eq: CurveEquation<P>,
 {
   fn g(&self) -> P;

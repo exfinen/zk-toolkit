@@ -15,15 +15,15 @@ use crate::building_block::{
     ec_point::EcPoint,
     new_affine_point::NewAffinePoint,
   },
-  zero::Zero,
+  zero::Zero, additive_identity::AdditiveIdentity,
 };
 use num_bigint::BigUint;
 
 pub struct Ecdsa<const HASHER_OUT_SIZE: usize, Op, Eq, P, E, F>
 where
-  E: Zero<E>,
-  P: Zero<P> + NewAffinePoint<P, E> + AffinePoint<P, E> + Clone,
-  Op: EllipticCurveField<F> + EllipticCurvePointAdd<P, E> + ElllipticCurvePointInv<P, E>,
+  E: Zero<E> + AdditiveIdentity,
+  P: Zero<P> + AdditiveIdentity + NewAffinePoint<P, E> + AffinePoint<P, E> + Clone,
+  Op: EllipticCurveField<F> + EllipticCurvePointAdd<P, E> + ElllipticCurvePointInv<P, E, F>,
   Eq: CurveEquation<P> {
   pub curve: Box<dyn Curve<Op, Eq, P, E, F>>,
   pub hasher: Box<dyn Hasher<HASHER_OUT_SIZE>>,
@@ -37,9 +37,9 @@ pub struct Signature<E> {
 
 impl<const HASHER_OUT_SIZE: usize, Op, Eq, P, E, F> Ecdsa<HASHER_OUT_SIZE, Op, Eq, P, E, F>
   where
-    E: Zero<E>,
-    P: Zero<P> + NewAffinePoint<P, E> + AffinePoint<P, E> + Clone,
-    Op: EllipticCurveField<F> + EllipticCurvePointAdd<P, E> + ElllipticCurvePointInv<P, E>,
+    E: Zero<E> + AdditiveIdentity,
+    P: Zero<P> + AdditiveIdentity + NewAffinePoint<P, E> + AffinePoint<P, E> + Clone,
+    Op: EllipticCurveField<F> + EllipticCurvePointAdd<P, E> + ElllipticCurvePointInv<P, E, F>,
     Eq: CurveEquation<P> {
 
   pub fn new(

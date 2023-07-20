@@ -1,7 +1,7 @@
-pub trait Square<E> {
-  fn sq() -> E;
+pub trait Square {
+  fn sq() -> Self;
 }
 
-pub trait Inverse<E> {
-  fn inv(&self) -> E;
+pub trait Inverse {
+  fn inv(&self) -> Self;
 }

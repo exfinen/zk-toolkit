@@ -32,8 +32,8 @@ impl<F> EllipticCurveField<F> for WeierstrassJacobianPointOps<F> {
 
 impl<P, E, F> EllipticCurvePointAdd<P, E> for WeierstrassJacobianPointOps<F>
   where
-    P: From<JacobianPoint<E>> + Into<JacobianPoint<E>> + Zero<P> + Clone,
-    F: AdditiveIdentity<F>
+    P: From<JacobianPoint<E>> + Into<JacobianPoint<E>> + Zero<P> + AdditiveIdentity + Clone,
+    F: AdditiveIdentity
 {
   fn add(&self, p1: &P, p2: &P) -> P {
     let f = &self.get_field();
@@ -61,8 +61,8 @@ impl<P, E, F> EllipticCurvePointAdd<P, E> for WeierstrassJacobianPointOps<F>
       let c = &b.sq();
       let d = &(((jp.x + b).sq() - a - c) * 2u8);
       let e = &(a * 3u8);
-      let f = &e.sq();
-      let x3 = f - (d * 2u8);
+      let e_sq = &e.sq();
+      let x3 = e_sq - (d * 2u8);
       let y3 = e * (d - &x3) - (c * 8u8);
       let z3 = jp.y * 2u8;
 
@@ -98,7 +98,7 @@ impl<P, E, F> EllipticCurvePointAdd<P, E> for WeierstrassJacobianPointOps<F>
   }
 }
 
-impl<P, E, F> ElllipticCurvePointInv<P, E> for WeierstrassJacobianPointOps<F>
+impl<P, E, F> ElllipticCurvePointInv<P, E, F> for WeierstrassJacobianPointOps<F>
   where
-    E: Zero<E>,
-    P: NewAffinePoint<P, E> + Zero<P> + AffinePoint<P, E> {}
+    E: Zero<E> + AdditiveIdentity,
+    P: NewAffinePoint<P, E> + Zero<P> + AdditiveIdentity + AffinePoint<P, E> {}

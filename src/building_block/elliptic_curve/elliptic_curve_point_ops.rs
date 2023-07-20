@@ -3,13 +3,13 @@ use crate::building_block::{
     affine_point::AffinePoint,
     new_affine_point::NewAffinePoint,
   },
-  zero::Zero,
+  zero::Zero, additive_identity::AdditiveIdentity,
 };
 use std::ops::{BitAnd, ShrAssign};
 
 pub trait EllipticCurvePointAdd<P, E>
   where
-    P: Zero<P> + Clone,
+    P: Zero<P> + AdditiveIdentity + Clone,
 {
   fn add(&self, p1: &P, p2: &P) -> P;
 
@@ -48,12 +48,12 @@ pub trait EllipticCurveField<F> {
   fn get_field(&self) -> &F;
 }
 
-pub trait ElllipticCurvePointInv<P, E>
+pub trait ElllipticCurvePointInv<P, E, F>
   where
-    E: Zero<E>,
-    P: NewAffinePoint<P, E> + AffinePoint<P, E> + Zero<P>
+    E: Zero<E> + AdditiveIdentity,
+    P: NewAffinePoint<P, E> + AdditiveIdentity + AffinePoint<P, E> + Zero<P>
 {
   fn inv(&self, p: &P) -> P {
-    P::new(&p.x, &p.y.inv())
+    P::new(&p.f, &p.x, &p.y.inv())
   }
 }

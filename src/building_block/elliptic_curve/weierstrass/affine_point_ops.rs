@@ -31,9 +31,9 @@ impl<F> EllipticCurveField<F> for WeierstrassAffinePointOps<F> {
 
 impl<P, E, F> EllipticCurvePointAdd<P, E> for WeierstrassAffinePointOps<F>
   where
-    E: Zero<E>,
-    P: NewAffinePoint<P, E> + Zero<P> + AffinePoint<P, E> + Clone,
-    F: AdditiveIdentity<F>,
+    E: Zero<E> + AdditiveIdentity,
+    P: NewAffinePoint<P, E> + Zero<P> + AdditiveIdentity + AffinePoint<P, E> + Clone,
+    F: AdditiveIdentity,
 {
   fn add(&self, p1: &P, p2: &P) -> P {
     let f = self.get_field();
@@ -140,7 +140,7 @@ impl<P, E, F> EllipticCurvePointAdd<P, E> for WeierstrassAffinePointOps<F>
   }
 }
 
-impl<P, E, F> ElllipticCurvePointInv<P, E> for WeierstrassAffinePointOps<F>
+impl<P, E, F> ElllipticCurvePointInv<P, E, F> for WeierstrassAffinePointOps<F>
   where
-    E: Zero<E>,
-    P: NewAffinePoint<P, E> + Zero<P> + AffinePoint<P, E> {}
+    E: Zero<E> + AdditiveIdentity,
+    P: NewAffinePoint<P, E> + Zero<P> + AdditiveIdentity + AffinePoint<P, E> {}

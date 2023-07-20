@@ -5,8 +5,8 @@ use crate::building_block::{
 
 pub trait AffinePoint<P, E>
   where
-    E: Zero<E> + AdditiveIdentity<E>,
-    P: Zero<P> + AdditiveIdentity<P>,
+    E: Zero<E> + AdditiveIdentity,
+    P: Zero<P> + AdditiveIdentity,
 {
   type E;
 

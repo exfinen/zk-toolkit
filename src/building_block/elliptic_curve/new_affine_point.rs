@@ -6,8 +6,8 @@ use crate::building_block::{
 
 pub trait NewAffinePoint<P, E>
   where
-    E: Zero<E> + AdditiveIdentity<E>,
-    P: AffinePoint<P, E> + Zero<P> + AdditiveIdentity<E>,
+    E: Zero<E> + AdditiveIdentity,
+    P: AffinePoint<P, E> + Zero<P> + AdditiveIdentity,
 {
   fn new(x: &P::E, y: &P::E) -> Self;
 }
