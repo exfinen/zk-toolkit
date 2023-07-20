@@ -6,11 +6,7 @@ use crate::building_block::{
   elliptic_curve::{
     curve_equation::CurveEquation,
     curve::Curve,
-    elliptic_curve_point_ops::{
-      EllipticCurveField,
-      EllipticCurvePointAdd,
-      ElllipticCurvePointInv,
-    },
+    elliptic_curve_point_ops::EllipticCurvePointOps,
     weierstrass::{
       curves::bls12_381::{
         fq1::{Fq1, FIELD_ORDER as FQ1_FIELD_ORDER},
@@ -62,10 +58,7 @@ impl BLS12_381_G1Params {
 #[allow(non_camel_case_types)]
 pub struct BLS12_381_G1<Op>
   where
-    Op: ?Sized
-      + EllipticCurveField<PrimeField>
-      + EllipticCurvePointAdd<G1Point, Fq1>
-      + ElllipticCurvePointInv<G1Point, Fq1, PrimeField>,
+    Op: ?Sized + EllipticCurvePointOps<G1Point, Fq1>,
 {
   pub params: BLS12_381_G1Params,
   pub ops: Box<Op>,
@@ -74,10 +67,7 @@ pub struct BLS12_381_G1<Op>
 
 impl<Op> BLS12_381_G1<Op>
   where
-    Op: ?Sized
-      + EllipticCurveField<PrimeField>
-      + EllipticCurvePointAdd<G1Point, Fq1>
-      + ElllipticCurvePointInv<G1Point, Fq1, PrimeField>,
+    Op: ?Sized + EllipticCurvePointOps<G1Point, Fq1>
 {
   pub fn new(ops: Box<Op>, params: BLS12_381_G1Params) -> Self {
     let f = params.f;
@@ -100,11 +90,7 @@ impl<Op> BLS12_381_G1<Op>
 }
 
 impl<Op> Curve<Op, WeierstrassEq<PrimeField, PrimeFieldElem>, G1Point, Fq1, PrimeField> for BLS12_381_G1<Op>
-  where
-    Op: EllipticCurveField<PrimeField>
-      + EllipticCurvePointAdd<G1Point, Fq1>
-      + ElllipticCurvePointInv<G1Point, Fq1, PrimeField>
-      + Clone,
+  where Op: EllipticCurvePointOps<G1Point, Fq1> + Clone,
 {
   fn g(&self) -> G1Point {
     self.params.g.clone()
@@ -125,11 +111,7 @@ impl<Op> Curve<Op, WeierstrassEq<PrimeField, PrimeFieldElem>, G1Point, Fq1, Prim
 
 impl<Op> CurveEquation<G1Point> for BLS12_381_G1<Op>
   where
-    Op:
-      EllipticCurveField<PrimeField>
-      + EllipticCurvePointAdd<G1Point, Fq1>
-      + ElllipticCurvePointInv<G1Point, Fq1, PrimeField>
-      + Clone,
+    Op: EllipticCurvePointOps<G1Point, Fq1> + Clone,
 {
   fn is_rational_point(&self, pt: &G1Point) -> bool {
       self.eq.is_rational_point(pt)
@@ -190,19 +172,12 @@ mod tests {
       affine_point_ops::WeierstrassAffinePointOps,
       jacobian_point_ops::WeierstrassJacobianPointOps,
     },
-    elliptic_curve_point_ops::{
-      EllipticCurveField,
-      EllipticCurvePointAdd,
-      ElllipticCurvePointInv,
-    },
+    elliptic_curve_point_ops::EllipticCurvePointOps,
   };
 
-  trait EllipticCurveOps:
-    EllipticCurveField<PrimeField>
-    + EllipticCurvePointAdd<G1Point, Fq1>
-    + ElllipticCurvePointInv<G1Point, Fq1, PrimeField>
+  trait EllipticCurveOps: EllipticCurvePointOps<G1Point, Fq1>
   {
-    fn box_clone(&self) -> Box<dyn EllipticCurveOps>;
+    fn box_clone(&self) -> Box<dyn EllipticCurveOps<G1Point, Fq1>>;
   }
 
   impl Clone for Box<dyn EllipticCurveOps> {

@@ -7,6 +7,7 @@ use crate::building_block::{
   },
   zero::Zero,
 };
+use std::ops::Add;
 
 #[derive(Clone)]
 pub struct G1Point {
@@ -24,6 +25,12 @@ impl Zero<G1Point> for G1Point {
 
   fn is_zero(&self) -> bool {
      self.x.is_zero() && self.y.is_zero()
+  }
+}
+
+impl Add<G1Point> for G1Point {
+  fn add(self, rhs: G1Point) -> Self::Output {
+
   }
 }
 

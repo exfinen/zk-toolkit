@@ -7,10 +7,12 @@ use crate::building_block::{
 };
 use std::ops::{BitAnd, ShrAssign};
 
-pub trait EllipticCurvePointAdd<P, E>
+pub trait EllipticCurvePointOps<P, E>
   where
     P: Zero<P> + AdditiveIdentity + Clone,
 {
+  type Adder;
+
   fn add(&self, p1: &P, p2: &P) -> P;
 
   fn vector_add(&self, ps: &[&P]) -> P {
@@ -42,18 +44,8 @@ pub trait EllipticCurvePointAdd<P, E>
     }
     res
   }
-}
 
-pub trait EllipticCurveField<F> {
-  fn get_field(&self) -> &F;
-}
-
-pub trait ElllipticCurvePointInv<P, E, F>
-  where
-    E: Zero<E> + AdditiveIdentity,
-    P: NewAffinePoint<P, E> + AdditiveIdentity + AffinePoint<P, E> + Zero<P>
-{
   fn inv(&self, p: &P) -> P {
-    P::new(&p.f, &p.x, &p.y.inv())
+    P::new(&p.x, &p.y.inv())
   }
 }

@@ -2,11 +2,7 @@ use crate::building_block::{
   additive_identity::AdditiveIdentity,
   elliptic_curve::{
     affine_point::AffinePoint,
-    elliptic_curve_point_ops::{
-      EllipticCurveField,
-      EllipticCurvePointAdd,
-      ElllipticCurvePointInv,
-    },
+    elliptic_curve_point_ops::EllipticCurvePointOps,
     jacobian_point::JacobianPoint,
     new_affine_point::NewAffinePoint,
   },
@@ -24,13 +20,7 @@ impl<F> WeierstrassJacobianPointOps<F> where F: Clone {
   }
 }
 
-impl<F> EllipticCurveField<F> for WeierstrassJacobianPointOps<F> {
-  fn get_field(&self) -> &F {
-      &self.f
-  }
-}
-
-impl<P, E, F> EllipticCurvePointAdd<P, E> for WeierstrassJacobianPointOps<F>
+impl<P, E, F> EllipticCurvePointOps<P, E> for WeierstrassJacobianPointOps<F>
   where
     P: From<JacobianPoint<E>> + Into<JacobianPoint<E>> + Zero<P> + AdditiveIdentity + Clone,
     F: AdditiveIdentity
@@ -98,7 +88,7 @@ impl<P, E, F> EllipticCurvePointAdd<P, E> for WeierstrassJacobianPointOps<F>
   }
 }
 
-impl<P, E, F> ElllipticCurvePointInv<P, E, F> for WeierstrassJacobianPointOps<F>
+impl<P, E, F> EllipticCurvePointOps<P, E> for WeierstrassJacobianPointOps<F>
   where
     E: Zero<E> + AdditiveIdentity,
     P: NewAffinePoint<P, E> + Zero<P> + AdditiveIdentity + AffinePoint<P, E> {}

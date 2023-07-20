@@ -2,11 +2,7 @@ use crate::building_block::{
   additive_identity::AdditiveIdentity,
   elliptic_curve::{
     affine_point::AffinePoint,
-    elliptic_curve_point_ops::{
-      EllipticCurveField,
-      EllipticCurvePointAdd,
-      ElllipticCurvePointInv,
-    },
+    elliptic_curve_point_ops::EllipticCurvePointOps,
     new_affine_point::NewAffinePoint,
   },
   zero::Zero,
@@ -23,13 +19,7 @@ impl<F> WeierstrassAffinePointOps<F> {
   }
 }
 
-impl<F> EllipticCurveField<F> for WeierstrassAffinePointOps<F> {
-  fn get_field(&self) -> &F {
-      &self.f
-  }
-}
-
-impl<P, E, F> EllipticCurvePointAdd<P, E> for WeierstrassAffinePointOps<F>
+impl<P, E, F> EllipticCurvePointOps<P, E> for WeierstrassAffinePointOps<F>
   where
     E: Zero<E> + AdditiveIdentity,
     P: NewAffinePoint<P, E> + Zero<P> + AdditiveIdentity + AffinePoint<P, E> + Clone,
@@ -139,8 +129,3 @@ impl<P, E, F> EllipticCurvePointAdd<P, E> for WeierstrassAffinePointOps<F>
     }
   }
 }
-
-impl<P, E, F> ElllipticCurvePointInv<P, E, F> for WeierstrassAffinePointOps<F>
-  where
-    E: Zero<E> + AdditiveIdentity,
-    P: NewAffinePoint<P, E> + Zero<P> + AdditiveIdentity + AffinePoint<P, E> {}

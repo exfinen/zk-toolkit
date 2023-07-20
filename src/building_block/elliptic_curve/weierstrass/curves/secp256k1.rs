@@ -6,11 +6,7 @@ use crate::building_block::{
   elliptic_curve::{
     curve_equation::CurveEquation,
     curve::Curve,
-    elliptic_curve_point_ops::{
-      EllipticCurveField,
-      EllipticCurvePointAdd,
-      ElllipticCurvePointInv,
-    },
+    elliptic_curve_point_ops::EllipticCurvePointOps,
     ec_point::EcPoint,
     weierstrass::equation::WeierstrassEq,
   },
@@ -54,11 +50,7 @@ impl Secp256k1Params {
 
 #[derive(Clone)]
 pub struct Secp256k1<Op, WeierstrassEq>
-  where Op:
-    ?Sized
-    + EllipticCurveField<PrimeField>
-    + EllipticCurvePointAdd<EcPoint, PrimeFieldElem>
-    + ElllipticCurvePointInv<EcPoint, PrimeFieldElem, PrimeField>
+  where Op: ?Sized + EllipticCurvePointOps<EcPoint, PrimeFieldElem>
 {
   pub params: Secp256k1Params,
   pub ops: Box<Op>,
@@ -66,11 +58,7 @@ pub struct Secp256k1<Op, WeierstrassEq>
 }
 
 impl<Op> Secp256k1<Op, WeierstrassEq<PrimeField, PrimeFieldElem>>
-  where Op:
-    ?Sized
-    + EllipticCurveField<PrimeField>
-    + EllipticCurvePointAdd<EcPoint, PrimeFieldElem>
-    + ElllipticCurvePointInv<EcPoint, PrimeFieldElem, PrimeField>
+  where Op: ?Sized + EllipticCurvePointOps<EcPoint, PrimeFieldElem>
 {
   pub fn new(ops: Box<Op>, params: Secp256k1Params) -> Self {
     let a1 = BigUint::from(0u8);
@@ -90,11 +78,7 @@ impl<Op> Secp256k1<Op, WeierstrassEq<PrimeField, PrimeFieldElem>>
 
 impl<Op> Curve<Op, WeierstrassEq<PrimeField, PrimeFieldElem>, EcPoint, PrimeFieldElem, PrimeField>
   for Secp256k1<Op, WeierstrassEq<PrimeField, PrimeFieldElem>>
-  where
-    Op: EllipticCurveField<PrimeField>
-      + EllipticCurvePointAdd<EcPoint, PrimeFieldElem>
-      + ElllipticCurvePointInv<EcPoint, PrimeFieldElem, PrimeField>
-      + Clone,
+  where Op: EllipticCurvePointOps<EcPoint, PrimeFieldElem> + Clone,
 {
   fn g(&self) -> EcPoint {
     self.params.g.clone()
@@ -113,13 +97,7 @@ impl<Op> Curve<Op, WeierstrassEq<PrimeField, PrimeFieldElem>, EcPoint, PrimeFiel
   }
 }
 
-impl<Op> CurveEquation<EcPoint> for Secp256k1<Op, WeierstrassEq<PrimeField, PrimeFieldElem>>
-  where
-    Op: EllipticCurveField<PrimeField>
-      + EllipticCurvePointAdd<EcPoint, PrimeFieldElem>
-      + ElllipticCurvePointInv<EcPoint, PrimeFieldElem, PrimeField>
-      + Clone,
-{
+impl<Op> CurveEquation<EcPoint> for Secp256k1<Op, WeierstrassEq<PrimeField, PrimeFieldElem>> {
   fn is_rational_point(&self, pt: &EcPoint) -> bool {
       self.eq.is_rational_point(pt)
   }
@@ -139,19 +117,11 @@ mod tests {
         affine_point_ops::WeierstrassAffinePointOps,
         jacobian_point_ops::WeierstrassJacobianPointOps,
       },
-      elliptic_curve_point_ops::{
-        EllipticCurveField,
-        EllipticCurvePointAdd,
-        ElllipticCurvePointInv,
-      },
+      elliptic_curve_point_ops::EllipticCurvePointOps,
     },
   };
 
-  trait EllipticCurveOps:
-    EllipticCurveField<PrimeField>
-    + EllipticCurvePointAdd<EcPoint, PrimeFieldElem>
-    + ElllipticCurvePointInv<EcPoint, PrimeFieldElem, PrimeField>
-  {
+  trait EllipticCurveOps: EllipticCurvePointOps<EcPoint, PrimeFieldElem> {
     fn box_clone(&self) -> Box<dyn EllipticCurveOps>;
   }
 
@@ -278,9 +248,7 @@ mod tests {
   }
 
   fn get_g_multiples<'a, T>(curve: &Secp256k1<T, WeierstrassEq<PrimeField, PrimeFieldElem>>) -> Vec<EcPoint>
-    where T: ?Sized + EllipticCurveField<PrimeField>
-      + EllipticCurvePointAdd<EcPoint, PrimeFieldElem>
-      + ElllipticCurvePointInv<EcPoint, PrimeFieldElem, PrimeField> {
+    where T: ?Sized + EllipticCurvePointOps<EcPoint, PrimeFieldElem> {
     let ps = vec![
       Xy { _n: "1", x: b"79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798", y: b"483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8" },
       Xy { _n: "2", x: b"C6047F9441ED7D6D3045406E95C07CD85C778E4B8CEF3CA7ABAC09B95C709EE5", y: b"1AE168FEA63DC339A3C58419466CEAEEF7F632653266D0E1236431A950CFE52A" },

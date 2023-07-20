@@ -7,11 +7,7 @@ use crate::building_block::{
     affine_point::AffinePoint,
     curve::Curve,
     curve_equation::CurveEquation,
-    elliptic_curve_point_ops::{
-      EllipticCurveField,
-      EllipticCurvePointAdd,
-      ElllipticCurvePointInv,
-    },
+    elliptic_curve_point_ops::EllipticCurvePointOps,
     ec_point::EcPoint,
     new_affine_point::NewAffinePoint,
   },
@@ -23,7 +19,7 @@ pub struct Ecdsa<const HASHER_OUT_SIZE: usize, Op, Eq, P, E, F>
 where
   E: Zero<E> + AdditiveIdentity,
   P: Zero<P> + AdditiveIdentity + NewAffinePoint<P, E> + AffinePoint<P, E> + Clone,
-  Op: EllipticCurveField<F> + EllipticCurvePointAdd<P, E> + ElllipticCurvePointInv<P, E, F>,
+  Op: EllipticCurvePointOps<P, E>,
   Eq: CurveEquation<P> {
   pub curve: Box<dyn Curve<Op, Eq, P, E, F>>,
   pub hasher: Box<dyn Hasher<HASHER_OUT_SIZE>>,
@@ -39,7 +35,7 @@ impl<const HASHER_OUT_SIZE: usize, Op, Eq, P, E, F> Ecdsa<HASHER_OUT_SIZE, Op, E
   where
     E: Zero<E> + AdditiveIdentity,
     P: Zero<P> + AdditiveIdentity + NewAffinePoint<P, E> + AffinePoint<P, E> + Clone,
-    Op: EllipticCurveField<F> + EllipticCurvePointAdd<P, E> + ElllipticCurvePointInv<P, E, F>,
+    Op: EllipticCurvePointOps<P, E>,
     Eq: CurveEquation<P> {
 
   pub fn new(

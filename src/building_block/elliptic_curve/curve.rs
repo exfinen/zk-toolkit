@@ -3,11 +3,7 @@ use crate::building_block::{
   elliptic_curve::{
     affine_point::AffinePoint,
     curve_equation::CurveEquation,
-    elliptic_curve_point_ops::{
-      EllipticCurveField,
-      EllipticCurvePointAdd,
-      ElllipticCurvePointInv,
-    },
+    elliptic_curve_point_ops::EllipticCurvePointOps,
     new_affine_point::NewAffinePoint,
   },
   zero::Zero,
@@ -18,7 +14,7 @@ pub trait Curve<Op, Eq, P, E, F>
 where
   E: Zero<E> + AdditiveIdentity + Add<E> + Sub<E> + Mul<E> + Div<E>,
   P: Zero<P> + NewAffinePoint<P, E> + AffinePoint<P, E> + AdditiveIdentity + Clone + Add<P>,
-  Op: EllipticCurveField<F> + EllipticCurvePointAdd<P, E> + ElllipticCurvePointInv<P, E, F>,
+  Op: EllipticCurvePointOps<P, E>,
   Eq: CurveEquation<P>,
 {
   fn g(&self) -> P;

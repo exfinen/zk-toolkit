@@ -11,12 +11,8 @@ use crate::building_block::{
   elliptic_curve::{
     affine_point::AffinePoint,
     ec_point::EcPoint,
-    elliptic_curve_point_ops::{
-      EllipticCurveField,
-      EllipticCurvePointAdd,
-      ElllipticCurvePointInv,
-    },
     new_affine_point::NewAffinePoint,
+    elliptic_curve_point_ops::EllipticCurvePointOps,
   },
   zero::Zero,
 };
@@ -49,13 +45,7 @@ pub struct Ed25519Sha512 {
   zero: PrimeFieldElem,
 }
 
-impl EllipticCurveField<PrimeField> for Ed25519Sha512 {
-  fn get_field(&self) -> &PrimeField {
-     &self.f
-  }
-}
-
-impl EllipticCurvePointAdd<EcPoint, PrimeFieldElem> for Ed25519Sha512 {
+impl EllipticCurvePointOps<EcPoint, PrimeFieldElem> for Ed25519Sha512 {
   // Edwards Addition Law
   // (x1,y1) + (x2,y2) = ((x1y2 + x2y1) / (1 + d x1x2 y1y2), (y1y2 + x1x2) / (1 - d x1x2 y1y2))
   fn add(&self, p1: &EcPoint, p2: &EcPoint) -> EcPoint {
@@ -69,6 +59,9 @@ impl EllipticCurvePointAdd<EcPoint, PrimeFieldElem> for Ed25519Sha512 {
     EcPoint::new(&x, &y)
   }
 
+  fn inv(&self, _p: &EcPoint) -> EcPoint {
+    panic!("not implemented");
+  }
 }
 
 impl Zero<EcPoint> for Ed25519Sha512 {
@@ -78,12 +71,6 @@ impl Zero<EcPoint> for Ed25519Sha512 {
 
   fn is_zero(&self) -> bool {
       self.p.x == self.zero && self.p.y == self.one
-  }
-}
-
-impl ElllipticCurvePointInv<EcPoint, PrimeFieldElem, PrimeField> for Ed25519Sha512 {
-  fn inv(&self, _p: &EcPoint) -> EcPoint {
-    panic!("not implemented");
   }
 }
 
