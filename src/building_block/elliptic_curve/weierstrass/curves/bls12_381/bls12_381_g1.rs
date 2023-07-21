@@ -12,7 +12,7 @@ use crate::building_block::{
         fq1::{Fq1, FIELD_ORDER as FQ1_FIELD_ORDER},
         g1_point::G1Point,
       },
-      equation::WeierstrassEq,
+      equation::WeierstrassEq, adder::affine_point_adder::AffinePointAdder,
     },
   },
 };
@@ -21,14 +21,15 @@ use once_cell::sync::Lazy;
 
 #[derive(Clone)]
 #[allow(non_camel_case_types)]
-pub struct BLS12_381_G1Params {
+pub struct BLS12_381_G1 {
   pub f: PrimeField,    // base prime field
   pub f_r: PrimeField,  // field of group order r for convenience
   pub g: G1Point,  // generator point
   pub r: PrimeFieldElem,  // group order of the generator
+  pub eq: WeierstrassEq<PrimeField, PrimeFieldElem>
 }
 
-impl BLS12_381_G1Params {
+impl BLS12_381_G1 {
   pub fn new() -> Self {
     let f = PrimeField::new(Lazy::get(&FQ1_FIELD_ORDER).unwrap());
 
@@ -45,6 +46,14 @@ impl BLS12_381_G1Params {
     let r = PrimeFieldElem::new(&f, &BigUint::parse_bytes(b"73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001", 16).unwrap());
     let f_r = PrimeField::new(&r);
 
+    // G1 (F_q): y^2 = x^3 + 4
+    let a1 = &f.elem(&0u8);
+    let a2 = &f.elem(&0u8);
+    let a3 = &f.elem(&0u8);
+    let a4 = &f.elem(&0u8);
+    let a6 = &f.elem(&4u8);
+    let eq = Box::new(WeierstrassEq::new(&params.f, a1, a2, a3, a4, a6));
+
     BLS12_381_G1Params {
       f,
       f_r,
@@ -54,68 +63,8 @@ impl BLS12_381_G1Params {
   }
 }
 
-#[derive(Clone)]
-#[allow(non_camel_case_types)]
-pub struct BLS12_381_G1<Op>
-  where
-    Op: ?Sized + EllipticCurvePointOps<G1Point, Fq1, PrimeField>,
-{
-  pub params: BLS12_381_G1Params,
-  pub ops: Box<Op>,
-  pub eq: Box<WeierstrassEq<PrimeField, PrimeFieldElem>>,
-}
-
-impl<Op> BLS12_381_G1<Op>
-  where
-    Op: ?Sized + EllipticCurvePointOps<G1Point, Fq1, PrimeField>
-{
-  pub fn new(ops: Box<Op>, params: BLS12_381_G1Params) -> Self {
-    let f = params.f;
-    // G1 (F_q): y^2 = x^3 + 4
-    let a1 = &f.elem(&0u8);
-    let a2 = &f.elem(&0u8);
-    let a3 = &f.elem(&0u8);
-    let a4 = &f.elem(&0u8);
-    let a6 = &f.elem(&4u8);
-    let eq = Box::new(WeierstrassEq::new(&params.f, a1, a2, a3, a4, a6));
-
-    // G2 (F_q^2): ???
-
-    Self {
-      params,
-      ops,
-      eq,
-    }
-  }
-}
-
-impl<Op> Curve<Op, WeierstrassEq<PrimeField, PrimeFieldElem>, G1Point, Fq1, PrimeField> for BLS12_381_G1<Op>
-  where Op: EllipticCurvePointOps<G1Point, Fq1, PrimeField> + Clone,
-{
-  fn g(&self) -> G1Point {
-    self.params.g.clone()
-  }
-
-  fn group(&self) -> PrimeField {
-    self.params.f_r.clone()
-  }
-
-  fn ops(&self) -> Box<Op> {
-    self.ops.clone()
-  }
-
-  fn equation(&self) -> Box<WeierstrassEq<PrimeField, PrimeFieldElem>> {
-      self.eq.clone()
-  }
-}
-
-impl<Op> CurveEquation<G1Point> for BLS12_381_G1<Op>
-  where
-    Op: EllipticCurvePointOps<G1Point, Fq1, PrimeField> + Clone,
-{
-  fn is_rational_point(&self, pt: &G1Point) -> bool {
-      self.eq.is_rational_point(pt)
-  }
+impl EllipticCurvePointOps<G1Point, Fq1, PrimeField> for BLS12_381_G1 {
+  type Adder = AffinePointAdder;
 }
 
 /*

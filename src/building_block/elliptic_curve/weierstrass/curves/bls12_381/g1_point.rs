@@ -1,10 +1,6 @@
 use crate::building_block::{
   additive_identity::AdditiveIdentity,
-  elliptic_curve::{
-    affine_point::AffinePoint,
-    weierstrass::curves::bls12_381::fq1::Fq1,
-    new_affine_point::NewAffinePoint,
-  },
+  elliptic_curve::weierstrass::curves::bls12_381::fq1::Fq1,
   field::{
     field_elem_ops::Inverse,
     prime_field_elem::PrimeFieldElem,

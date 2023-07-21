@@ -4,7 +4,7 @@ use crate::building_block::{
     prime_field_elem::PrimeFieldElem,
   },
   elliptic_curve::{
-    curve_equation::CurveEquation,
+    weierstrass::adder::affine_point_adder::AffinePointAdder,
     curve::Curve,
     elliptic_curve_point_ops::EllipticCurvePointOps,
     ec_point::EcPoint,
@@ -14,14 +14,15 @@ use crate::building_block::{
 use num_bigint::BigUint;
 
 #[derive(Clone)]
-pub struct Secp256k1Params {
+pub struct Secp256k1 {
   pub f: PrimeField,    // base prime field
   pub f_n: PrimeField,  // field of order n for convenience
   pub g: EcPoint,  // generator point
   pub n: PrimeFieldElem,  // order of g
+  pub eq: WeierstrassEq<PrimeField, PrimeFieldElem>
 }
 
-impl Secp256k1Params {
+impl Secp256k1 {
   pub fn new() -> Self {
     // base prime field
     let base_field_order = BigUint::parse_bytes(b"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F", 16).unwrap();
@@ -39,69 +40,34 @@ impl Secp256k1Params {
     let n = BigUint::parse_bytes(b"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", 16).unwrap();
     let f_n = PrimeField::new(&n);
 
-    Secp256k1Params {
+    let a1 = f.elem(&0u8);
+    let a2 = f.elem(&0u8);
+    let a3 = f.elem(&0u8);
+    let a4 = f.elem(&0u8);
+    let a6 = f.elem(&7u8);
+    let eq = Box::new(WeierstrassEq::new(&f, &a1, &a2, &a3, &a4, &a6));
+
+    Secp256k1 {
       f,
       f_n,
       g,
       n,
-    }
-  }
-}
-
-#[derive(Clone)]
-pub struct Secp256k1<Op, WeierstrassEq>
-  where Op: ?Sized + EllipticCurvePointOps<EcPoint, PrimeFieldElem, PrimeField>
-{
-  pub params: Secp256k1Params,
-  pub ops: Box<Op>,
-  pub eq: Box<WeierstrassEq>,
-}
-
-impl<Op> Secp256k1<Op, WeierstrassEq<PrimeField, PrimeFieldElem>>
-  where Op: ?Sized + EllipticCurvePointOps<EcPoint, PrimeFieldElem, PrimeField>
-{
-  pub fn new(ops: Box<Op>, params: Secp256k1Params) -> Self {
-    let a1 = params.f.elem(&0u8);
-    let a2 = params.f.elem(&0u8);
-    let a3 = params.f.elem(&0u8);
-    let a4 = params.f.elem(&0u8);
-    let a6 = params.f.elem(&7u8);
-    let eq = Box::new(WeierstrassEq::new(&params.f, &a1, &a2, &a3, &a4, &a6));
-
-    Self {
-      params,
-      ops,
       eq,
     }
   }
 }
 
-impl<Op> Curve<Op, WeierstrassEq<PrimeField, PrimeFieldElem>, EcPoint, PrimeFieldElem, PrimeField>
-  for Secp256k1<Op, WeierstrassEq<PrimeField, PrimeFieldElem>>
-  where Op: EllipticCurvePointOps<EcPoint, PrimeFieldElem, PrimeField> + Clone,
-{
-  fn g(&self) -> EcPoint {
-    self.params.g.clone()
-  }
-
-  fn group(&self) -> PrimeField {
-    self.params.f_n.clone()
-  }
-
-  fn ops(&self) -> Box<Op> {
-    self.ops.clone()
-  }
-
-  fn equation(&self) -> Box<WeierstrassEq<PrimeField, PrimeFieldElem>> {
-      self.eq.clone()
-  }
+impl EllipticCurvePointOps<EcPoint, PrimeFieldElem, PrimeField> for Secp256k1 {
+  type Adder = AffinePointAdder;
 }
 
-impl<Op> CurveEquation<EcPoint> for Secp256k1<Op, WeierstrassEq<PrimeField, PrimeFieldElem>>
-  where Op: EllipticCurvePointOps<EcPoint, PrimeFieldElem, PrimeField> + Clone,
-{
-  fn is_rational_point(&self, pt: &EcPoint) -> bool {
-      self.eq.is_rational_point(pt)
+impl Curve<EcPoint, PrimeFieldElem, PrimeField> for Secp256k1 {
+  fn get_field(&self) -> PrimeField {
+    self.f.clone()
+  }
+
+  fn g(&self) -> EcPoint {
+      self.g.clone()
   }
 }
 
@@ -114,18 +80,8 @@ mod tests {
       prime_field::PrimeField,
       prime_field_elem::PrimeFieldElem,
     },
-    elliptic_curve::{
-      elliptic_curve_point_ops::EllipticCurvePointOps,
-      weierstrass::adder::affine_point_adder::AffinePointAdder,
-    },
+    elliptic_curve::elliptic_curve_point_ops::EllipticCurvePointOps,
   };
-
-  #[derive(Clone)]
-  struct AffineOps();
-
-  impl EllipticCurvePointOps<EcPoint, PrimeFieldElem, PrimeField> for AffineOps {
-    type Adder = AffinePointAdder;
-  }
 
   // trait EllipticCurveOps: EllipticCurvePointOps<EcPoint, PrimeFieldElem, PrimeField, Adder = AffinePointAdder> {
   //   fn box_clone(&self) -> Box<dyn EllipticCurveOps>;
@@ -160,10 +116,9 @@ mod tests {
 
   #[test]
   fn add_same_point() {
-    let params = Secp256k1Params::new();
-    let ops = AffineOps();
-    let f = params.f;
-    let g2 = ops.add(&f, &params.g, &params.g);
+    let curve = Secp256k1::new();
+    let f = curve.f;
+    let g2 = &curve.g + &curve.g;
     let exp_x = BigUint::parse_bytes(b"89565891926547004231252920425935692360644145829622209833684329913297188986597", 10).unwrap();
     let exp_y = BigUint::parse_bytes(b"12158399299693830322967808612713398636155367887041628176798871954788371653930", 10).unwrap();
     assert_eq!(g2.x.n, exp_x);
@@ -177,46 +132,38 @@ mod tests {
 
   #[test]
   fn add_vertical_line() {
-    let params = Secp256k1Params::new();
-    let ops = AffineOps();
-    let f = params.f;
-    let g = &params.g;
+    let curve = Secp256k1::new();
+    let g = &curve.g;
     let a = g.clone();
     let b = EcPoint::new(&a.x, &-&a.y);
-    let exp = EcPoint::inf(&params.f);
-    let act = ops.add(&f, &a, &b);
+    let exp = EcPoint::get_zero();
+    let act = &a + &b;
     assert_eq!(act, exp);
   }
 
   #[test]
   fn add_inf_and_affine() {
-    let params = Secp256k1Params::new();
-    let ops = AffineOps();
-    let f = params.f;
-    let g = &params.g;
-    let inf = EcPoint::inf(&params.f);
-    let inf_plus_g = ops.add(&f, g, &inf);
+    let curve = Secp256k1::new();
+    let g = &curve.g;
+    let inf = EcPoint::get_zero();
+    let inf_plus_g = g + &inf;
     assert_eq!(g, &inf_plus_g);
   }
 
   #[test]
   fn add_affine_and_inf() {
-    let params = Secp256k1Params::new();
-    let ops = AffineOps();
-    let f = params.f;
-    let g = &params.g;
-    let inf = EcPoint::inf(&params.f);
-    let g_plus_inf = ops.add(&f, &inf, g);
+    let curve = Secp256k1::new();
+    let g = &curve.g;
+    let inf = EcPoint::get_zero();
+    let g_plus_inf = &inf + g;
     assert_eq!(g, &g_plus_inf);
   }
 
   #[test]
   fn add_inf_and_inf() {
-    let params = Secp256k1Params::new();
-    let ops = AffineOps();
-    let f = params.f;
-    let inf = EcPoint::inf(&params.f);
-    let inf_plus_inf = ops.add(&f, &inf, &inf);
+    let curve = Secp256k1::new();
+    let inf = EcPoint::get_zero();
+    let inf_plus_inf = &inf + &inf;
     assert_eq!(inf_plus_inf, inf);
   }
 
@@ -277,15 +224,13 @@ mod tests {
 
   #[test]
   fn scalar_mul_smaller_nums() {
-    let params = Secp256k1Params::new();
-    let ops = AffineOps();
-    let f = params.f;
-    let g = &params.g;
-    let curve = Secp256k1::new(ops.clone(), params.clone());
+    let curve = Secp256k1::new();
+    let f = &curve.f;
+    let g = &curve.g;
     let gs = get_g_multiples(&curve);
 
     for n in 1usize..=10 {
-      let res = ops.scalar_mul(&f, g, &BigUint::from(n));
+      let res = curve.scalar_mul(&f, g, &BigUint::from(n));
       assert_eq!(&res, &gs[n]);
     }
   }
@@ -327,12 +272,10 @@ mod tests {
     ];
 
     use std::time::Instant;
-    let params = Secp256k1Params::new();
-    let ops = AffineOps();
-    let f = params.f;
-    let g = &params.g;
+    let curve = Secp256k1::new();
+    let f = &curve.f;
+    let g = &curve.g;
 
-    let curve = Secp256k1::new(ops.clone(), params.clone());
     for t in &test_cases {
       let k = BigUint::parse_bytes(t.k, 16).unwrap();
       let x = BigUint::parse_bytes(t.x, 16).unwrap();
@@ -343,7 +286,7 @@ mod tests {
       );
 
       let beg = Instant::now();
-      let gk = ops.scalar_mul(&f, g, &k);
+      let gk = curve.scalar_mul(&f, g, &k);
       let end = beg.elapsed();
       println!("Large number scalar mul done in {}.{:03} sec", end.as_secs(), end.subsec_nanos() / 1_000_000);
       assert_eq!(p, gk);
@@ -368,11 +311,10 @@ mod tests {
       y: b"8B71E83545FC2B5872589F99D948C03108D36797C4DE363EBD3FF6A9E1A95B10",
     };
 
-    let params = Secp256k1Params::new();
-    let ops = AffineOps();
-    let f = params.f;
+    let curve = Secp256k1::new();
+    let f = &curve.f;
 
-    let curve = Secp256k1::new(ops.clone(), params.clone());
+    let curve = Secp256k1::new();
     let gs = get_g_multiples(&curve);
 
     let test_cases = [
@@ -387,7 +329,7 @@ mod tests {
     ];
 
     for tc in test_cases {
-      let res = ops.add(&gs[tc.a], &gs[tc.b]);
+      let res = &gs[tc.a] + &gs[tc.b];
       assert_eq!(&res, &gs[tc.c]);
     }
 
@@ -396,7 +338,7 @@ mod tests {
     let l2 = large_2.to_ec_point(f);
     let l3 = large_3.to_ec_point(f);
 
-    let l1_plus_l2 = ops.add(&l1, &l2);
+    let l1_plus_l2 = &l1 + &l2;
     assert_eq!(l1_plus_l2, l3);
   }
 }

@@ -9,9 +9,8 @@ use crate::building_block::{
     sha512::Sha512,
   },
   elliptic_curve::{
-    affine_point::AffinePoint,
+    curve::Curve,
     ec_point::EcPoint,
-    new_affine_point::NewAffinePoint,
     elliptic_curve_point_ops::EllipticCurvePointOps,
     weierstrass::adder::affine_point_adder::AffinePointAdder,
   },
@@ -46,6 +45,16 @@ pub struct Ed25519Sha512 {
   zero: PrimeFieldElem,
 }
 
+impl Curve<EcPoint, PrimeFieldElem, PrimeField> for Ed25519Sha512 {
+  fn get_field(&self) -> PrimeField {
+    self.f.clone()
+  }
+
+  fn g(&self) -> EcPoint {
+    self.B.clone() // TODO fix this
+  }
+}
+
 impl EllipticCurvePointOps<EcPoint, PrimeFieldElem, PrimeField> for Ed25519Sha512 {
   type Adder = AffinePointAdder;
 
@@ -59,7 +68,7 @@ impl EllipticCurvePointOps<EcPoint, PrimeFieldElem, PrimeField> for Ed25519Sha51
     let x1x2 = &p1.x * &p2.x;
     let x = (x1y2 + x2y1) / (self.f.elem(&1u8) + (&self.d * &x1x2y1y2));
     let y = (y1y2 + x1x2) / (self.f.elem(&1u8) - (&self.d * x1x2y1y2));
-    EcPoint::new(&x, &y)
+    EcPoint::new(self.curve, &x, &y)
   }
 
   fn inv(&self, _p: &EcPoint) -> EcPoint {
@@ -172,7 +181,7 @@ impl Ed25519Sha512 {
     let y = self.f.elem(&BigUint::from_bytes_le(&pt_buf));
     let x = Self::recover_x(&self.d, &y, x_parity);
 
-    EcPoint::new(&x, &y)
+    EcPoint::new(self, &x, &y)
   }
 
   fn prune_32_byte_buf(buf: &mut [u8; 32]) {
@@ -336,7 +345,7 @@ mod tests {
   fn rfc8032_test_sha_abc() {
     let prv_key = "833fe62409237b9d62ec77587520911e9a759cec1d19755b7da901b96dca3d42";
     let exp_pub_key = "ec172b93ad5e563bf4932c70e1245034c35467ef2efd4d64ebf819683467e2bf";
-    let msg = "ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a2192992a274fc1a836ba3c23a3feebbd454d4423643ce80e2a9ac94fa54ca49f"; 
+    let msg = "ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a2192992a274fc1a836ba3c23a3feebbd454d4423643ce80e2a9ac94fa54ca49f";
     let exp_sig = "dc2a4459e7369633a52b1bf277839a00201009a3efbf3ecb69bea2186c26b58909351fc9ac90b3ecfdfbc7c66431e0303dca179c138ac17ad9bef1177331a704";
     run_rfc8032_test(prv_key, exp_pub_key, &hex::decode(msg).unwrap(), exp_sig);
   }

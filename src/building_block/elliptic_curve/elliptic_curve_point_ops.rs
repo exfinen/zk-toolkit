@@ -1,8 +1,4 @@
 use crate::building_block::{
-  elliptic_curve::{
-    affine_point::AffinePoint,
-    new_affine_point::NewAffinePoint,
-  },
   field::{
     field_elem_ops::Inverse,
     field::Field,

@@ -1,72 +1,56 @@
 use crate::building_block::{
   elliptic_curve::{
-    affine_point::AffinePoint,
     curve::Curve,
     curve_equation::CurveEquation,
     elliptic_curve_point_ops::EllipticCurvePointOps,
     ec_point::EcPoint,
-    new_affine_point::NewAffinePoint,
     weierstrass::adder::point_adder::PointAdder,
   },
   field::{
     field_elem_ops::Inverse,
-    field::Field,
+    prime_field_elem::PrimeFieldElem,
   },
   hasher::{
     hasher::Hasher,
     sha256::Sha256,
   },
-  zero::Zero, additive_identity::AdditiveIdentity,
+  zero::Zero,
+  additive_identity::AdditiveIdentity,
 };
 use num_bigint::BigUint;
 use std::ops::Add;
 
-pub struct Ecdsa<const HASHER_OUT_SIZE: usize, Op, Eq, P, E, F, A>
-where
-  F: Field<F>,
-  E: Zero<E> + AdditiveIdentity<E>,
-  P: Add<P> + Inverse + Zero<P> + AdditiveIdentity<P> + AdditiveIdentity<E> + NewAffinePoint<P, E> + AffinePoint<P, E> + Clone,
-  A: PointAdder<P, F, E>,
-  Op: EllipticCurvePointOps<P, E, F, Adder = A>,
-  Eq: CurveEquation<P> {
-  pub curve: Box<dyn Curve<Op, Eq, P, E, F>>,
-  pub hasher: Box<dyn Hasher<HASHER_OUT_SIZE>>,
+use super::weierstrass::curves::secp256k1::Secp256k1;
+
+pub struct Ecdsa {
+  pub curve: Secp256k1,
+  pub hasher: Sha256,
 }
 
 #[derive(Debug, Clone)]
-pub struct Signature<E> {
-  pub r: E,
-  pub s: E,
+pub struct Signature {
+  pub r: PrimeFieldElem,
+  pub s: PrimeFieldElem,
 }
 
-impl<const HASHER_OUT_SIZE: usize, Op, Eq, P, E, F, A> Ecdsa<HASHER_OUT_SIZE, Op, Eq, P, E, F, A>
-  where
-    F: Field<F>,
-    E: Zero<E> + AdditiveIdentity<E>,
-    P: Add<P> + Zero<P> + Inverse + AdditiveIdentity<P> + AdditiveIdentity<E> + NewAffinePoint<P, E> + AffinePoint<P, E> + Clone,
-    A: PointAdder<P, F, E>,
-    Op: EllipticCurvePointOps<P, E, F, Adder = A>,
-    Eq: CurveEquation<P> {
-
-  pub fn new(
-    curve: Box<dyn Curve<Op, Eq, P, E, F>>,
-    hasher: Box<dyn Hasher<HASHER_OUT_SIZE>>,
-  ) -> Self {
+impl Ecdsa {
+  pub fn new() -> Self {
+    let curve = Secp256k1::new();
+    let hasher = Sha256();
     Ecdsa { curve, hasher }
   }
 
-  pub fn gen_pub_key(&self, priv_key: &E) -> P {
-    let g = &self.curve.g();
-    self.curve.ops().scalar_mul(g, &priv_key)
+  pub fn gen_pub_key(&self, priv_key: &E) -> EcPoint {
+    let g = &self.curve.g;
+    self.curve.scalar_mul(g, &priv_key)
   }
 
-  pub fn sign(&mut self, priv_key: &E, message: &[u8]) -> Result<Signature<E>, String> {
+  pub fn sign(&mut self, priv_key: &E, message: &[u8]) -> Result<Signature, String> {
     // n is 32-byte long in secp256k1
     // dA = private key in [1, n-1]
     let f_n = self.curve.group();
     let n = &f_n.order;
-    let ops = &self.curve.ops();
-    let g = &self.curve.g();
+    let g = &self.curve.g;
     let sha256 = Sha256();
 
     loop {
@@ -102,14 +86,13 @@ impl<const HASHER_OUT_SIZE: usize, Op, Eq, P, E, F, A> Ecdsa<HASHER_OUT_SIZE, Op
   }
 
   // pub key is modulo p. not n which is the order of g
-  pub fn verify(&self, sig: &Signature<E>, pub_key: &P, message: &[u8]) -> bool {
-    let curve_group = &self.curve.group();
+  pub fn verify(&self, sig: &Signature, pub_key: &EcPoint, message: &[u8]) -> bool {
+    let curve_group = &self.curve.get_field();
     let n = &curve_group.order;
     let g = &self.curve.g();
-    let ops = &self.curve.ops();
 
     // confirm pub_key is not inf
-    if pub_key.is_inf {
+    if pub_key.is_zero() {
       false
     }
     // confirm pub_key is on the curve
@@ -117,13 +100,13 @@ impl<const HASHER_OUT_SIZE: usize, Op, Eq, P, E, F, A> Ecdsa<HASHER_OUT_SIZE, Op
       false
     }
     // confirm n * pub_key is inf
-    else if !ops.scalar_mul(pub_key, n).is_inf {
+    else if !self.curve.scalar_mul(pub_key, n).is_inf {
       false
     }
     // check if r and s are in [1, n-1]
     else if
-      *&sig.r.n.is_zero()
-      || *&sig.s.n.is_zero()
+      *&sig.r.is_zero()
+      || *&sig.s.is_zero()
       || n <= &sig.r.n
       || n <= &sig.s.n {
       false
@@ -138,9 +121,9 @@ impl<const HASHER_OUT_SIZE: usize, Op, Eq, P, E, F, A> Ecdsa<HASHER_OUT_SIZE, Op
       let u2 = &sig.r * w;  // mod n
 
       // (x, y) = u1 * G + u2 * PubKey
-      let p1 = ops.scalar_mul(&g, &u1.n);
-      let p2 = ops.scalar_mul(&pub_key, &u2.n);
-      let p3 = ops.add(&p1, &p2);
+      let p1 = self.curve.scalar_mul(&g, &u1.n);
+      let p2 = self.curve.scalar_mul(&pub_key, &u2.n);
+      let p3 = self.curve.add(&p1, &p2);
       sig.r.n == (p3.x.n % n)
     }
   }

@@ -1,8 +1,5 @@
 use crate::building_block::{
-  elliptic_curve::{
-    affine_point::AffinePoint,
-    curve_equation::CurveEquation,
-  },
+  elliptic_curve::curve_equation::CurveEquation,
   field::{
     prime_field::PrimeField,
     prime_field_elem::PrimeFieldElem,
@@ -41,10 +38,10 @@ impl WeierstrassEq<PrimeField, PrimeFieldElem> {
   }
 }
 
-impl<F, E, P> CurveEquation<P> for WeierstrassEq<F, E>
+impl<F, E, P, C> CurveEquation<P> for WeierstrassEq<F, E>
   where
     E: Zero<E> + AdditiveIdentity<E>,
-    P: AffinePoint<P, E> + AdditiveIdentity<E> + AdditiveIdentity<P> + Zero<P>
+    P: AdditiveIdentity<E> + AdditiveIdentity<P> + Zero<P>
 {
   fn is_rational_point(&self, pt: &P) -> bool {
     if pt.is_zero() {

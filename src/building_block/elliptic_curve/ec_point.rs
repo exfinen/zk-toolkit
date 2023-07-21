@@ -3,11 +3,11 @@ use crate::building_block::{
   field::{
     field_elem_ops::Inverse,
     prime_field_elem::PrimeFieldElem,
+    prime_field::PrimeField,
   },
   elliptic_curve::{
-    affine_point::AffinePoint,
+    curve::Curve,
     jacobian_point::JacobianPoint,
-    new_affine_point::NewAffinePoint,
   },
   zero::Zero,
 };
@@ -15,13 +15,14 @@ use std::ops::Add;
 
 #[derive(Debug, Clone)]
 pub struct EcPoint {
+  pub curve: Box<dyn Curve<EcPoint, PrimeFieldElem, PrimeField>>,
   pub x: PrimeFieldElem,
   pub y: PrimeFieldElem,
   pub is_inf: bool,
 }
 
-impl From<JacobianPoint<EcPoint>> for EcPoint {
-  fn from(pt: JacobianPoint<EcPoint>) -> Self {
+impl From<JacobianPoint> for EcPoint {
+  fn from(pt: JacobianPoint) -> Self {
     if pt.z.is_zero() {
       panic!("z is not expected to be zero");
     } else {
@@ -30,6 +31,7 @@ impl From<JacobianPoint<EcPoint>> for EcPoint {
       let x = &pt.x / z2;
       let y = &pt.y / z3;
       EcPoint {
+        curve: pt.curve,
         x,
         y,
         is_inf: false,
@@ -52,6 +54,7 @@ impl Inverse for EcPoint {
       panic!("Cannot calculate the inverse of zero");
     }
     EcPoint {
+      curve: self.curve,
       x: self.x.clone(),
       y: self.y.inv(),
       is_inf: false,
@@ -62,6 +65,7 @@ impl Inverse for EcPoint {
 impl Zero<EcPoint> for EcPoint {
   fn get_zero(t: &EcPoint) -> EcPoint {
       EcPoint {
+        curve: t.curve,
         x: t.x.get_additive_identity(),
         y: t.x.get_additive_identity(),
         is_inf: true,
@@ -76,27 +80,6 @@ impl Zero<EcPoint> for EcPoint {
 impl AdditiveIdentity<PrimeFieldElem> for EcPoint {
   fn get_additive_identity(&self) -> PrimeFieldElem {
     self.x.get_additive_identity()
-  }
-}
-
-impl AffinePoint<EcPoint, PrimeFieldElem> for EcPoint {
-  type E = PrimeFieldElem;
-
-  fn x(&self) -> PrimeFieldElem {
-    self.x
-  }
-  fn y(&self) -> PrimeFieldElem {
-    self.y
-  }
-}
-
-impl NewAffinePoint<EcPoint, PrimeFieldElem> for EcPoint {
-  fn new(x: &PrimeFieldElem, y: &PrimeFieldElem) -> Self {
-    EcPoint {
-      x: x.clone(),
-      y: y.clone(),
-      is_inf: false,
-    }
   }
 }
 
@@ -125,6 +108,7 @@ impl Eq for EcPoint {}
 impl AdditiveIdentity<EcPoint> for EcPoint {
   fn get_additive_identity(&self) -> EcPoint {
     EcPoint {
+      curve: self.curve,
       x: self.x.get_zero(),
       y: self.x.get_zero(),
       is_inf: true,
