@@ -18,4 +18,5 @@ where
   fn n(&self) -> BigUint;    // order of g
   fn eq(&self) -> Box<WeierstrassEq<E>>;
   fn point_at_infinity(&self) -> P;
+  fn get_curve(&self) -> Self;
 }

@@ -9,6 +9,7 @@ use crate::building_block::{
     fq1::Fq1,
   },
   field::field_elem_ops::Inverse,
+  zero::Zero,
 };
 
 #[derive(Debug, Clone)]
@@ -25,10 +26,10 @@ impl Fq2 {
 
 impl AdditiveIdentity<Fq2> for Fq2 {
   fn get_additive_identity(&self) -> Self {
-      Self {
-        u1: Fq1::get_zero(),
-        u0: Fq1::get_zero(),
-      }
+    Self {
+      u1: Fq1::get_additive_identity(&self.u0),
+      u0: Fq1::get_additive_identity(&self.u0),
+    }
   }
 }
 
@@ -120,7 +121,7 @@ mod tests {
   use super::*;
 
   fn to_strs(x: &Fq2) -> [String; 2] {
-    [x.u1.n.to_string(), x.u0.n.to_string()]
+    [x.u1.e.to_string(), x.u0.e.to_string()]
   }
 
   #[test]

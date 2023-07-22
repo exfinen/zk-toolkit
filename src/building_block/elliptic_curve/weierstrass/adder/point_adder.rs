@@ -15,5 +15,5 @@ pub trait PointAdder<P, E, F, C>
     C: Curve<P, E, F>,
     P: AffinePoint<Element=E> + Add<P> + Zero<P> + AdditiveIdentity<P> + Inverse + Clone,
 {
-  fn add(curve: &C, p1: &P, p2: &P) -> P;
+  fn add(curve: &Box<C>, p1: &P, p2: &P) -> P;
 }

@@ -41,16 +41,16 @@ impl Inverse for Fq12 {
 }
 
 impl AdditiveIdentity<Fq12> for Fq12 {
-  fn get_additive_identity() -> Self {
+  fn get_additive_identity(&self) -> Self {
     Self {
-      w1: Fq6::zero(),
-      w0: Fq6::zero(),
+      w1: Fq6::get_additive_identity(&self.w0),
+      w0: Fq6::get_additive_identity(&self.w0),
     }
   }
 }
 
 impl Reduce for Fq12 {
-  fn reduce(_n: &Self) -> Self {
+  fn reduce(&self) -> Self {
     panic!("Not implemented");
   }
 }
@@ -125,19 +125,19 @@ mod tests {
 
   fn to_strs(x: &Fq12) -> [String; 12] {
     [
-      x.w1.v2.u1.n.to_string(),
-      x.w1.v2.u0.n.to_string(),
-      x.w1.v1.u1.n.to_string(),
-      x.w1.v1.u0.n.to_string(),
-      x.w1.v0.u1.n.to_string(),
-      x.w1.v0.u0.n.to_string(),
+      x.w1.v2.u1.e.to_string(),
+      x.w1.v2.u0.e.to_string(),
+      x.w1.v1.u1.e.to_string(),
+      x.w1.v1.u0.e.to_string(),
+      x.w1.v0.u1.e.to_string(),
+      x.w1.v0.u0.e.to_string(),
 
-      x.w0.v2.u1.n.to_string(),
-      x.w0.v2.u0.n.to_string(),
-      x.w0.v1.u1.n.to_string(),
-      x.w0.v1.u0.n.to_string(),
-      x.w0.v0.u1.n.to_string(),
-      x.w0.v0.u0.n.to_string(),
+      x.w0.v2.u1.e.to_string(),
+      x.w0.v2.u0.e.to_string(),
+      x.w0.v1.u1.e.to_string(),
+      x.w0.v1.u0.e.to_string(),
+      x.w0.v0.u1.e.to_string(),
+      x.w0.v0.u0.e.to_string(),
     ]
   }
 

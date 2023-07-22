@@ -15,11 +15,11 @@ use num_bigint::BigUint;
 
 #[derive(Clone)]
 pub struct Secp256k1 {
-  pub f: PrimeField,    // base prime field
-  pub f_n: PrimeField,  // field of order n for convenience
-  pub g: Option<EcPoint>,  // generator point
-  pub n: BigUint,  // order of g
-  pub eq: Box<WeierstrassEq<PrimeFieldElem>>,
+  f: PrimeField,    // base prime field
+  f_n: PrimeField,  // field of order n for convenience
+  g: Option<EcPoint>,  // generator point
+  n: BigUint,  // order of g
+  eq: Box<WeierstrassEq<PrimeFieldElem>>,
 }
 
 impl Secp256k1 {
@@ -89,7 +89,11 @@ impl Curve<EcPoint, PrimeFieldElem, PrimeField> for Secp256k1 {
   }
 
   fn point_at_infinity(&self) -> EcPoint {
-    self.g.get_additive_identity()
+    self.g.unwrap().get_additive_identity()
+  }
+
+  fn get_curve(&self) -> Self {
+    self.clone()
   }
 }
 
@@ -155,10 +159,10 @@ mod tests {
   #[test]
   fn add_vertical_line() {
     let curve = Secp256k1::new();
-    let g = &curve.g;
+    let g = &curve.g();
     let a = g.clone();
     let b = EcPoint::new(&a.x, &-&a.y);
-    let exp = EcPoint::get_zero();
+    let exp = EcPoint::get_additive_identity(&g);
     let act = &a + &b;
     assert_eq!(act, exp);
   }
@@ -166,8 +170,8 @@ mod tests {
   #[test]
   fn add_inf_and_affine() {
     let curve = Secp256k1::new();
-    let g = &curve.g;
-    let inf = EcPoint::get_zero();
+    let g = &curve.g();
+    let inf = EcPoint::get_additive_identity(g);
     let inf_plus_g = g + &inf;
     assert_eq!(g, &inf_plus_g);
   }
@@ -175,8 +179,8 @@ mod tests {
   #[test]
   fn add_affine_and_inf() {
     let curve = Secp256k1::new();
-    let g = &curve.g;
-    let inf = EcPoint::get_zero();
+    let g = &curve.g();
+    let inf = EcPoint::get_additive_identity(g);
     let g_plus_inf = &inf + g;
     assert_eq!(g, &g_plus_inf);
   }
@@ -184,7 +188,7 @@ mod tests {
   #[test]
   fn add_inf_and_inf() {
     let curve = Secp256k1::new();
-    let inf = EcPoint::get_zero();
+    let inf = EcPoint::get_additive_identity(&curve.g());
     let inf_plus_inf = &inf + &inf;
     assert_eq!(inf_plus_inf, inf);
   }
@@ -236,10 +240,10 @@ mod tests {
       Xy { _n: "9", x: b"ACD484E2F0C7F65309AD178A9F559ABDE09796974C57E714C35F110DFC27CCBE", y: b"CC338921B0A7D9FD64380971763B61E9ADD888A4375F8E0F05CC262AC64F9C37" },
       Xy { _n: "10", x: b"A0434D9E47F3C86235477C7B1AE6AE5D3442D49B1943C2B752A68E2A47E247C7", y: b"893ABA425419BC27A3B6C7E693A24C696F794C2ED877A1593CBEE53B037368D7" },
     ];
-    let g = &curve.params.g;
+    let g = &curve.g();
     let mut gs = vec![g.clone()];  // gs[0] is used to match index and g's n and will not be actually used
     for p in ps {
-      gs.push(p.to_ec_point(&curve.params.f));
+      gs.push(p.to_ec_point(&curve.f());
     }
     gs
   }

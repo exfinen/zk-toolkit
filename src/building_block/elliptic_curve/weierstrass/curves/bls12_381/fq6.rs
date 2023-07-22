@@ -9,6 +9,7 @@ use crate::building_block::{
     fq2::Fq2,
   },
   field::field_elem_ops::Inverse,
+  zero::Zero,
 };
 
 #[derive(Debug, Clone)]
@@ -37,11 +38,11 @@ impl Inverse for Fq6 {
 }
 
 impl AdditiveIdentity<Fq6> for Fq6 {
-  fn get_additive_identity() -> Self {
+  fn get_additive_identity(&self) -> Self {
     Self {
-      v2: Fq2::zero(),
-      v1: Fq2::zero(),
-      v0: Fq2::zero(),
+      v2: Fq2::get_additive_identity(&self.v0),
+      v1: Fq2::get_additive_identity(&self.v0),
+      v0: Fq2::get_additive_identity(&self.v0),
     }
   }
 }
@@ -70,7 +71,7 @@ impl Neg for Fq6 {
   type Output = Fq6;
 
   fn neg(self) -> Self::Output {
-    Self::zero() - self
+    self.get_additive_identity() - self
   }
 }
 
@@ -152,12 +153,12 @@ mod tests {
 
   fn to_strs(x: &Fq6) -> [String; 6] {
     [
-      x.v2.u1.n.to_string(),
-      x.v2.u0.n.to_string(),
-      x.v1.u1.n.to_string(),
-      x.v1.u0.n.to_string(),
-      x.v0.u1.n.to_string(),
-      x.v0.u0.n.to_string(),
+      x.v2.u1.e.to_string(),
+      x.v2.u0.e.to_string(),
+      x.v1.u1.e.to_string(),
+      x.v1.u0.e.to_string(),
+      x.v0.u1.e.to_string(),
+      x.v0.u0.e.to_string(),
     ]
   }
 

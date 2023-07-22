@@ -20,10 +20,10 @@ pub struct JacobianPointAdder();
 impl<P, C, E, F> PointAdder<P, E, F, C> for JacobianPointAdder
   where
     E:Zero<E> + AdditiveIdentity<E> + PartialEq<E> + Add<E> + Sub<E> + Mul<E> + Div<E>,
-    C: Curve<P, E, F>,
+    C: Curve<P, E, F> + Clone,
     P: AffinePoint<Element=E> + Add<P> + Zero<P> + AdditiveIdentity<P> + Inverse + Clone,
 {
-  fn add(curve: &C, p1: &P, p2: &P) -> P {
+  fn add(curve: &Box<C>, p1: &P, p2: &P) -> P {
     if p1.is_zero() && p2.is_zero() {  // zero + zero is zero
       p1.clone()
     } else if p1.is_zero() {  // adding p2 to zero is p2
@@ -53,7 +53,7 @@ impl<P, C, E, F> PointAdder<P, E, F, C> for JacobianPointAdder
       let z3 = jp.y * 2u8;
 
       let jp2 = JacobianPoint {
-        curve: p1.curve.clone(),
+        curve: curve.clone(),
         x: x3,
         y: y3,
         z: z3,

@@ -46,25 +46,27 @@ pub struct Ed25519Sha512 {
   d: PrimeFieldElem,
   one: PrimeFieldElem,
   zero: PrimeFieldElem,
+  eq: Box<WeierstrassEq<PrimeFieldElem>>
 }
 
 impl Curve<EcPoint, PrimeFieldElem, PrimeField> for Ed25519Sha512 {
   fn eq(&self) -> Box<WeierstrassEq<PrimeFieldElem>> {
-
+    self.eq.clone()
   }
   fn f(&self) -> PrimeField {
-
+    self.f.clone()
   }
   fn f_n(&self) -> PrimeField {
-
+    self.f.clone()  // TODO fix this
   }
   fn g(&self) -> EcPoint {
-
+    self.B.clone()  // TODO fix this
   }
-  fn n(&self) -> EcPoint {
-
+  fn n(&self) -> BigUint  {
+    self.l.clone()  // TODO fix this
   }
   fn point_at_infinity(&self) -> EcPoint {
+    self.B.clone()  // TODO fix this
   }
 }
 
@@ -79,9 +81,14 @@ impl EllipticCurvePointOps<EcPoint, PrimeFieldElem, PrimeField, Ed25519Sha512> f
     let x1x2y1y2 = &x1y2 * &x2y1;
     let y1y2 = &p1.y * &p2.y;
     let x1x2 = &p1.x * &p2.x;
-    let x = (x1y2 + x2y1) / (self.f.elem(&1u8) + (&self.d * &x1x2y1y2));
-    let y = (y1y2 + x1x2) / (self.f.elem(&1u8) - (&self.d * x1x2y1y2));
-    EcPoint::new(self.curve, &x, &y)
+    let x = (x1y2 + x2y1) / (curve.f.elem(&1u8) + (&curve.d * &x1x2y1y2));
+    let y = (y1y2 + x1x2) / (curve.f.elem(&1u8) - (&curve.d * x1x2y1y2));
+    EcPoint {
+      curve: curve.clone(),
+      x: x,
+      y: y,
+      is_inf: false,
+    }
   }
 
   fn inv(&self, _p: &EcPoint) -> EcPoint {
@@ -122,7 +129,17 @@ impl Ed25519Sha512 {
     let one = f.elem(&1u8);
     let zero = f.elem(&0u8);
 
-    Ed25519Sha512 { H, f, l, B, d, one, zero }
+    // just a dummy place holder. TODO fix this part
+    let a1 = f.elem(&0u8);
+    let a2 = f.elem(&0u8);
+    let a3 = f.elem(&0u8);
+    let a4 = f.elem(&0u8);
+    let a6 = f.elem(&0u8);
+    let eq = WeierstrassEq::new(
+      &a1, &a2, &a3, &a4, &a6,
+    );
+
+    Ed25519Sha512 { H, f, l, B, d, one, zero, eq }
   }
 
   fn get_parity(e: &PrimeFieldElem) -> Parity {

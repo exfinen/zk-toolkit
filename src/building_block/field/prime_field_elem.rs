@@ -1,20 +1,18 @@
 use crate::building_block::{
-  additive_identity::AdditiveIdentity,
   field::{
-    field_elem_ops::Inverse,
     prime_field::PrimeField,
     prime_field_elems::PrimeFieldElems,
   },
   to_biguint::ToBigUint,
   zero::Zero,
 };
-use num_bigint::BigUint;
+use num_bigint::{BigUint, BigInt, ToBigInt};
+use num_traits::{Zero as NumTraitZero, One, ToPrimitive};
 use std::{
   cmp::{PartialOrd, Ord, Ordering},
   ops,
-  ops::{Deref, Rem},
+  ops::{Deref, Rem, BitAnd, ShrAssign},
 };
-use num_traits::{One, Zero as NumTraitsZero};
 use bitvec::{
   prelude::Lsb0,
   view::BitView,
@@ -22,23 +20,8 @@ use bitvec::{
 
 #[derive(Debug, Clone, Hash)]
 pub struct PrimeFieldElem {
-  pub f: PrimeField,
+  pub f: Box<PrimeField>,
   pub e: BigUint,
-}
-
-impl Inverse for PrimeFieldElem {
-  fn inv(&self) -> Self {
-    self.safe_inv().unwrap()
-  }
-}
-
-impl AdditiveIdentity<PrimeFieldElem> for PrimeFieldElem {
-  fn get_additive_identity(&self) -> PrimeFieldElem {
-    PrimeFieldElem {
-      f: self.f.clone(),
-      e: BigUint::from(0u8)
-    }
-  }
 }
 
 impl ToBigUint for PrimeFieldElem {
@@ -47,10 +30,29 @@ impl ToBigUint for PrimeFieldElem {
   }
 }
 
-impl Zero<PrimeFieldElem> for PrimeFieldElem {
-  fn get_zero(t: &PrimeFieldElem) -> Self {
+impl BitAnd for PrimeFieldElem {
+  type Output = Self;
+
+  fn bitand(self, rhs: Self) -> Self::Output {
+    let e = self.e & rhs.e;
     PrimeFieldElem {
-      f: t.f.clone(),
+      f: self.f.clone(),
+      e,
+    }
+  }
+}
+
+impl ShrAssign for PrimeFieldElem {
+  fn shr_assign(&mut self, rhs: Self) {
+    let n = rhs.e.to_u64().unwrap();
+    self.e >>= n;
+  }
+}
+
+impl Zero<PrimeFieldElem> for PrimeFieldElem {
+  fn zero(&self) -> Self {
+    PrimeFieldElem {
+      f: self.f.clone(),
       e: BigUint::from(0u8),
     }
   }
@@ -187,7 +189,7 @@ impl<'a> ops::Neg for &'a PrimeFieldElem {
 }
 
 impl PrimeFieldElem {
-  pub fn new(f: &PrimeField, e: &impl ToBigUint) -> Self {
+  pub fn new(f: Box<PrimeField>, e: &impl ToBigUint) -> Self {
     let e = e.to_biguint();
     let f = f.clone();
     if e.ge(&f.order) {
@@ -294,16 +296,21 @@ impl PrimeFieldElem {
     if self.e == BigUint::zero() {
       return Err("Cannot find inverse of zero".to_string());
     }
+    let order = self.f.order.to_bigint().unwrap();
+    let v = self.e.to_bigint().unwrap();
+    let zero = BigInt::zero();
+    let one = BigInt::one();
+
     // x0*a + y0*b = a
     // x1*a + y1*b = b
-    let mut r0 = self.e.clone();  // initially equals to a
-    let mut r1 = self.f.order.clone();  // initially equals to b
-    let mut x0 = BigUint::one();
-    let mut y0 = BigUint::zero();
-    let mut x1 = BigUint::zero();
-    let mut y1 = BigUint::one();
+    let mut r0 = v.clone();  // initially equals to a
+    let mut r1 = order.clone();  // initially equals to b
+    let mut x0 = one.clone();
+    let mut y0 = zero.clone();
+    let mut x1 = zero.clone();
+    let mut y1 = one.clone();
 
-    while r1 != BigUint::zero() {
+    while r1 != zero {
       // a mod b
       // = a - q*b
       // = (x0*a + y0*b) - q*(x1*a + y1*b)
@@ -328,16 +335,16 @@ impl PrimeFieldElem {
 
     // if the result is not a field element, convert it to a field element
     let mut new_v = x0;
-    if new_v < BigUint::zero() {
-      while new_v < BigUint::zero() {
-        new_v += &self.f.order;
+    if new_v < zero.clone() {
+      while new_v < zero.clone() {
+        new_v += &order;
       }
     } else {
-      if &new_v >= &self.f.order {
-        new_v %= &self.f.order;
+      if &new_v >= &order {
+        new_v %= order;
       }
     }
-    Ok(PrimeFieldElem { f: self.f.clone(), e: new_v.to_biguint() })
+    Ok(PrimeFieldElem { f: self.f.clone(), e: new_v.to_biguint().unwrap() })
   }
 
   pub fn inv(&self) -> PrimeFieldElem {
