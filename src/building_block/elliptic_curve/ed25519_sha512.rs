@@ -12,7 +12,10 @@ use crate::building_block::{
     curve::Curve,
     ec_point::EcPoint,
     elliptic_curve_point_ops::EllipticCurvePointOps,
-    weierstrass::adder::affine_point_adder::AffinePointAdder,
+    weierstrass::{
+      adder::affine_point_adder::AffinePointAdder,
+      weierstrass_eq::WeierstrassEq,
+    },
   },
   zero::Zero,
 };
@@ -46,16 +49,26 @@ pub struct Ed25519Sha512 {
 }
 
 impl Curve<EcPoint, PrimeFieldElem, PrimeField> for Ed25519Sha512 {
-  fn get_field(&self) -> PrimeField {
-    self.f.clone()
-  }
+  fn eq(&self) -> WeierstrassEq<PrimeFieldElem> {
 
+  }
+  fn f(&self) -> PrimeField {
+
+  }
+  fn f_n(&self) -> PrimeField {
+
+  }
   fn g(&self) -> EcPoint {
-    self.B.clone() // TODO fix this
+
+  }
+  fn n(&self) -> EcPoint {
+
+  }
+  fn point_at_infinity(&self) -> EcPoint {
   }
 }
 
-impl EllipticCurvePointOps<EcPoint, PrimeFieldElem, PrimeField> for Ed25519Sha512 {
+impl EllipticCurvePointOps<EcPoint, PrimeFieldElem, PrimeField, Ed25519Sha512> for Ed25519Sha512 {
   type Adder = AffinePointAdder;
 
   // Edwards Addition Law

@@ -1,24 +1,31 @@
 use crate::building_block::{
+  elliptic_curve::{
+    curve::Curve,
+    ec_point::EcPoint,
+    weierstrass::adder::point_adder::PointAdder,
+  },
   field::{
     field_elem_ops::Inverse,
-    field::Field,
+    prime_field::PrimeField,
+    prime_field_elem::PrimeFieldElem,
   },
   zero::Zero, additive_identity::AdditiveIdentity,
 };
-use std::ops::{BitAnd, ShrAssign};
+use std::ops::Add;
 
-pub trait EllipticCurvePointOps<P, E, F>
+pub trait EllipticCurvePointOps<P, E, F, C>
   where
-    F: Field<F>,
-    P: Zero<P> + AdditiveIdentity<P> + AdditiveIdentity<E> + Clone + Inverse,
+    C: Curve<P, E, F>,
+    E: Clone,
+    P: Zero<P> + Add<P> + AdditiveIdentity<P> + Clone + Inverse,
 {
-  type Adder;
+  type Adder: PointAdder<P, C>;
 
-  fn add(f: &F, p1: &P, p2: &P) -> P {
-    Self::Adder::add(f, p1, p2);
+  fn add(&self, p1: &P, p2: &P) -> P {
+    Self::Adder::add(self, p1, p2)
   }
 
-  fn vector_add(f: &F, ps: &[&P]) -> P {
+  fn vector_add(&self, ps: &[&P]) -> P {
     if ps.len() == 0 {
       panic!("cannot get the sum of empty slice");
     } else if ps.len() == 1 {
@@ -26,13 +33,13 @@ pub trait EllipticCurvePointOps<P, E, F>
     } else {
       let sum = ps[0].clone();
       for p in &ps[1..] {
-        Self::Adder::add(f, &sum, p);
+        Self::Adder::add(self, &sum, p);
       }
       sum
     }
   }
 
-  fn scalar_mul(f: &F, pt: &P, multiplier: &E) -> P {
+  fn scalar_mul(&self, pt: &P, multiplier: &E) -> P {
     let mut n = multiplier.clone();
     let mut res = P::get_zero(pt);
     let mut pt_pow_n = pt.clone();
@@ -40,9 +47,9 @@ pub trait EllipticCurvePointOps<P, E, F>
 
     while !n.is_zero() {
       if n.clone().bitand(&one).is_one() {
-        res = Self::Adder::add(f, &res, &pt_pow_n);
+        res = Self::Adder::add(self, &res, &pt_pow_n);
       }
-      pt_pow_n = Self::Adder::add(f, &pt_pow_n, &pt_pow_n);
+      pt_pow_n = Self::Adder::add(self, &pt_pow_n, &pt_pow_n);
       n.shr_assign(1usize);
     }
     res

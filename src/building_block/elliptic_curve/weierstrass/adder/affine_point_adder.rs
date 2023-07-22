@@ -2,35 +2,31 @@ use crate::building_block::{
   additive_identity::AdditiveIdentity,
   elliptic_curve::{
     affine_point::AffinePoint,
-    new_affine_point::NewAffinePoint,
     weierstrass::adder::point_adder::PointAdder,
   },
-  field::field::Field,
   zero::Zero,
 };
 use std::ops::Add;
 
 pub struct AffinePointAdder();
 
-impl<P, E> PointAdder<P> for AffinePointAdder
+impl<P, C> PointAdder<P, C> for AffinePointAdder
   where
-    P: Add<P> + NewAffinePoint<P, E> + Zero<P> + AdditiveIdentity<E> + AdditiveIdentity<P> + AffinePoint<P, E> + Clone,
+    P: AffinePoint<Element=P> + Add<P> + Zero<P> + AdditiveIdentity<P> + Clone,
 {
-  type Element = E;
-
-  fn add(&self, p1: &P, p2: &P) -> P {
+  fn add(curve: &C, p1: &P, p2: &P) -> P {
     if p1.is_zero() && p2.is_zero() {  // inf + inf is inf
-      F::get_zero(&f)
+      p1.get_zero()
     } else if p1.is_zero() {  // adding p2 to inf is p2
       p2.clone()
     } else if p2.is_zero() {  // adding p1 to inf is p1
       p1.clone()
-    } else if p1.x == p2.x && p1.y != p2.y {  // if line through p1 and p2 is vertical line
-      F::get_zero(&f)
-    } else if p1.x == p2.x && p1.y == p2.y {  // if adding the same point
+    } else if p1.x() == p2.x() && p1.y() != p2.y() {  // if line through p1 and p2 is vertical line
+      curve.g().get_additive_identity()
+    } else if p1.x() == p2.x() && p1.y() == p2.y() {  // if adding the same point
       // special case: if y == 0, the tangent line is vertical
       if p1.x.is_zero() || p2.y.is_zero() {
-        return F::get_zero(&f);
+        return curve.g().get_additive_identity()
       }
       // differentiate y^2 = x^3 + Ax + B w/ implicit differentiation
       // d/dx(y^2) = d/dx(x^3 + Ax + B)

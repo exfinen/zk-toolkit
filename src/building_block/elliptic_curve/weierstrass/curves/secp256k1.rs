@@ -8,8 +8,8 @@ use crate::building_block::{
     curve::Curve,
     elliptic_curve_point_ops::EllipticCurvePointOps,
     ec_point::EcPoint,
-    weierstrass::equation::WeierstrassEq,
-  },
+    weierstrass::weierstrass_eq::WeierstrassEq,
+  }, additive_identity::AdditiveIdentity,
 };
 use num_bigint::BigUint;
 
@@ -19,7 +19,7 @@ pub struct Secp256k1 {
   pub f_n: PrimeField,  // field of order n for convenience
   pub g: EcPoint,  // generator point
   pub n: PrimeFieldElem,  // order of g
-  pub eq: WeierstrassEq<PrimeField, PrimeFieldElem>
+  pub eq: WeierstrassEq<PrimeFieldElem>,
 }
 
 impl Secp256k1 {
@@ -57,17 +57,33 @@ impl Secp256k1 {
   }
 }
 
-impl EllipticCurvePointOps<EcPoint, PrimeFieldElem, PrimeField> for Secp256k1 {
+impl EllipticCurvePointOps<EcPoint, PrimeFieldElem, PrimeField, Secp256k1> for Secp256k1 {
   type Adder = AffinePointAdder;
 }
 
 impl Curve<EcPoint, PrimeFieldElem, PrimeField> for Secp256k1 {
-  fn get_field(&self) -> PrimeField {
+  fn eq(&self) -> WeierstrassEq<PrimeFieldElem> {
+    self.eq.clone()
+  }
+
+  fn f(&self) -> PrimeField {
     self.f.clone()
   }
 
+  fn f_n(&self) -> PrimeField {
+    self.f_n.clone()
+  }
+
   fn g(&self) -> EcPoint {
-      self.g.clone()
+    self.g.clone()
+  }
+
+  fn n(&self) -> EcPoint {
+    self.n.clone()
+  }
+
+  fn point_at_infinity(&self) -> EcPoint {
+    self.g.get_additive_identity()
   }
 }
 
@@ -200,8 +216,8 @@ mod tests {
     }
   }
 
-  fn get_g_multiples<'a, T>(curve: &Secp256k1<T, WeierstrassEq<PrimeField, PrimeFieldElem>>) -> Vec<EcPoint>
-    where T: ?Sized + EllipticCurvePointOps<EcPoint, PrimeFieldElem, PrimeField> {
+  fn get_g_multiples<'a, T>(curve: &Secp256k1) -> Vec<EcPoint>
+    where T: ?Sized + EllipticCurvePointOps<EcPoint, PrimeFieldElem, PrimeField, Secp256k1> {
     let ps = vec![
       Xy { _n: "1", x: b"79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798", y: b"483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8" },
       Xy { _n: "2", x: b"C6047F9441ED7D6D3045406E95C07CD85C778E4B8CEF3CA7ABAC09B95C709EE5", y: b"1AE168FEA63DC339A3C58419466CEAEEF7F632653266D0E1236431A950CFE52A" },

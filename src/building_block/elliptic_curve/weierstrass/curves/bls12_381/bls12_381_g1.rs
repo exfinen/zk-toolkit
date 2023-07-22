@@ -4,7 +4,6 @@ use crate::building_block::{
     prime_field_elem::PrimeFieldElem,
   },
   elliptic_curve::{
-    curve_equation::CurveEquation,
     curve::Curve,
     elliptic_curve_point_ops::EllipticCurvePointOps,
     weierstrass::{
@@ -12,9 +11,10 @@ use crate::building_block::{
         fq1::{Fq1, FIELD_ORDER as FQ1_FIELD_ORDER},
         g1_point::G1Point,
       },
-      equation::WeierstrassEq, adder::affine_point_adder::AffinePointAdder,
+      weierstrass_eq::WeierstrassEq, adder::affine_point_adder::AffinePointAdder,
     },
   },
+  additive_identity::AdditiveIdentity,
 };
 use num_bigint::BigUint;
 use once_cell::sync::Lazy;
@@ -24,9 +24,9 @@ use once_cell::sync::Lazy;
 pub struct BLS12_381_G1 {
   pub f: PrimeField,    // base prime field
   pub f_r: PrimeField,  // field of group order r for convenience
-  pub g: G1Point,  // generator point
+  pub g: Option<G1Point>,  // generator point
   pub r: PrimeFieldElem,  // group order of the generator
-  pub eq: WeierstrassEq<PrimeField, PrimeFieldElem>
+  pub eq: WeierstrassEq<Fq1>,
 }
 
 impl BLS12_381_G1 {
@@ -40,7 +40,6 @@ impl BLS12_381_G1 {
     let gy = f.elem(
       &BigUint::parse_bytes(b"08b3f481e3aaa0f1a09e30ed741d8ae4fcf5e095d5d00af600db18cb2c04b3edd03cc744a2888ae40caa232946c5e7e1", 16).unwrap(),
     );
-    let g = G1Point { x: gx, y: gy };
 
     // order of the base point
     let r = PrimeFieldElem::new(&f, &BigUint::parse_bytes(b"73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001", 16).unwrap());
@@ -52,19 +51,51 @@ impl BLS12_381_G1 {
     let a3 = &f.elem(&0u8);
     let a4 = &f.elem(&0u8);
     let a6 = &f.elem(&4u8);
-    let eq = Box::new(WeierstrassEq::new(&params.f, a1, a2, a3, a4, a6));
+    let eq = Box::new(WeierstrassEq::new(&f, a1, a2, a3, a4, a6));
 
-    BLS12_381_G1Params {
+    let curve = BLS12_381_G1 {
       f,
       f_r,
-      g,
+      g: None,
       r,
-    }
+      eq,
+    };
+
+    let g = G1Point { curve, x: gx, y: gy };
+    curve.g = Some(g);
+
+    curve
   }
 }
 
-impl EllipticCurvePointOps<G1Point, Fq1, PrimeField> for BLS12_381_G1 {
+impl EllipticCurvePointOps<G1Point, Fq1, PrimeField, BLS12_381_G1> for BLS12_381_G1 {
   type Adder = AffinePointAdder;
+}
+
+impl Curve<G1Point, Fq1, PrimeField> for BLS12_381_G1 {
+  fn eq(&self) -> WeierstrassEq<Fq1> {
+    self.eq.clone()
+  }
+
+  fn f(&self) -> PrimeField {
+    self.f().clone()
+  }
+
+  fn f_n(&self) -> PrimeField {
+    self.f_r.clone()
+  }
+
+  fn g(&self) -> G1Point {
+    self.g.clone()
+  }
+
+  fn n(&self) -> G1Point {
+    self.r.clone()
+  }
+
+  fn point_at_infinity(&self) -> G1Point {
+    self.g.get_additive_identity()
+  }
 }
 
 /*

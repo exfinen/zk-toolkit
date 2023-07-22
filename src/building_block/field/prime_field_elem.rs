@@ -1,6 +1,7 @@
 use crate::building_block::{
   additive_identity::AdditiveIdentity,
   field::{
+    field_elem_ops::Inverse,
     prime_field::PrimeField,
     prime_field_elems::PrimeFieldElems,
   },
@@ -25,14 +26,14 @@ pub struct PrimeFieldElem {
   pub e: BigUint,
 }
 
-impl AdditiveIdentity<BigUint> for BigUint {
-  fn get_additive_identity(&self) -> BigUint {
-    BigUint::from(0u8)
+impl Inverse for PrimeFieldElem {
+  fn inv(&self) -> Self {
+    self.safe_inv().unwrap()
   }
 }
 
 impl AdditiveIdentity<PrimeFieldElem> for PrimeFieldElem {
-  fn get_additive_identity(&self) -> BigUint {
+  fn get_additive_identity(&self) -> PrimeFieldElem {
     PrimeFieldElem {
       f: self.f.clone(),
       e: BigUint::from(0u8)
@@ -46,29 +47,16 @@ impl ToBigUint for PrimeFieldElem {
   }
 }
 
-impl Zero<BigUint> for PrimeFieldElem {
-  fn get_zero(f: &PrimeField) -> Self {
+impl Zero<PrimeFieldElem> for PrimeFieldElem {
+  fn get_zero(t: &PrimeFieldElem) -> Self {
     PrimeFieldElem {
-      f: f.clone(),
+      f: t.f.clone(),
       e: BigUint::from(0u8),
     }
   }
 
   fn is_zero(&self) -> bool {
     BigUint::zero() == self.e
-  }
-}
-
-impl Zero<PrimeFieldElem> for PrimeFieldElem {
-  fn is_zero(&self) -> bool {
-    self.e.is_zero()
-  }
-
-  fn get_zero(f: &PrimeField) -> Self {
-    PrimeFieldElem {
-      f: f.clone(),
-      e: BigUint::from(0u8),
-    }
   }
 }
 

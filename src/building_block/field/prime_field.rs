@@ -1,7 +1,6 @@
 use crate::building_block::{
   additive_identity::AdditiveIdentity,
   field::{
-    field::Field,
     prime_field_elem::PrimeFieldElem,
     prime_field_elems::PrimeFieldElems,
   },
@@ -16,12 +15,6 @@ use rand::RngCore;
 #[derive(Debug, Clone, Hash)]
 pub struct PrimeField {
   pub order: BigUint,
-}
-
-impl Field<PrimeField> for PrimeField {
-  fn get(&self) -> PrimeField {
-     self.clone()
-  }
 }
 
 impl AdditiveIdentity<PrimeFieldElem> for PrimeField {

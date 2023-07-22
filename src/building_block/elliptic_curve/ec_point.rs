@@ -3,26 +3,25 @@ use crate::building_block::{
   field::{
     field_elem_ops::Inverse,
     prime_field_elem::PrimeFieldElem,
-    prime_field::PrimeField,
   },
   elliptic_curve::{
-    curve::Curve,
+  weierstrass::curves::secp256k1::Secp256k1,
     jacobian_point::JacobianPoint,
   },
   zero::Zero,
 };
 use std::ops::Add;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct EcPoint {
-  pub curve: Box<dyn Curve<EcPoint, PrimeFieldElem, PrimeField>>,
+  pub curve: Box<Secp256k1>,
   pub x: PrimeFieldElem,
   pub y: PrimeFieldElem,
   pub is_inf: bool,
 }
 
-impl From<JacobianPoint> for EcPoint {
-  fn from(pt: JacobianPoint) -> Self {
+impl From<JacobianPoint<Secp256k1>> for EcPoint {
+  fn from(pt: JacobianPoint<Secp256k1>) -> Self {
     if pt.z.is_zero() {
       panic!("z is not expected to be zero");
     } else {
@@ -77,12 +76,6 @@ impl Zero<EcPoint> for EcPoint {
   }
 }
 
-impl AdditiveIdentity<PrimeFieldElem> for EcPoint {
-  fn get_additive_identity(&self) -> PrimeFieldElem {
-    self.x.get_additive_identity()
-  }
-}
-
 impl PartialEq for EcPoint {
   fn eq(&self, other: &Self) -> bool {
     if self.is_inf != other.is_inf {
@@ -109,8 +102,8 @@ impl AdditiveIdentity<EcPoint> for EcPoint {
   fn get_additive_identity(&self) -> EcPoint {
     EcPoint {
       curve: self.curve,
-      x: self.x.get_zero(),
-      y: self.x.get_zero(),
+      x: PrimeFieldElem::get_zero(&self.x),
+      y: PrimeFieldElem::get_zero(&self.x),
       is_inf: true,
     }
   }

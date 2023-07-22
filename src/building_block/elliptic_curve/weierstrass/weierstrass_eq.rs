@@ -1,26 +1,26 @@
 use crate::building_block::{
-  elliptic_curve::curve_equation::CurveEquation,
-  field::{
-    prime_field::PrimeField,
-    prime_field_elem::PrimeFieldElem,
+  elliptic_curve::{
+    affine_point::AffinePoint,
+    curve_equation::CurveEquation,
   },
-  zero::Zero, additive_identity::AdditiveIdentity,
+  field::prime_field_elem::PrimeFieldElem,
+  zero::Zero,
+  additive_identity::AdditiveIdentity,
 };
+use std::ops::{Add, Sub, Mul, Div};
 
 // Y^2 + a_1XY + a_3Y = X^3 + a_2X^2 + a_4X + a_6
 #[derive(Clone)]
-pub struct WeierstrassEq<F, E> {
-  pub f: F,
+pub struct WeierstrassEq<E> {
   pub a1: E,
   pub a2: E,
   pub a3: E,
-  pub a4: E,  // a originally
-  pub a6: E,  // b originally
+  pub a4: E,
+  pub a6: E,
 }
 
-impl WeierstrassEq<PrimeField, PrimeFieldElem> {
+impl WeierstrassEq<PrimeFieldElem> {
   pub fn new(
-    f: &PrimeField,
     a1: &PrimeFieldElem,
     a2: &PrimeFieldElem,
     a3: &PrimeFieldElem,
@@ -28,7 +28,6 @@ impl WeierstrassEq<PrimeField, PrimeFieldElem> {
     a6: &PrimeFieldElem,
   ) -> Self {
     WeierstrassEq {
-      f: f.clone(),
       a1: a1.clone(),
       a2: a2.clone(),
       a3: a3.clone(),
@@ -38,10 +37,10 @@ impl WeierstrassEq<PrimeField, PrimeFieldElem> {
   }
 }
 
-impl<F, E, P, C> CurveEquation<P> for WeierstrassEq<F, E>
+impl<E, P> CurveEquation<P> for WeierstrassEq<E>
   where
-    E: Zero<E> + AdditiveIdentity<E>,
-    P: AdditiveIdentity<E> + AdditiveIdentity<P> + Zero<P>
+    E: Zero<E> + Add<E> + Sub<E> + Mul<E> + Div<E> + AdditiveIdentity<E>,
+    P: AffinePoint<Element=E> + AdditiveIdentity<P> + Zero<P>
 {
   fn is_rational_point(&self, pt: &P) -> bool {
     if pt.is_zero() {

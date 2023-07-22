@@ -1,3 +1,3 @@
 pub mod adder;
 pub mod curves;
-pub mod equation;
+pub mod weierstrass_eq;
