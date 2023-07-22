@@ -16,8 +16,8 @@ use crate::building_block::{
   },
   additive_identity::AdditiveIdentity,
 };
-use num_bigint::BigUint;
 use once_cell::sync::Lazy;
+use num_bigint::BigUint;
 
 #[derive(Clone)]
 #[allow(non_camel_case_types)]
@@ -25,8 +25,8 @@ pub struct BLS12_381_G1 {
   pub f: PrimeField,    // base prime field
   pub f_r: PrimeField,  // field of group order r for convenience
   pub g: Option<G1Point>,  // generator point
-  pub r: PrimeFieldElem,  // group order of the generator
-  pub eq: WeierstrassEq<Fq1>,
+  pub r: BigUint,  // group order of the generator
+  pub eq: Box<WeierstrassEq<Fq1>>,
 }
 
 impl BLS12_381_G1 {
@@ -42,7 +42,7 @@ impl BLS12_381_G1 {
     );
 
     // order of the base point
-    let r = PrimeFieldElem::new(&f, &BigUint::parse_bytes(b"73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001", 16).unwrap());
+    let r = BigUint::parse_bytes(b"73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001", 16).unwrap();
     let f_r = PrimeField::new(&r);
 
     // G1 (F_q): y^2 = x^3 + 4
@@ -61,7 +61,11 @@ impl BLS12_381_G1 {
       eq,
     };
 
-    let g = G1Point { curve, x: gx, y: gy };
+    let g: G1Point = G1Point {
+      curve: Box::new(curve.clone()),
+      x: gx,
+      y: gy
+    };
     curve.g = Some(g);
 
     curve
@@ -73,7 +77,7 @@ impl EllipticCurvePointOps<G1Point, Fq1, PrimeField, BLS12_381_G1> for BLS12_381
 }
 
 impl Curve<G1Point, Fq1, PrimeField> for BLS12_381_G1 {
-  fn eq(&self) -> WeierstrassEq<Fq1> {
+  fn eq(&self) -> Box<WeierstrassEq<Fq1>> {
     self.eq.clone()
   }
 
@@ -86,10 +90,10 @@ impl Curve<G1Point, Fq1, PrimeField> for BLS12_381_G1 {
   }
 
   fn g(&self) -> G1Point {
-    self.g.clone()
+    self.g.unwrap().clone()
   }
 
-  fn n(&self) -> G1Point {
+  fn n(&self) -> BigUint {
     self.r.clone()
   }
 

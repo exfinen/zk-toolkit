@@ -7,7 +7,10 @@ use crate::building_block::{
   zero::Zero,
   additive_identity::AdditiveIdentity,
 };
-use std::ops::{Add, Sub, Mul, Div};
+use std::{
+  cmp::PartialEq,
+  ops::{Add, Sub, Mul, Div},
+};
 
 // Y^2 + a_1XY + a_3Y = X^3 + a_2X^2 + a_4X + a_6
 #[derive(Clone)]
@@ -39,7 +42,8 @@ impl WeierstrassEq<PrimeFieldElem> {
 
 impl<E, P> CurveEquation<P> for WeierstrassEq<E>
   where
-    E: Zero<E> + Add<E> + Sub<E> + Mul<E> + Div<E> + AdditiveIdentity<E>,
+    E: Zero<E> + Add<E, Output=E> + Sub<E> + Mul<E, Output=E>
+      + Div<E> + AdditiveIdentity<E> + PartialEq<E>,
     P: AffinePoint<Element=E> + AdditiveIdentity<P> + Zero<P>
 {
   fn is_rational_point(&self, pt: &P) -> bool {

@@ -18,6 +18,7 @@ use crate::building_block::{
 };
 use num_bigint::BigUint;
 use std::ops::Add;
+use num_traits::Zero as NumTraitsZero;
 
 use super::weierstrass::curves::secp256k1::Secp256k1;
 
@@ -38,7 +39,7 @@ impl Ecdsa {
   }
 
   pub fn gen_pub_key(&self, priv_key: &PrimeFieldElem) -> EcPoint {
-    let g = &self.curve.g;
+    let g = &self.curve.g.unwrap();
     self.curve.scalar_mul(g, &priv_key)
   }
 
@@ -47,7 +48,7 @@ impl Ecdsa {
     // dA = private key in [1, n-1]
     let f_n = &self.curve.f_n;
     let n = &f_n.order;
-    let g = &self.curve.g;
+    let g = &self.curve.g.unwrap();
     let sha256 = Sha256();
 
     loop {
@@ -59,10 +60,10 @@ impl Ecdsa {
       let z = BigUint::from_bytes_be(&sha256.get_digest(message));
 
       // p = kG (k != 0)
-      let p: EcPoint = self.curve.scalar_mul(g, &k.n);
+      let p: EcPoint = self.curve.scalar_mul(g, &k);
 
       // r = p.x mod n
-      let r = p.x.n % n;
+      let r = p.x.e % n;
 
       // if r is 0, k is bad. repeat the process from the beggining
       if r == BigUint::zero() {
@@ -74,7 +75,7 @@ impl Ecdsa {
       let z_fe = f_n.elem(&z);  // mod n
       let s = k_inv * (priv_key * &r_fe + z_fe);  // mod n
       // if s is 0, k is bad. repear the process from the beginning
-      if s.n == BigUint::zero() {
+      if s.e == BigUint::zero() {
         continue;
       }
 
@@ -93,7 +94,7 @@ impl Ecdsa {
       false
     }
     // confirm pub_key is on the curve
-    else if !self.curve.equation().is_rational_point(&pub_key) {
+    else if !self.curve.eq().is_rational_point(&pub_key) {
       false
     }
     // confirm n * pub_key is inf
@@ -104,8 +105,8 @@ impl Ecdsa {
     else if
       *&sig.r.is_zero()
       || *&sig.s.is_zero()
-      || n <= &sig.r.n
-      || n <= &sig.s.n {
+      || n <= &sig.r.e
+      || n <= &sig.s.e {
       false
     }
     else {
@@ -185,11 +186,11 @@ mod tests {
     let message = vec![1u8, 2, 3];
 
     // sign with newly generated private key
-    let priv_key = ecdsa.curve.group().rand_elem(true);
+    let priv_key = ecdsa.curve.f_n().rand_elem(true);
     let sig = ecdsa.sign(&priv_key, &message).unwrap();
 
     // use inf public key for verifying
-    let pub_key = EcPoint::get_zero(&curve.g);
+    let pub_key = EcPoint::get_zero(&curve.g());
     let is_verified = ecdsa.verify(&sig, &pub_key, &message);
     assert_eq!(is_verified, false);
   }

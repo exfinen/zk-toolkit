@@ -33,6 +33,18 @@ impl AffinePoint for EcPoint {
   }
 }
 
+impl AffinePoint for &EcPoint {
+  type Element = PrimeFieldElem;
+
+  fn x(&self) -> Self::Element {
+    self.x.clone()
+  }
+
+  fn y(&self) -> Self::Element {
+    self.y.clone()
+  }
+}
+
 impl From<JacobianPoint<Secp256k1>> for EcPoint {
   fn from(pt: JacobianPoint<Secp256k1>) -> Self {
     if pt.z.is_zero() {

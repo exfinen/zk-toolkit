@@ -9,16 +9,19 @@ use crate::building_block::{
   field::field_elem_ops::Inverse,
   zero::Zero,
 };
-use std::ops::{Add, Sub, Mul, Div};
+use std::{
+  cmp::PartialEq,
+  ops::{Add, Sub, Mul, Div},
+};
 
 #[derive(Clone)]
 pub struct JacobianPointAdder();
 
-impl<P, C, E, F> PointAdder<P, C, E, F> for JacobianPointAdder
+impl<P, C, E, F> PointAdder<P, E, F, C> for JacobianPointAdder
   where
-    E:Zero<E> + AdditiveIdentity<E> + Add<E> + Sub<E> + Mul<E> + Div<E>,
+    E:Zero<E> + AdditiveIdentity<E> + PartialEq<E> + Add<E> + Sub<E> + Mul<E> + Div<E>,
     C: Curve<P, E, F>,
-    P: AffinePoint<Element=P> + Add<P> + Zero<P> + AdditiveIdentity<P> + Inverse + Clone,
+    P: AffinePoint<Element=E> + Add<P> + Zero<P> + AdditiveIdentity<P> + Inverse + Clone,
 {
   fn add(curve: &C, p1: &P, p2: &P) -> P {
     if p1.is_zero() && p2.is_zero() {  // zero + zero is zero
@@ -37,7 +40,7 @@ impl<P, C, E, F> PointAdder<P, C, E, F> for JacobianPointAdder
 
       // formula described in: http://hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#doubling-dbl-2009-l
       // w/ unnecessary computation removed
-      let jp: JacobianPoint = p1.into();
+      let jp: JacobianPoint<C> = p1.into();
 
       let a = &jp.x.sq();
       let b = &jp.y.sq();

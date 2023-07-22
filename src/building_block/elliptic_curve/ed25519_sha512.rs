@@ -49,7 +49,7 @@ pub struct Ed25519Sha512 {
 }
 
 impl Curve<EcPoint, PrimeFieldElem, PrimeField> for Ed25519Sha512 {
-  fn eq(&self) -> WeierstrassEq<PrimeFieldElem> {
+  fn eq(&self) -> Box<WeierstrassEq<PrimeFieldElem>> {
 
   }
   fn f(&self) -> PrimeField {
@@ -90,7 +90,7 @@ impl EllipticCurvePointOps<EcPoint, PrimeFieldElem, PrimeField, Ed25519Sha512> f
 }
 
 impl Zero<EcPoint> for Ed25519Sha512 {
-  fn get_zero(f: &PrimeField) -> EcPoint {
+  fn get_zero(f: &EcPoint) -> EcPoint {
       EcPoint::new(&f.elem(&0u8), &f.elem(&1u8))
   }
 

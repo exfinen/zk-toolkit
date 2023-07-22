@@ -9,11 +9,11 @@ use crate::building_block::{
 };
 use std::ops::{Add, Sub, Mul, Div};
 
-pub trait PointAdder<P, C, E, F>
+pub trait PointAdder<P, E, F, C>
   where
     E:Zero<E> + AdditiveIdentity<E> + Add<E> + Sub<E> + Mul<E> + Div<E>,
     C: Curve<P, E, F>,
-    P: AffinePoint<Element=P> + Add<P> + Zero<P> + AdditiveIdentity<P> + Inverse + Clone,
+    P: AffinePoint<Element=E> + Add<P> + Zero<P> + AdditiveIdentity<P> + Inverse + Clone,
 {
   fn add(curve: &C, p1: &P, p2: &P) -> P;
 }

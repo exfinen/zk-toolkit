@@ -5,6 +5,7 @@ use crate::building_block::{
   zero::Zero,
 };
 use std::ops::{Add, Mul, Sub, Div};
+use num_bigint::BigUint;
 
 pub trait Curve<P, E, F>
 where
@@ -14,7 +15,7 @@ where
   fn f(&self) -> F;    // base prime field
   fn f_n(&self) -> F;  // field of order n for convenience
   fn g(&self) -> P;    // generator point
-  fn n(&self) -> P;    // order of g
-  fn eq(&self) -> WeierstrassEq<E>;   // TODO don't hardcoded
+  fn n(&self) -> BigUint;    // order of g
+  fn eq(&self) -> Box<WeierstrassEq<E>>;
   fn point_at_infinity(&self) -> P;
 }

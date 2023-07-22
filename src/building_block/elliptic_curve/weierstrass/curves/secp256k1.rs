@@ -17,9 +17,9 @@ use num_bigint::BigUint;
 pub struct Secp256k1 {
   pub f: PrimeField,    // base prime field
   pub f_n: PrimeField,  // field of order n for convenience
-  pub g: EcPoint,  // generator point
-  pub n: PrimeFieldElem,  // order of g
-  pub eq: WeierstrassEq<PrimeFieldElem>,
+  pub g: Option<EcPoint>,  // generator point
+  pub n: BigUint,  // order of g
+  pub eq: Box<WeierstrassEq<PrimeFieldElem>>,
 }
 
 impl Secp256k1 {
@@ -31,14 +31,11 @@ impl Secp256k1 {
     // base point of the cyclic group
     let gx = BigUint::parse_bytes(b"79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798", 16).unwrap();
     let gy = BigUint::parse_bytes(b"483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8", 16).unwrap();
-    let g = EcPoint::new(
-      &PrimeFieldElem::new(&f, &gx),
-      &PrimeFieldElem::new(&f, &gy),
-    );
 
     // order of the base point
     let n = BigUint::parse_bytes(b"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", 16).unwrap();
     let f_n = PrimeField::new(&n);
+
 
     let a1 = f.elem(&0u8);
     let a2 = f.elem(&0u8);
@@ -48,13 +45,21 @@ impl Secp256k1 {
     let eq = Box::new(
       WeierstrassEq::new(&a1, &a2, &a3, &a4, &a6));
 
-    Secp256k1 {
+    let mut curve = Secp256k1 {
       f,
       f_n,
-      g,
+      g: None,
       n,
       eq,
-    }
+    };
+    let g = EcPoint {
+      curve: Box::new(curve),
+      x: PrimeFieldElem::new(&f, &gx),
+      y: PrimeFieldElem::new(&f, &gy),
+      is_inf: false,
+    };
+    curve.g = Some(g);
+    curve
   }
 }
 
@@ -63,7 +68,7 @@ impl EllipticCurvePointOps<EcPoint, PrimeFieldElem, PrimeField, Secp256k1> for S
 }
 
 impl Curve<EcPoint, PrimeFieldElem, PrimeField> for Secp256k1 {
-  fn eq(&self) -> WeierstrassEq<PrimeFieldElem> {
+  fn eq(&self) -> Box<WeierstrassEq<PrimeFieldElem>> {
     self.eq.clone()
   }
 
@@ -76,10 +81,10 @@ impl Curve<EcPoint, PrimeFieldElem, PrimeField> for Secp256k1 {
   }
 
   fn g(&self) -> EcPoint {
-    self.g.clone()
+    self.g.unwrap().clone()
   }
 
-  fn n(&self) -> EcPoint {
+  fn n(&self) -> BigUint {
     self.n.clone()
   }
 
