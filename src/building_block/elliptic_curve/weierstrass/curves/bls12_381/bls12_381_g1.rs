@@ -51,7 +51,7 @@ impl BLS12_381_G1 {
     let a3 = &f.elem(&0u8);
     let a4 = &f.elem(&0u8);
     let a6 = &f.elem(&4u8);
-    let eq = Box::new(WeierstrassEq::new(&f, a1, a2, a3, a4, a6));
+    let eq = Box::new(WeierstrassEq::new(a1, a2, a3, a4, a6));
 
     let curve = BLS12_381_G1 {
       f,

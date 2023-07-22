@@ -1,6 +1,9 @@
 use crate::building_block::{
   additive_identity::AdditiveIdentity,
-  elliptic_curve::weierstrass::curves::bls12_381::fq1::Fq1,
+  elliptic_curve::{
+    affine_point::AffinePoint,
+    weierstrass::curves::bls12_381::fq1::Fq1,
+  },
   field::field_elem_ops::Inverse,
   zero::Zero,
 };
@@ -11,6 +14,16 @@ pub struct G1Point {
   pub curve: Box<Fq1>,
   pub x: Fq1,
   pub y: Fq1,
+}
+
+impl AffinePoint for G1Point {
+  fn x(&self) -> Self::Element {
+    self.x.clone()
+  }
+
+  fn y(&self) -> Self::Element {
+    self.y.clone()
+  }
 }
 
 impl Inverse for G1Point {

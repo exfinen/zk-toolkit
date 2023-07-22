@@ -6,19 +6,19 @@ use crate::building_block::{
     jacobian_point::JacobianPoint,
     weierstrass::adder::point_adder::PointAdder,
   },
+  field::field_elem_ops::Inverse,
   zero::Zero,
 };
-use std::ops::Add;
+use std::ops::{Add, Sub, Mul, Div};
 
 #[derive(Clone)]
 pub struct JacobianPointAdder();
 
-impl<P, C> PointAdder<P, C> for JacobianPointAdder
-  w
-    C: Curve<EcPoint, PrimeFieldElem, PrimeField>,
-    P: Add<P> + Zero<P> + AdditiveIdentity<P> + Clone
-      + From<JacobianPoint<C>>
-      + Into<JacobianPoint<C>>,
+impl<P, C, E, F> PointAdder<P, C, E, F> for JacobianPointAdder
+  where
+    E:Zero<E> + AdditiveIdentity<E> + Add<E> + Sub<E> + Mul<E> + Div<E>,
+    C: Curve<P, E, F>,
+    P: AffinePoint<Element=P> + Add<P> + Zero<P> + AdditiveIdentity<P> + Inverse + Clone,
 {
   fn add(curve: &C, p1: &P, p2: &P) -> P {
     if p1.is_zero() && p2.is_zero() {  // zero + zero is zero

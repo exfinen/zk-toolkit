@@ -5,7 +5,8 @@ use crate::building_block::{
     prime_field_elem::PrimeFieldElem,
   },
   elliptic_curve::{
-  weierstrass::curves::secp256k1::Secp256k1,
+    affine_point::AffinePoint,
+    weierstrass::curves::secp256k1::Secp256k1,
     jacobian_point::JacobianPoint,
   },
   zero::Zero,
@@ -18,6 +19,18 @@ pub struct EcPoint {
   pub x: PrimeFieldElem,
   pub y: PrimeFieldElem,
   pub is_inf: bool,
+}
+
+impl AffinePoint for EcPoint {
+  type Element = PrimeFieldElem;
+
+  fn x(&self) -> Self::Element {
+    self.x.clone()
+  }
+
+  fn y(&self) -> Self::Element {
+    self.y.clone()
+  }
 }
 
 impl From<JacobianPoint<Secp256k1>> for EcPoint {

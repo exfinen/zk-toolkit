@@ -45,7 +45,8 @@ impl Secp256k1 {
     let a3 = f.elem(&0u8);
     let a4 = f.elem(&0u8);
     let a6 = f.elem(&7u8);
-    let eq = Box::new(WeierstrassEq::new(&f, &a1, &a2, &a3, &a4, &a6));
+    let eq = Box::new(
+      WeierstrassEq::new(&a1, &a2, &a3, &a4, &a6));
 
     Secp256k1 {
       f,
@@ -246,7 +247,7 @@ mod tests {
     let gs = get_g_multiples(&curve);
 
     for n in 1usize..=10 {
-      let res = curve.scalar_mul(&f, g, &BigUint::from(n));
+      let res = curve.scalar_mul(g, &n);
       assert_eq!(&res, &gs[n]);
     }
   }
@@ -302,7 +303,7 @@ mod tests {
       );
 
       let beg = Instant::now();
-      let gk = curve.scalar_mul(&f, g, &k);
+      let gk = curve.scalar_mul(&g, &k);
       let end = beg.elapsed();
       println!("Large number scalar mul done in {}.{:03} sec", end.as_secs(), end.subsec_nanos() / 1_000_000);
       assert_eq!(p, gk);

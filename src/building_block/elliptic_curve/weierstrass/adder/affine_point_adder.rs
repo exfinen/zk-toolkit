@@ -1,18 +1,22 @@
 use crate::building_block::{
   additive_identity::AdditiveIdentity,
   elliptic_curve::{
+    curve::Curve,
     affine_point::AffinePoint,
     weierstrass::adder::point_adder::PointAdder,
   },
+  field::field_elem_ops::Inverse,
   zero::Zero,
 };
-use std::ops::Add;
+use std::ops::{Add, Sub, Mul, Div};
 
 pub struct AffinePointAdder();
 
-impl<P, C> PointAdder<P, C> for AffinePointAdder
+impl<P, C, E, F> PointAdder<P, C, E, F> for AffinePointAdder
   where
-    P: AffinePoint<Element=P> + Add<P> + Zero<P> + AdditiveIdentity<P> + Clone,
+    E:Zero<E> + AdditiveIdentity<E> + Add<E> + Sub<E> + Mul<E> + Div<E>,
+    C: Curve<P, E, F>,
+    P: AffinePoint<Element=P> + Add<P> + Zero<P> + AdditiveIdentity<P> + Inverse + Clone,
 {
   fn add(curve: &C, p1: &P, p2: &P) -> P {
     if p1.is_zero() && p2.is_zero() {  // inf + inf is inf

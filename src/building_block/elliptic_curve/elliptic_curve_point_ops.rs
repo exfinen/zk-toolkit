@@ -1,25 +1,22 @@
 use crate::building_block::{
+  additive_identity::AdditiveIdentity,
   elliptic_curve::{
+    affine_point::AffinePoint,
     curve::Curve,
-    ec_point::EcPoint,
     weierstrass::adder::point_adder::PointAdder,
   },
-  field::{
-    field_elem_ops::Inverse,
-    prime_field::PrimeField,
-    prime_field_elem::PrimeFieldElem,
-  },
-  zero::Zero, additive_identity::AdditiveIdentity,
+  field::field_elem_ops::Inverse,
+  zero::Zero,
 };
-use std::ops::Add;
+use std::ops::{Add, Sub, Mul, Div};
 
 pub trait EllipticCurvePointOps<P, E, F, C>
   where
     C: Curve<P, E, F>,
-    E: Clone,
-    P: Zero<P> + Add<P> + AdditiveIdentity<P> + Clone + Inverse,
+    E: Zero<E> + Add<E> + Sub<E> + Mul<E> + Div<E> + AdditiveIdentity<E> + Clone,
+    P: AffinePoint<Element=E> + Zero<P> + Add<P> + AdditiveIdentity<P> + Clone + Inverse,
 {
-  type Adder: PointAdder<P, C>;
+  type Adder: PointAdder<P, C, E, F>;
 
   fn add(&self, p1: &P, p2: &P) -> P {
     Self::Adder::add(self, p1, p2)
