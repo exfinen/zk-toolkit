@@ -1,25 +1,19 @@
 use crate::building_block::{
-  field::{
-    prime_field::PrimeField,
-    prime_field_elem::PrimeFieldElem,
+  field::prime_field::PrimeField,
+  secp256k1::{
+    affine_point::AffinePoint,
+    equation::Equation,
   },
-  elliptic_curve::{
-    weierstrass::adder::affine_point_adder::AffinePointAdder,
-    curve::Curve,
-    elliptic_curve_point_ops::EllipticCurvePointOps,
-    ec_point::AffinePoint,
-    weierstrass::weierstrass_eq::WeierstrassEq,
-  }, additive_identity::AdditiveIdentity,
 };
+use std::rc::Rc;
 use num_bigint::BigUint;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Secp256k1 {
-  f: PrimeField,    // base prime field
-  f_n: PrimeField,  // field of order n for convenience
-  g: Option<AffinePoint>,  // generator point
-  n: BigUint,  // order of g
-  eq: Box<WeierstrassEq<PrimeFieldElem>>,
+  pub f: PrimeField,    // base prime field
+  pub f_n: PrimeField,  // field of order n for convenience
+  pub n: BigUint,  // order of g
+  pub eq: Equation,
 }
 
 impl Secp256k1 {
@@ -27,10 +21,6 @@ impl Secp256k1 {
     // base prime field
     let base_field_order = BigUint::parse_bytes(b"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F", 16).unwrap();
     let f = PrimeField::new(&base_field_order);
-
-    // base point of the cyclic group
-    let gx = BigUint::parse_bytes(b"79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798", 16).unwrap();
-    let gy = BigUint::parse_bytes(b"483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8", 16).unwrap();
 
     // order of the base point
     let n = BigUint::parse_bytes(b"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", 16).unwrap();
@@ -42,58 +32,24 @@ impl Secp256k1 {
     let a3 = f.elem(&0u8);
     let a4 = f.elem(&0u8);
     let a6 = f.elem(&7u8);
-    let eq = Box::new(
-      WeierstrassEq::new(&a1, &a2, &a3, &a4, &a6));
+    let eq = Equation::new(a1, a2, a3, a4, a6);
 
-    let mut curve = Secp256k1 {
+    Secp256k1 {
       f,
       f_n,
-      g: None,
       n,
       eq,
-    };
-    let g = AffinePoint {
-      curve: Box::new(curve),
-      x: PrimeFieldElem::new(&f, &gx),
-      y: PrimeFieldElem::new(&f, &gy),
-      is_inf: false,
-    };
-    curve.g = Some(g);
-    curve
-  }
-}
-
-impl EllipticCurvePointOps<AffinePoint, PrimeFieldElem, PrimeField, Secp256k1> for Secp256k1 {
-  type Adder = AffinePointAdder;
-}
-
-impl Curve<AffinePoint, PrimeFieldElem, PrimeField> for Secp256k1 {
-  fn eq(&self) -> Box<WeierstrassEq<PrimeFieldElem>> {
-    self.eq.clone()
+    }
   }
 
-  fn f(&self) -> PrimeField {
-    self.f.clone()
-  }
-
-  fn f_n(&self) -> PrimeField {
-    self.f_n.clone()
-  }
-
-  fn g(&self) -> AffinePoint {
-    self.g.unwrap().clone()
-  }
-
-  fn n(&self) -> BigUint {
-    self.n.clone()
-  }
-
-  fn point_at_infinity(&self) -> AffinePoint {
-    self.g.unwrap().get_additive_identity()
-  }
-
-  fn get_curve(&self) -> Self {
-    self.clone()
+  pub fn g(&self) -> AffinePoint {
+    // TODO compute only once at the first call
+    let x = BigUint::parse_bytes(b"79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798", 16).unwrap();
+    let y = BigUint::parse_bytes(b"483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8", 16).unwrap();
+    let x = &self.f.elem(&x);
+    let y = &self.f.elem(&y);
+    let g = AffinePoint::new(&Rc::new(self.clone()), x, y);
+    g
   }
 }
 
@@ -101,54 +57,16 @@ impl Curve<AffinePoint, PrimeFieldElem, PrimeField> for Secp256k1 {
 mod tests {
   use super::*;
   use num_bigint::BigUint;
-  use crate::building_block::{
-    field::{
-      prime_field::PrimeField,
-      prime_field_elem::PrimeFieldElem,
-    },
-    elliptic_curve::elliptic_curve_point_ops::EllipticCurvePointOps,
-  };
-
-  // trait EllipticCurveOps: EllipticCurvePointOps<AffinePoint, PrimeFieldElem, PrimeField, Adder = AffinePointAdder> {
-  //   fn box_clone(&self) -> Box<dyn EllipticCurveOps>;
-  // }
-
-  // impl Clone for Box<dyn EllipticCurveOps> {
-  //     fn clone(&self) -> Box<dyn EllipticCurveOps> {
-  //         self.box_clone()
-  //     }
-  // }
-
-  // impl EllipticCurveOps for WeierstrassAffinePointOps<PrimeField> {
-  //   fn box_clone(&self) -> Box<dyn EllipticCurveOps> {
-  //     Box::new(self.clone())
-  //   }
-  // }
-
-  // impl EllipticCurveOps for WeierstrassJacobianPointOps<PrimeField> {
-  //   fn box_clone(&self) -> Box<dyn EllipticCurveOps> {
-  //     Box::new(self.clone())
-  //   }
-  // }
-
-  // fn get_ops_list(f: &PrimeField) -> Vec<Box<dyn EllipticCurveOps>> {
-  //   let affine = WeierstrassAffinePointOps::new(f);
-  //   let jacobian = WeierstrassJacobianPointOps::new(f);
-  //   vec![
-  //     Box::new(affine),
-  //     Box::new(jacobian),
-  //   ]
-  // }
+  use crate::building_block::zero::Zero;
 
   #[test]
   fn add_same_point() {
     let curve = Secp256k1::new();
-    let f = curve.f;
-    let g2 = &curve.g + &curve.g;
+    let g2 = curve.g() + curve.g();
     let exp_x = BigUint::parse_bytes(b"89565891926547004231252920425935692360644145829622209833684329913297188986597", 10).unwrap();
     let exp_y = BigUint::parse_bytes(b"12158399299693830322967808612713398636155367887041628176798871954788371653930", 10).unwrap();
-    assert_eq!(g2.x.n, exp_x);
-    assert_eq!(g2.y.n, exp_y);
+    assert_eq!(g2.x.e, exp_x);
+    assert_eq!(g2.y.e, exp_y);
   }
 
   #[test]
@@ -158,37 +76,37 @@ mod tests {
 
   #[test]
   fn add_vertical_line() {
-    let curve = Secp256k1::new();
+    let curve = Rc::new(Secp256k1::new());
     let g = &curve.g();
     let a = g.clone();
-    let b = AffinePoint::new(&a.x, &-&a.y);
-    let exp = AffinePoint::get_additive_identity(&g);
+    let b = AffinePoint::new(&curve, &a.x, &-&a.y);
+    let exp = g.zero();
     let act = &a + &b;
     assert_eq!(act, exp);
   }
 
   #[test]
   fn add_inf_and_affine() {
-    let curve = Secp256k1::new();
+    let curve = Rc::new(Secp256k1::new());
     let g = &curve.g();
-    let inf = AffinePoint::get_additive_identity(g);
+    let inf = g.zero();
     let inf_plus_g = g + &inf;
     assert_eq!(g, &inf_plus_g);
   }
 
   #[test]
   fn add_affine_and_inf() {
-    let curve = Secp256k1::new();
+    let curve = Rc::new(Secp256k1::new());
     let g = &curve.g();
-    let inf = AffinePoint::get_additive_identity(g);
+    let inf = g.zero();
     let g_plus_inf = &inf + g;
     assert_eq!(g, &g_plus_inf);
   }
 
   #[test]
   fn add_inf_and_inf() {
-    let curve = Secp256k1::new();
-    let inf = AffinePoint::get_additive_identity(&curve.g());
+    let curve = Rc::new(Secp256k1::new());
+    let inf = curve.g().zero();
     let inf_plus_inf = &inf + &inf;
     assert_eq!(inf_plus_inf, inf);
   }
@@ -200,12 +118,14 @@ mod tests {
   }
 
   impl<'a> Xy<'a> {
-    fn to_ec_point(&'a self, f: &PrimeField) -> AffinePoint {
+    fn to_ec_point(&'a self) -> AffinePoint {
       let gx = BigUint::parse_bytes(self.x, 16).unwrap();
       let gy = BigUint::parse_bytes(self.y, 16).unwrap();
+      let curve = Rc::new(Secp256k1::new());
       AffinePoint::new(
-        &PrimeFieldElem::new(f, &gx),
-        &PrimeFieldElem::new(f, &gy),
+        &curve,
+        &curve.f.elem(&gx),
+        &curve.f.elem(&gy),
       )
     }
   }
@@ -226,8 +146,7 @@ mod tests {
     }
   }
 
-  fn get_g_multiples<'a, T>(curve: &Secp256k1) -> Vec<AffinePoint>
-    where T: ?Sized + EllipticCurvePointOps<AffinePoint, PrimeFieldElem, PrimeField, Secp256k1> {
+  fn get_g_multiples(curve: &Secp256k1) -> Vec<AffinePoint> {
     let ps = vec![
       Xy { _n: "1", x: b"79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798", y: b"483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8" },
       Xy { _n: "2", x: b"C6047F9441ED7D6D3045406E95C07CD85C778E4B8CEF3CA7ABAC09B95C709EE5", y: b"1AE168FEA63DC339A3C58419466CEAEEF7F632653266D0E1236431A950CFE52A" },
@@ -240,10 +159,9 @@ mod tests {
       Xy { _n: "9", x: b"ACD484E2F0C7F65309AD178A9F559ABDE09796974C57E714C35F110DFC27CCBE", y: b"CC338921B0A7D9FD64380971763B61E9ADD888A4375F8E0F05CC262AC64F9C37" },
       Xy { _n: "10", x: b"A0434D9E47F3C86235477C7B1AE6AE5D3442D49B1943C2B752A68E2A47E247C7", y: b"893ABA425419BC27A3B6C7E693A24C696F794C2ED877A1593CBEE53B037368D7" },
     ];
-    let g = &curve.g();
-    let mut gs = vec![g.clone()];  // gs[0] is used to match index and g's n and will not be actually used
+    let mut gs = vec![curve.g()];  // gs[0] is used to match index and g's n and will not be actually used
     for p in ps {
-      gs.push(p.to_ec_point(&curve.f());
+      gs.push(p.to_ec_point());
     }
     gs
   }
@@ -251,12 +169,12 @@ mod tests {
   #[test]
   fn scalar_mul_smaller_nums() {
     let curve = Secp256k1::new();
-    let f = &curve.f;
-    let g = &curve.g;
+    let g = &curve.g();
     let gs = get_g_multiples(&curve);
 
     for n in 1usize..=10 {
-      let res = curve.scalar_mul(g, &n);
+      let n_fe = curve.f.elem(&n);
+      let res = g * n_fe;
       assert_eq!(&res, &gs[n]);
     }
   }
@@ -298,21 +216,20 @@ mod tests {
     ];
 
     use std::time::Instant;
-    let curve = Secp256k1::new();
-    let f = &curve.f;
-    let g = &curve.g;
+    let curve = Rc::new(Secp256k1::new());
 
     for t in &test_cases {
       let k = BigUint::parse_bytes(t.k, 16).unwrap();
       let x = BigUint::parse_bytes(t.x, 16).unwrap();
       let y = BigUint::parse_bytes(t.y, 16).unwrap();
       let p = AffinePoint::new(
-        &PrimeFieldElem::new(&curve.params.f, &x),
-        &PrimeFieldElem::new(&curve.params.f, &y),
+        &curve,
+        &curve.f.elem(&x),
+        &curve.f.elem(&y),
       );
 
       let beg = Instant::now();
-      let gk = curve.scalar_mul(&g, &k);
+      let gk = curve.g() * &curve.f.elem(&k);
       let end = beg.elapsed();
       println!("Large number scalar mul done in {}.{:03} sec", end.as_secs(), end.subsec_nanos() / 1_000_000);
       assert_eq!(p, gk);
@@ -338,9 +255,6 @@ mod tests {
     };
 
     let curve = Secp256k1::new();
-    let f = &curve.f;
-
-    let curve = Secp256k1::new();
     let gs = get_g_multiples(&curve);
 
     let test_cases = [
@@ -359,10 +273,9 @@ mod tests {
       assert_eq!(&res, &gs[tc.c]);
     }
 
-    let f = &curve.params.f;
-    let l1 = large_1.to_ec_point(f);
-    let l2 = large_2.to_ec_point(f);
-    let l3 = large_3.to_ec_point(f);
+    let l1 = large_1.to_ec_point();
+    let l2 = large_2.to_ec_point();
+    let l3 = large_3.to_ec_point();
 
     let l1_plus_l2 = &l1 + &l2;
     assert_eq!(l1_plus_l2, l3);

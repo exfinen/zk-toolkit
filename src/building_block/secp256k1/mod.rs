@@ -1,2 +1,4 @@
-pub mod affine_point;
-pub mod jacobian_point;
+mod affine_point;
+mod equation;
+mod jacobian_point;
+pub mod secp256k1;
