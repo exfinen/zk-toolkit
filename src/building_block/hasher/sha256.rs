@@ -30,6 +30,7 @@ impl<'a> MessageSchedule<u32> for Block<'a> {
   }
 }
 
+#[derive(Clone)]
 pub struct Sha256();
 
 impl<'a> CoreLogic<
@@ -59,13 +60,13 @@ impl<'a> CoreLogic<
 
   fn get_initial_hash_value() -> HashValue<u32> {
     HashValue { h: [
-      0x6a09e667, 
-      0xbb67ae85, 
-      0x3c6ef372, 
-      0xa54ff53a, 
-      0x510e527f, 
-      0x9b05688c, 
-      0x1f83d9ab, 
+      0x6a09e667,
+      0xbb67ae85,
+      0x3c6ef372,
+      0xa54ff53a,
+      0x510e527f,
+      0x9b05688c,
+      0x1f83d9ab,
       0x5be0cd19,
     ] }
   }
@@ -77,7 +78,7 @@ impl Hasher<DIGEST_SIZE> for Sha256 {
     let blocks = Block::parse_padded_msg(&padded_msg, BLOCK_SIZE);
     let hash_value = self.compute_hash(&blocks);
     hash_value.to_u8_array()
-  } 
+  }
 
   fn get_block_size(&self) -> usize {
     BLOCK_SIZE
@@ -173,7 +174,7 @@ mod tests {
     }
     assert_eq!(8u64.to_be_bytes(), &pad_m[56..64]);
   }
-  
+
   #[test]
   fn add_padding_len_55_msg() {
     let hasher = Sha256();
@@ -186,7 +187,7 @@ mod tests {
     assert_eq!(pad_m[55], 0b1000_0000);
     assert_eq!((55 * 8u64).to_be_bytes(), &pad_m[56..64]);
   }
-  
+
   #[test]
   fn add_padding_len_56_msg() {
     let hasher = Sha256();

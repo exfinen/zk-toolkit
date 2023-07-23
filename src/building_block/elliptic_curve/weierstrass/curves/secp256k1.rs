@@ -243,7 +243,7 @@ mod tests {
     let g = &curve.g();
     let mut gs = vec![g.clone()];  // gs[0] is used to match index and g's n and will not be actually used
     for p in ps {
-      gs.push(p.to_ec_point(&curve.f());
+      gs.push(p.to_ec_point(&curve.f()));
     }
     gs
   }

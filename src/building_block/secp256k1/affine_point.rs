@@ -6,15 +6,24 @@ use crate::building_block::{
   },
   zero::Zero,
 };
-use std::ops::{Add, Mul, BitAnd, ShrAssign};
+use std::{
+  fmt,
+  ops::{Add, Mul, BitAnd, ShrAssign},
+};
 use std::rc::Rc;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct AffinePoint {
   pub curve: Rc<Secp256k1>,
   pub x: PrimeFieldElem,
   pub y: PrimeFieldElem,
   pub is_inf: bool,
+}
+
+impl fmt::Debug for AffinePoint {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    write!(f, "{{ x: {:?}, y: {:?}, is_inf: {:?} }}", &self.x, &self.y, self.is_inf)
+  }
 }
 
 impl AffinePoint {
