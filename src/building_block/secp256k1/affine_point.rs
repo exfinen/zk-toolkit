@@ -116,7 +116,6 @@ macro_rules! impl_mul {
         while !n.is_zero() {
           if !n.clone().bitand(one.clone()).is_zero() {
             res = &res + &pt_pow_n;
-            println!("new x={:?}, y={:?}, inf={}", res.x.e, res.y.e, res.is_inf);
           }
           pt_pow_n = &pt_pow_n + &pt_pow_n;
           n.shr_assign(one.clone());
@@ -150,7 +149,6 @@ macro_rules! impl_add {
           if self.x.is_zero() || self.y.is_zero() {
             return self.zero()
           }
-          println!("-----> in 1");
           // differentiate y^2 = x^3 + Ax + B w/ implicit differentiation
           // d/dx(y^2) = d/dx(x^3 + Ax + B)
           // 2y dy/dx = 3x^2 + A
@@ -195,7 +193,6 @@ macro_rules! impl_add {
           AffinePoint::new(&self.curve, &p3x, &p3y_neg)
 
         } else {  // when line through p1 and p2 is non-vertical line
-          println!("-----> in 2");
           // slope m of the line that intersects the curve at p1 and p2:
           // p2.y - p1.y = m(p2.x - p1.x)
           // m(p2.x - p1.x) = p2.y - p1.y
