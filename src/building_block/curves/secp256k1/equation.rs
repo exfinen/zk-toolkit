@@ -1,5 +1,5 @@
 use crate::building_block::{
-  secp256k1::affine_point::AffinePoint,
+  curves::secp256k1::affine_point::AffinePoint,
   field::prime_field_elem::PrimeFieldElem,
   zero::Zero,
 };

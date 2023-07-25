@@ -11,8 +11,7 @@ use num_traits::{Zero as NumTraitZero, One, ToPrimitive};
 use std::{
   cmp::{PartialOrd, Ord, Ordering},
   fmt,
-  ops,
-  ops::{Deref, Rem, BitAnd, ShrAssign},
+  ops::{Add, Sub, Mul, Div, Neg, Rem, BitAnd, ShrAssign, Deref},
   rc::Rc,
 };
 use bitvec::{
@@ -35,25 +34,6 @@ impl fmt::Debug for PrimeFieldElem {
 impl ToBigUint for PrimeFieldElem {
   fn to_biguint(&self) -> BigUint {
     self.e.clone()
-  }
-}
-
-impl BitAnd for PrimeFieldElem {
-  type Output = Self;
-
-  fn bitand(self, rhs: Self) -> Self::Output {
-    let e = self.e & rhs.e;
-    PrimeFieldElem {
-      f: self.f.clone(),
-      e,
-    }
-  }
-}
-
-impl ShrAssign for PrimeFieldElem {
-  fn shr_assign(&mut self, rhs: Self) {
-    let n = rhs.e.to_u64().unwrap();
-    self.e >>= n;
   }
 }
 
@@ -100,7 +80,7 @@ impl Deref for PrimeFieldElem {
 
 macro_rules! impl_add {
   ($rhs: ty, $target: ty) => {
-    impl<'a> ops::Add<$rhs> for $target {
+    impl<'a> Add<$rhs> for $target {
       type Output = PrimeFieldElem;
 
       fn add(self, rhs: $rhs) -> Self::Output {
@@ -120,7 +100,7 @@ impl_add!(BigUint, PrimeFieldElem);
 
 macro_rules! impl_sub {
   ($rhs: ty, $target: ty) => {
-    impl<'a> ops::Sub<$rhs> for $target {
+    impl<'a> Sub<$rhs> for $target {
       type Output = PrimeFieldElem;
 
       fn sub(self, rhs: $rhs) -> Self::Output {
@@ -140,7 +120,7 @@ impl_sub!(BigUint, PrimeFieldElem);
 
 macro_rules! impl_mul {
   ($rhs: ty, $target: ty) => {
-    impl<'a> ops::Mul<$rhs> for $target {
+    impl<'a> Mul<$rhs> for $target {
       type Output = PrimeFieldElem;
 
       fn mul(self, rhs: $rhs) -> Self::Output {
@@ -162,7 +142,7 @@ impl_mul!(&BigUint, PrimeFieldElem);
 
 macro_rules! impl_div {
   ($rhs: ty, $target: ty) => {
-    impl<'a> ops::Div<$rhs> for $target {
+    impl<'a> Div<$rhs> for $target {
       type Output = PrimeFieldElem;
 
       fn div(self, rhs: $rhs) -> Self::Output {
@@ -180,7 +160,63 @@ impl_div!(PrimeFieldElem, PrimeFieldElem);
 impl_div!(&dyn ToBigUint, PrimeFieldElem);
 impl_div!(BigUint, PrimeFieldElem);
 
-impl ops::Neg for PrimeFieldElem {
+macro_rules! impl_rem {
+  ($rhs: ty, $target: ty) => {
+    impl<'a> Rem<$rhs> for $target {
+      type Output = PrimeFieldElem;
+
+      fn rem(self, rhs: $rhs) -> Self::Output {
+        self.plus(&rhs.to_biguint())
+      }
+    }
+  };
+}
+impl_rem!(u8, PrimeFieldElem);
+impl_rem!(u8, &PrimeFieldElem);
+impl_rem!(u32, PrimeFieldElem);
+impl_rem!(PrimeFieldElem, &PrimeFieldElem);
+impl_rem!(&PrimeFieldElem, &PrimeFieldElem);
+impl_rem!(&PrimeFieldElem, PrimeFieldElem);
+impl_rem!(PrimeFieldElem, PrimeFieldElem);
+impl_rem!(&dyn ToBigUint, PrimeFieldElem);
+impl_rem!(BigUint, PrimeFieldElem);
+
+macro_rules! impl_bit_and {
+  ($rhs: ty, $target: ty) => {
+    impl<'a> BitAnd<$rhs> for $target {
+      type Output = PrimeFieldElem;
+
+      fn bitand(self, rhs: $rhs) -> Self::Output {
+        let res = &self.e & rhs.e.clone();
+        PrimeFieldElem {
+          f: self.f.clone(),
+          e: res,
+        }
+      }
+    }
+  }
+}
+impl_bit_and!(PrimeFieldElem, &PrimeFieldElem);
+impl_bit_and!(&PrimeFieldElem, &PrimeFieldElem);
+impl_bit_and!(&PrimeFieldElem, PrimeFieldElem);
+impl_bit_and!(PrimeFieldElem, PrimeFieldElem);
+
+macro_rules! impl_shr_assign {
+  ($rhs: ty, $target: ty) => {
+    impl ShrAssign<$rhs> for $target {
+      fn shr_assign(&mut self, rhs: $rhs) {
+        let n = rhs.to_u64().unwrap();
+        self.e >>= n;
+      }
+    }
+  }
+}
+impl_shr_assign!(BigUint, PrimeFieldElem);
+// impl_shr_assign!(BigUint, &PrimeFieldElem);
+impl_shr_assign!(&BigUint, PrimeFieldElem);
+// impl_shr_assign!(&BigUint, &PrimeFieldElem);
+
+impl Neg for PrimeFieldElem {
   type Output = Self;
 
   fn neg(self) -> Self::Output {
@@ -188,7 +224,7 @@ impl ops::Neg for PrimeFieldElem {
   }
 }
 
-impl<'a> ops::Neg for &'a PrimeFieldElem {
+impl<'a> Neg for &'a PrimeFieldElem {
   type Output = PrimeFieldElem;
 
   fn neg(self) -> Self::Output {

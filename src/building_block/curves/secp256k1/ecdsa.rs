@@ -1,9 +1,9 @@
 use crate::building_block::{
-  field::prime_field_elem::PrimeFieldElem,
-  secp256k1::{
+  curves::secp256k1::{
     affine_point::AffinePoint,
     secp256k1::Secp256k1,
   },
+  field::prime_field_elem::PrimeFieldElem,
   hasher::{
     hasher::Hasher,
     sha256::Sha256,

@@ -34,6 +34,7 @@ impl<'a> MessageSchedule<u64> for Block<'a> {
   }
 }
 
+#[derive(Clone)]
 pub struct Sha512();
 
 impl<'a> CoreLogic<

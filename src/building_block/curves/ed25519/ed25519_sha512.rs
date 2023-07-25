@@ -1,5 +1,6 @@
 #![allow(non_snake_case)]
 use crate::building_block::{
+  curves::ed25519::affine_point::AffinePoint,
   field::{
     prime_field::PrimeField,
     prime_field_elem::PrimeFieldElem,
@@ -8,19 +9,13 @@ use crate::building_block::{
     hasher::Hasher,
     sha512::Sha512,
   },
-  elliptic_curve::{
-    curve::Curve,
-    ec_point::EcPoint,
-    elliptic_curve_point_ops::EllipticCurvePointOps,
-    weierstrass::{
-      adder::affine_point_adder::AffinePointAdder,
-      weierstrass_eq::WeierstrassEq,
-    },
-  },
-  zero::Zero,
 };
 use num_bigint::BigUint;
-use core::ops::{Add, Sub, Rem};
+use num_traits::Zero;
+use std::{
+  ops::{Add, Sub, Rem},
+  rc::Rc,
+};
 
 // implementation based on:
 // - https://ed25519.cr.yp.to/ed25519-20110926.pdf
@@ -32,78 +27,21 @@ pub struct KeyPair {
   pub pub_key: [u8; 32],
 }
 
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 enum Parity {
   Even,
   Odd,
 }
 
+#[derive(Clone)]
 pub struct Ed25519Sha512 {
   H: Sha512,
-  f: PrimeField,
-  l: BigUint,
-  B: EcPoint,
-  d: PrimeFieldElem,
-  one: PrimeFieldElem,
-  zero: PrimeFieldElem,
-  eq: Box<WeierstrassEq<PrimeFieldElem>>
-}
-
-impl Curve<EcPoint, PrimeFieldElem, PrimeField> for Ed25519Sha512 {
-  fn eq(&self) -> Box<WeierstrassEq<PrimeFieldElem>> {
-    self.eq.clone()
-  }
-  fn f(&self) -> PrimeField {
-    self.f.clone()
-  }
-  fn f_n(&self) -> PrimeField {
-    self.f.clone()  // TODO fix this
-  }
-  fn g(&self) -> EcPoint {
-    self.B.clone()  // TODO fix this
-  }
-  fn n(&self) -> BigUint  {
-    self.l.clone()  // TODO fix this
-  }
-  fn point_at_infinity(&self) -> EcPoint {
-    self.B.clone()  // TODO fix this
-  }
-}
-
-impl EllipticCurvePointOps<EcPoint, PrimeFieldElem, PrimeField, Ed25519Sha512> for Ed25519Sha512 {
-  type Adder = AffinePointAdder;
-
-  // Edwards Addition Law
-  // (x1,y1) + (x2,y2) = ((x1y2 + x2y1) / (1 + d x1x2 y1y2), (y1y2 + x1x2) / (1 - d x1x2 y1y2))
-  fn add(&self, p1: &EcPoint, p2: &EcPoint) -> EcPoint {
-    let x1y2 = &p1.x * &p2.y;
-    let x2y1 = &p2.x * &p1.y;
-    let x1x2y1y2 = &x1y2 * &x2y1;
-    let y1y2 = &p1.y * &p2.y;
-    let x1x2 = &p1.x * &p2.x;
-    let x = (x1y2 + x2y1) / (curve.f.elem(&1u8) + (&curve.d * &x1x2y1y2));
-    let y = (y1y2 + x1x2) / (curve.f.elem(&1u8) - (&curve.d * x1x2y1y2));
-    EcPoint {
-      curve: curve.clone(),
-      x: x,
-      y: y,
-      is_inf: false,
-    }
-  }
-
-  fn inv(&self, _p: &EcPoint) -> EcPoint {
-    panic!("not implemented");
-  }
-}
-
-impl Zero<EcPoint> for Ed25519Sha512 {
-  fn get_zero(f: &EcPoint) -> EcPoint {
-      EcPoint::new(&f.elem(&0u8), &f.elem(&1u8))
-  }
-
-  fn is_zero(&self) -> bool {
-      self.p.x == self.zero && self.p.y == self.one
-  }
+  pub f: PrimeField,
+  pub f_l: PrimeField,
+  pub l: BigUint,
+  pub d: PrimeFieldElem,
+  pub zero: PrimeFieldElem,
+  pub one: PrimeFieldElem,
 }
 
 impl Ed25519Sha512 {
@@ -118,32 +56,26 @@ impl Ed25519Sha512 {
     // order of base point l: 2^252 + 27742317777372353535851937790883648493
     let l = two.pow(252u32).add(27742317777372353535851937790883648493u128);
 
+    let f_l = PrimeField::new(&l);
+
     // d = -121665 / 121666
     let d = -f.elem(&121665u32) / 121666u32;
 
-    // base point is (+x, 4/5)
-    let B_y = f.elem(&4u8) / 5u8;
-    let B_x = Self::recover_x(&d, &B_y, Parity::Even);  // get positive x
-    let B = EcPoint::new(&B_x, &B_y);
-
-    let one = f.elem(&1u8);
     let zero = f.elem(&0u8);
+    let one = f.elem(&1u8);
 
-    // just a dummy place holder. TODO fix this part
-    let a1 = f.elem(&0u8);
-    let a2 = f.elem(&0u8);
-    let a3 = f.elem(&0u8);
-    let a4 = f.elem(&0u8);
-    let a6 = f.elem(&0u8);
-    let eq = WeierstrassEq::new(
-      &a1, &a2, &a3, &a4, &a6,
-    );
+    Ed25519Sha512 { H, f, f_l, l, d, zero, one }
+  }
 
-    Ed25519Sha512 { H, f, l, B, d, one, zero, eq }
+  // base point (+x, 4/5)
+  pub fn B(&self) -> AffinePoint {
+    let B_y = self.f.elem(&4u8) / 5u8;
+    let B_x = Self::recover_x(&self.d, &B_y, Parity::Even);  // get positive x
+    AffinePoint::new(&Rc::new(self.clone()), &B_x, &B_y)
   }
 
   fn get_parity(e: &PrimeFieldElem) -> Parity {
-    if (&e.n % 2u8).is_zero() { Parity::Even } else { Parity::Odd }
+    if (&e.e % 2u8).is_zero() { Parity::Even } else { Parity::Odd }
   }
 
   // d is passed to allow new() to call this function. ideally d should be replaced by &self
@@ -159,7 +91,7 @@ impl Ed25519Sha512 {
 
     // if that doesn't match, calculate the square root of xx again
     // assuming a^((q-1)/4) = -1 mod q
-    if &x.sq().n != &xx.n {
+    if &x.sq() != &xx {
       let I = f.elem(&2u8).pow(&((q - &1u8) / &4u8));
       x = &x * &I;
     }
@@ -182,12 +114,12 @@ impl Ed25519Sha512 {
     buf
   }
 
-  fn encode_point(&self, pt: &EcPoint) -> [u8; 32] {
+  fn encode_point(&self, pt: &AffinePoint) -> [u8; 32] {
     // get parity of x
-    let x_parity = if (&pt.x.n & &self.one.n) == self.zero.n { Parity::Even } else { Parity::Odd };
+    let x_parity = if (&pt.x & &self.one) == self.zero { Parity::Even } else { Parity::Odd };
 
     // write y to 32-byte buffer as little-endian integer
-    let mut buf = Self::write_biguint_to_32_byte_buf_as_le_integer(&pt.y.n);
+    let mut buf = Self::write_biguint_to_32_byte_buf_as_le_integer(&pt.y.e);
 
     // the most significant bit of the last octet (=parity bit) should be 0
     assert_eq!(buf[31] & 0b1000_0000, 0);
@@ -199,7 +131,7 @@ impl Ed25519Sha512 {
     buf
   }
 
-  fn decode_point(&self, pt_buf: &[u8; 32]) -> EcPoint {
+  fn decode_point(&self, pt_buf: &[u8; 32]) -> AffinePoint {
     let mut pt_buf = pt_buf.clone();
 
     // get parity of x
@@ -211,7 +143,7 @@ impl Ed25519Sha512 {
     let y = self.f.elem(&BigUint::from_bytes_le(&pt_buf));
     let x = Self::recover_x(&self.d, &y, x_parity);
 
-    EcPoint::new(self, &x, &y)
+    AffinePoint::new(&Rc::new(self.clone()), &x, &y)
   }
 
   fn prune_32_byte_buf(buf: &mut [u8; 32]) {
@@ -235,7 +167,7 @@ impl Ed25519Sha512 {
 
     // multiply B by s to get the public key
     let s = Self::gen_s(&digest[0..32].try_into().unwrap());
-    let pub_key_pt = self.scalar_mul(&self.B, &s);
+    let pub_key_pt = &self.B() * &self.f.elem(&s);
     let pub_key = self.encode_point(&pub_key_pt);
     pub_key
   }
@@ -245,7 +177,7 @@ impl Ed25519Sha512 {
     let s = Self::gen_s(&digest[0..32].try_into().unwrap());
     let prefix = &digest[32..64];
 
-    let A_pt = self.scalar_mul(&self.B, &s);
+    let A_pt = &self.B() * &self.f.elem(&s);
     let A = self.encode_point(&A_pt);
 
     let prefix_msg = [prefix, msg].concat();
@@ -253,7 +185,7 @@ impl Ed25519Sha512 {
       &self.H.get_digest(&prefix_msg)
     );
     let r = r.rem(&self.l);
-    let R_pt = self.scalar_mul(&self.B, &r);
+    let R_pt = &self.B() * &self.f.elem(&r);
     let R = self.encode_point(&R_pt);
 
     let R_A_msg = [&R, &A, msg].concat();
@@ -281,12 +213,14 @@ impl Ed25519Sha512 {
     );
     let A_pt = self.decode_point(&pub_key);
 
-    let lhs = self.scalar_mul(&self.B, &(S * 8u8));
+    let lhs_factor = self.f_l.elem(&(S * 8u8));
+    let lhs = &self.B() * lhs_factor;
 
-    let eight = BigUint::from(8u8);
-    let rhs_term1 = self.scalar_mul(&R_pt, &eight);
-    let rhs_term2 = self.scalar_mul(&A_pt, &(k * &eight));
-    let rhs = self.add(&rhs_term1, &rhs_term2);
+    let rhs_term1 = &R_pt * &self.f_l.elem(&8u8);
+    let rhs_term2_factor = self.f_l.elem(&(k * 8u8));
+    let rhs_term2 = &A_pt * &rhs_term2_factor;
+
+    let rhs = &rhs_term1 + &rhs_term2;
 
     lhs == rhs
   }
@@ -296,43 +230,20 @@ impl Ed25519Sha512 {
 mod tests {
   use super::*;
 
-  #[test]
-  fn adding_zero_test() {
-    let ed25519 = Ed25519Sha512::new();
-    let zero = &ed25519.get_zero(&ed25519.f);
-    let B = &ed25519.B;
-    {
-      let pt = ed25519.add(zero, zero);
-      assert!(pt.is_zero());
-    }
-    {
-      let pt = ed25519.add(B, zero);
-      assert!(&pt == B);
-    }
-    {
-      let pt = ed25519.add(zero, B);
-      assert!(&pt == B);
-    }
-    {
-      let pt = ed25519.add(B, B);
-      assert!(pt.is_zero() == false);
-    }
-  }
-
   fn run_rfc8032_test(prv_key: &str, exp_pub_key: &str, msg: &[u8], exp_sig: &str) {
-    let ed25519 = Ed25519Sha512::new();
+    let curve = Ed25519Sha512::new();
 
     let prv_key: [u8; 32] = hex::decode(prv_key).unwrap().try_into().unwrap();
-    let pub_key = ed25519.gen_pub_key(&prv_key);
+    let pub_key = curve.gen_pub_key(&prv_key);
 
     let exp_pub_key = hex::decode(exp_pub_key).unwrap();
     assert_eq!(exp_pub_key, pub_key);
 
-    let sig = ed25519.sign(&msg, &prv_key);
+    let sig = curve.sign(&msg, &prv_key);
     let exp_sig: [u8; 64] = hex::decode(exp_sig).unwrap().try_into().unwrap();
 
     assert_eq!(sig, exp_sig);
-    assert!(ed25519.verify(&sig, &pub_key, msg));
+    assert!(curve.verify(&sig, &pub_key, msg));
   }
 
   #[test]

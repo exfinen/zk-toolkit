@@ -1,16 +1,19 @@
-use crate::building_block::{
-  field::prime_field_elem::PrimeFieldElem,
-  secp256k1::{
-    jacobian_point::JacobianPoint,
-    secp256k1::Secp256k1,
+use crate::{
+  impl_mul,
+  building_block::{
+    field::prime_field_elem::PrimeFieldElem,
+    curves::secp256k1::{
+      jacobian_point::JacobianPoint,
+      secp256k1::Secp256k1,
+    },
+    zero::Zero,
   },
-  zero::Zero,
 };
 use std::{
   fmt,
-  ops::{Add, Mul, BitAnd, ShrAssign},
+  ops::{Add, Mul},
+  rc::Rc,
 };
-use std::rc::Rc;
 
 #[derive(Clone)]
 pub struct AffinePoint {
@@ -81,63 +84,7 @@ impl Zero<AffinePoint> for AffinePoint {
   }
 }
 
-/*
-macro_rules! impl_mul {
-  ($rhs: ty, $target: ty) => {
-    impl Mul<$rhs> for $target {
-      type Output = AffinePoint;
-
-      fn mul(self, rhs: $rhs) -> Self::Output {
-        let mut n = rhs.clone();
-        let mut res = self.zero();
-        let mut pt_pow_n = self.clone();
-        let one = BigUint::one();
-
-        while !n.is_zero() {
-          if n.clone().bitand(&one).is_one() {
-            res = &res + &pt_pow_n;
-          }
-          pt_pow_n = &pt_pow_n + &pt_pow_n;
-          n.shr_assign(1usize);
-        }
-        res
-      }
-    }
-  }
-}
-impl_mul!(BigUint, AffinePoint);
-impl_mul!(BigUint, &AffinePoint);
-impl_mul!(&BigUint, AffinePoint);
-impl_mul!(&BigUint, &AffinePoint);
- */
-
-macro_rules! impl_mul {
-  ($rhs: ty, $target: ty) => {
-    impl Mul<$rhs> for $target {
-      type Output = AffinePoint;
-
-      fn mul(self, rhs: $rhs) -> Self::Output {
-        let mut n = rhs.clone();
-        let mut res = self.zero();
-        let mut pt_pow_n = self.clone();
-        let one = self.curve.f.elem(&1u8);
-
-        while !n.is_zero() {
-          if !n.clone().bitand(one.clone()).is_zero() {
-            res = &res + &pt_pow_n;
-          }
-          pt_pow_n = &pt_pow_n + &pt_pow_n;
-          n.shr_assign(one.clone());
-        }
-        res
-      }
-    }
-  }
-}
 impl_mul!(PrimeFieldElem, AffinePoint);
-impl_mul!(PrimeFieldElem, &AffinePoint);
-impl_mul!(&PrimeFieldElem, AffinePoint);
-impl_mul!(&PrimeFieldElem, &AffinePoint);
 
 macro_rules! impl_add {
   ($rhs: ty, $target: ty) => {
@@ -256,18 +203,17 @@ impl_add!(&AffinePoint, &AffinePoint);
 
 impl PartialEq for AffinePoint {
   fn eq(&self, other: &Self) -> bool {
-    if self.is_inf != other.is_inf {
+    if self.is_inf != other.is_inf {  // false if one is zero and the other is non-zero
       false
-    } else if self.is_inf {  // both is_inf's are true
+    } else if self.is_inf {  // true if both are zero
       true
-    } else {  // both is_inf's are false
+    } else {  // otherwise check if coordinates are the same
       self.x == other.x && self.y == other.y
     }
   }
 }
 
 impl Eq for AffinePoint {}
-
 
 #[cfg(test)]
 mod tests {
@@ -278,20 +224,17 @@ mod tests {
     let curve = Rc::new(Secp256k1::new());
     let g = &curve.g();
 
-    // {
-    //   let one = curve.f.elem(&1u8);
-    //   let act = g * one;
-    //   assert_eq!(&act, g);
-    // }
-    // {
-    //   let two = curve.f.elem(&2u8);
-    //   let act = g * two;
-    //   let exp = g + g;
-    //   assert_eq!(act, exp);
-    // }
     {
-      let three = curve.f.elem(&3u8);
-      let act = g * three;
+      let act = g * curve.f.elem(&1u8);
+      assert_eq!(&act, g);
+    }
+    {
+      let act = g * curve.f.elem(&2u8);
+      let exp = g + g;
+      assert_eq!(act, exp);
+    }
+    {
+      let act = g * curve.f.elem(&3u8);
       let exp = g + g + g;
       assert_eq!(act, exp);
     }

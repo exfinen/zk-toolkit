@@ -1,5 +1,5 @@
 use crate::building_block::{
-  secp256k1::{
+  curves::secp256k1::{
     affine_point::AffinePoint,
     secp256k1::Secp256k1,
   },
@@ -7,7 +7,7 @@ use crate::building_block::{
   zero::Zero,
 };
 use std::{
-  ops::{Add, Mul, BitAnd, ShrAssign},
+  ops::{Add, Mul},
   rc::Rc,
 };
 
@@ -73,14 +73,14 @@ macro_rules! impl_mul {
         let mut n = rhs.clone();
         let mut res = self.zero();
         let mut pt_pow_n = self.clone();
-        let one = self.curve.f.elem(&1u8);
+        let one = &self.curve.f.elem(&1u8);
 
-        while !n.is_zero() {
-          if !n.clone().bitand(one.clone()).is_zero() {
+        while !&n.is_zero() {
+          if !(&n & one).is_zero() {
             res = &res + &pt_pow_n;
           }
           pt_pow_n = &pt_pow_n + &pt_pow_n;
-          n.shr_assign(one.clone());
+          n >>= &one.e;
         }
         res
       }

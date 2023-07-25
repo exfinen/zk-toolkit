@@ -1,6 +1,6 @@
 use crate::building_block::{
   field::prime_field::PrimeField,
-  secp256k1::{
+  curves::secp256k1::{
     affine_point::AffinePoint,
     equation::Equation,
   },
