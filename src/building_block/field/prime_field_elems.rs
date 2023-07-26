@@ -1,9 +1,10 @@
 use std::{
   ops,
-  ops::{Index, RangeFrom, RangeTo, Deref},
+  ops::{Index, Deref},
 };
 use crate::building_block::field::prime_field_elem::PrimeFieldElem;
 
+#[derive(Clone)]
 pub struct PrimeFieldElems(pub Vec<PrimeFieldElem>);
 
 impl<'a> Index<usize> for PrimeFieldElems {
@@ -28,14 +29,28 @@ impl<'a> PrimeFieldElems {
     })
   }
 
-  pub fn from(&self, range: RangeFrom<usize>) -> PrimeFieldElems {
-    let xs = &self.0[range.start..self.0.len()];
-    PrimeFieldElems(xs.to_vec())
+  pub fn from(&self, idx: usize) -> PrimeFieldElems {
+    if idx >= self.len() {
+      PrimeFieldElems(vec![])
+    } else {
+      let mut xs = vec![];
+      for i in idx..self.len() {
+        xs.push(self[i].clone());
+      }
+      PrimeFieldElems(xs.to_vec())
+    }
   }
 
-  pub fn to(&self, range: RangeTo<usize>) -> PrimeFieldElems {
-    let xs = &self.0[0..range.end];
-    PrimeFieldElems(xs.to_vec())
+  pub fn to(&self, idx: usize) -> PrimeFieldElems {
+    if idx >= self.len() {
+      self.clone()
+    } else {
+      let mut xs = vec![];
+      for i in 0..idx {
+        xs.push(self[i].clone());
+      }
+      PrimeFieldElems(xs.to_vec())
+    }
   }
 }
 
@@ -147,3 +162,19 @@ impl_field_elems_times_field_elem!(PrimeFieldElem, PrimeFieldElems);
 impl_field_elems_times_field_elem!(&PrimeFieldElem, PrimeFieldElems);
 impl_field_elems_times_field_elem!(PrimeFieldElem, &PrimeFieldElems);
 
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn test_from() {
+  }
+
+  #[test]
+  fn test_to() {
+  }
+
+  #[test]
+  fn test_sum() {
+  }
+}

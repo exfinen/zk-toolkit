@@ -39,6 +39,15 @@ impl AffinePoint {
     }
   }
 
+  pub fn rand_point(&self, exclude_zero: bool) -> Self {
+    let g = &self.curve.g();
+    loop {
+      let multiplier = self.curve.f_n.rand_elem(exclude_zero);
+      let p = g * multiplier;
+      if !exclude_zero || !p.is_zero() { return p; }
+    }
+  }
+
   pub fn inv(&self) -> Self {
     if self.is_inf {
       panic!("Cannot calculate the inverse of zero");
