@@ -150,3 +150,75 @@ macro_rules! impl_affine_add {
     impl_add!(&$point, &$point);
   }
 }
+
+#[macro_export]
+macro_rules! impl_jacobian_add {
+  () => {
+    macro_rules! impl_add {
+      ($rhs: ty, $target: ty) => {
+        // given AffinePoint, covert it to JacobianPoint
+        // and perform addition in projective coordinate
+        // then convert it back to AffinePoiht and return
+        impl Add<$rhs> for $target {
+          type Output = $target;
+
+          // TODO use self and rhs directly and get rid of jp*
+          fn add(self, rhs: $rhs) -> Self::Output {
+            if self.is_zero() && rhs.is_zero() {  // zero + zero is zero
+              self.clone()
+            } else if self.is_zero() {  // adding p2 to zero is p2
+              rhs.clone()
+            } else if rhs.is_zero() {  // adding p1 to zero is p1
+              self.clone()
+            } else if self.x == rhs.x && self.y != rhs.y {  // if line through p1 and p2 is vertical line
+              self.zero()
+            } else if self.x == rhs.x && self.y == rhs.y {  // if adding the same point
+              // special case: if y == 0, the tangent line is vertical
+              if self.y.is_zero() || rhs.y.is_zero() {
+                return self.zero();
+              }
+
+              let jp: JacobianPoint = self.clone();
+              let jp = self.clone();
+
+              // formula described in: http://hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#doubling-dbl-2009-l
+              // w/ unnecessary computation removed
+              let a = &jp.x.sq();
+              let b = &jp.y.sq();
+              let c = &b.sq();
+              let d = &(((&jp.x + b).sq() - a - c) * 2u8);
+              let e = &(a * 4u8);
+              let e_sq = &e.sq();
+              let x3 = e_sq - (d * 2u8);
+              let y3 = e * (d - &x3) - (c * 8u8);
+              let z3 = &jp.y * 2u8;
+
+              JacobianPoint::new(&self.curve, &x3, &y3, &z3).into()
+
+            } else {  // when line through p1 and p2 is non-vertical line
+              let jp1: JacobianPoint = self.into();
+              let jp2: JacobianPoint = rhs.into();
+
+              // formula described in: https://hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-3.html#addition-add-2007-bl
+              // w/ unnecessary computation removed
+              let h = jp2.x - &jp1.x;
+              let i = (&h * 2).sq();
+              let j = &h * &i;
+              let r = (jp2.y - &jp1.y) * 2u8;
+              let v = jp1.x * &i;
+              let x3 = (r.sq() - &j) - (&v * 2u8);
+              let y3 = r * (v - &x3) - (jp1.y * (j * 2u8));
+              let z3 = h * 2u8;
+
+              JacobianPoint::new(&self.curve, &x3, &y3, &z3).into()
+            }
+          }
+        }
+      }
+    }
+    impl_add!(AffinePoint, AffinePoint);
+    // impl_add!(AffinePoint, &AffinePoint);
+    // impl_add!(&AffinePoint, AffinePoint);
+    // impl_add!(&AffinePoint, &AffinePoint);
+  }
+}
