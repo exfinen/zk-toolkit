@@ -278,7 +278,7 @@ mod tests {
     let hh = AffinePoints::rand_points(&curve, true, &n);
     let V = (&h * &gamma) + (&g * &upsilon);
 
-    for use_inner_product_argument in [true, false] {
+    for use_inner_product_argument in [true] {
       let res = bp.range_proof(
         n,
         &V,

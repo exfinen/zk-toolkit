@@ -52,7 +52,7 @@ impl AffinePoints {
 
   pub fn from(&self, idx: usize) -> Self {
     if idx >= self.len() {
-      AffinePoints::new(&self.curve, &vec![])
+      panic!("Index outside the range is specified");
     } else {
       let mut points = vec![];
       for i in idx..self.len() {
@@ -63,11 +63,11 @@ impl AffinePoints {
   }
 
   pub fn to(&self, idx: usize) -> Self {
-    let idx = if idx >= self.points.len()
-      { self.points.len() - 1 } else { idx };
-
+    if idx > self.points.len() {
+      panic!("Index outside the range is specified");
+    }
     let mut points = vec![];
-    for i in idx..self.len() {
+    for i in 0..idx {
       points.push(self[i].clone());
     }
     AffinePoints::new(&self.curve, &points)
@@ -167,17 +167,104 @@ impl Eq for AffinePoints {}
 
 #[cfg(test)]
 mod tests {
-  use super::*;
+  use crate::building_block::curves::secp256k1::{
+    affine_points::AffinePoints,
+    secp256k1::Secp256k1,
+  };
+  use std::rc::Rc;
 
   #[test]
   fn test_from() {
+    let curve = Rc::new(Secp256k1::new());
+    let g = &curve.g();
+    let gs_vec = vec![
+      g.clone(),
+      g + g,
+      g + g + g,
+      g + g + g + g,
+    ];
+    let elems = AffinePoints::new(&curve, &gs_vec);
+    {
+      let res = &elems.from(0);
+      assert_eq!(res.len(), 4);
+      assert_eq!(res.as_slice(), gs_vec.as_slice());
+    }
+    {
+      let res = &elems.from(1);
+      assert_eq!(res.len(), 3);
+      assert_eq!(&res[0], &gs_vec[1]);
+      assert_eq!(&res[1], &gs_vec[2]);
+      assert_eq!(&res[2], &gs_vec[3]);
+    }
+    {
+      let res = &elems.from(2);
+      assert_eq!(res.len(), 2);
+      assert_eq!(&res[0], &gs_vec[2]);
+      assert_eq!(&res[1], &gs_vec[3]);
+    }
+    {
+      let res = &elems.from(3);
+      assert_eq!(res.len(), 1);
+      assert_eq!(&res[0], &gs_vec[3]);
+    }
+    // TODO test elem.from(4) and confirm it panics
   }
 
   #[test]
   fn test_to() {
+    let curve = Rc::new(Secp256k1::new());
+    let g = &curve.g();
+    let gs_vec = vec![
+      g.clone(),
+      g + g,
+      g + g + g,
+      g + g + g + g,
+    ];
+    let elems = AffinePoints::new(&curve, &gs_vec);
+    {
+      let res = &elems.to(0);
+      assert_eq!(res.len(), 0);
+    }
+    {
+      let res = &elems.to(1);
+      assert_eq!(res.len(), 1);
+      assert_eq!(&res[0], &gs_vec[0]);
+    }
+    {
+      let res = &elems.to(2);
+      assert_eq!(res.len(), 2);
+      assert_eq!(&res[0], &gs_vec[0]);
+      assert_eq!(&res[1], &gs_vec[1]);
+    }
+    {
+      let res = &elems.to(3);
+      assert_eq!(res.len(), 3);
+      assert_eq!(&res[0], &gs_vec[0]);
+      assert_eq!(&res[1], &gs_vec[1]);
+      assert_eq!(&res[2], &gs_vec[2]);
+    }
+    {
+      let res = &elems.to(4);
+      assert_eq!(res.len(), 4);
+      assert_eq!(&res[0], &gs_vec[0]);
+      assert_eq!(&res[1], &gs_vec[1]);
+      assert_eq!(&res[2], &gs_vec[2]);
+      assert_eq!(&res[3], &gs_vec[3]);
+    }
+    // TODO test elem.to(5) and confirm it panics
   }
 
   #[test]
   fn test_sum() {
+    let curve = Rc::new(Secp256k1::new());
+    let g = &curve.g();
+    let gs_vec = vec![
+      g.clone(),
+      g + g,
+    ];
+    let elems = AffinePoints::new(&curve, &gs_vec);
+    let act = &elems.sum();
+    let exp = g + g + g;
+    assert_eq!(act, &exp);
   }
 }

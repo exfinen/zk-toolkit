@@ -160,7 +160,7 @@ macro_rules! impl_jacobian_add {
         // and perform addition in projective coordinate
         // then convert it back to AffinePoiht and return
         impl Add<$rhs> for $target {
-          type Output = $target;
+          type Output = AffinePoint;
 
           // TODO use self and rhs directly and get rid of jp*
           fn add(self, rhs: $rhs) -> Self::Output {
@@ -175,11 +175,9 @@ macro_rules! impl_jacobian_add {
             } else if self.x == rhs.x && self.y == rhs.y {  // if adding the same point
               // special case: if y == 0, the tangent line is vertical
               if self.y.is_zero() || rhs.y.is_zero() {
-                return self.zero();
+                return self.zero().into();
               }
-
-              let jp: JacobianPoint = self.clone();
-              let jp = self.clone();
+              let jp: JacobianPoint = self.clone().into();
 
               // formula described in: http://hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#doubling-dbl-2009-l
               // w/ unnecessary computation removed
@@ -187,7 +185,7 @@ macro_rules! impl_jacobian_add {
               let b = &jp.y.sq();
               let c = &b.sq();
               let d = &(((&jp.x + b).sq() - a - c) * 2u8);
-              let e = &(a * 4u8);
+              let e = &(a * 3u8);
               let e_sq = &e.sq();
               let x3 = e_sq - (d * 2u8);
               let y3 = e * (d - &x3) - (c * 8u8);
@@ -196,7 +194,7 @@ macro_rules! impl_jacobian_add {
               JacobianPoint::new(&self.curve, &x3, &y3, &z3).into()
 
             } else {  // when line through p1 and p2 is non-vertical line
-              let jp1: JacobianPoint = self.into();
+              let jp1: JacobianPoint = self.clone().into();
               let jp2: JacobianPoint = rhs.into();
 
               // formula described in: https://hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-3.html#addition-add-2007-bl
@@ -217,8 +215,8 @@ macro_rules! impl_jacobian_add {
       }
     }
     impl_add!(AffinePoint, AffinePoint);
-    // impl_add!(AffinePoint, &AffinePoint);
-    // impl_add!(&AffinePoint, AffinePoint);
-    // impl_add!(&AffinePoint, &AffinePoint);
+    impl_add!(&AffinePoint, AffinePoint);
+    impl_add!(AffinePoint, &AffinePoint);
+    impl_add!(&AffinePoint, &AffinePoint);
   }
 }

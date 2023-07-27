@@ -31,7 +31,7 @@ impl<'a> PrimeFieldElems {
 
   pub fn from(&self, idx: usize) -> PrimeFieldElems {
     if idx >= self.len() {
-      PrimeFieldElems(vec![])
+      panic!("index outside the range is specified");
     } else {
       let mut xs = vec![];
       for i in idx..self.len() {
@@ -42,8 +42,8 @@ impl<'a> PrimeFieldElems {
   }
 
   pub fn to(&self, idx: usize) -> PrimeFieldElems {
-    if idx >= self.len() {
-      self.clone()
+    if idx > self.len() {
+      panic!("index outside the range is specified");
     } else {
       let mut xs = vec![];
       for i in 0..idx {
@@ -164,10 +164,12 @@ impl_field_elems_times_field_elem!(PrimeFieldElem, &PrimeFieldElems);
 
 #[cfg(test)]
 mod tests {
-  use super::*;
+  use crate::building_block::curves::secp256k1::secp256k1::Secp256k1;
+  use std::rc::Rc;
 
   #[test]
   fn test_from() {
+    let _curve = Rc::new(Secp256k1::new());
   }
 
   #[test]

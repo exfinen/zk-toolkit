@@ -59,6 +59,16 @@ impl From<AffinePoint> for JacobianPoint {
   }
 }
 
+impl From<&AffinePoint> for JacobianPoint {
+  fn from(p: &AffinePoint) -> Self {
+    if p.is_zero() {
+      panic!("Cannot convert point at infinity to Jacobian point");
+    } else {
+      JacobianPoint::new(&p.curve, &p.x, &p.y, &p.x.f.elem(&1u8))
+    }
+  }
+}
+
 impl PartialEq for JacobianPoint {
   // TODO write tests
   fn eq(&self, rhs: &Self) -> bool {
