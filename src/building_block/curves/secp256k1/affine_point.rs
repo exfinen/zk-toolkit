@@ -1,7 +1,6 @@
 use crate::{
   impl_mul,
-  // impl_affine_add,
-  impl_jacobian_add,
+  impl_affine_add,
   building_block::{
     field::prime_field_elem::PrimeFieldElem,
     curves::secp256k1::{
@@ -95,8 +94,7 @@ impl Zero<AffinePoint> for AffinePoint {
   }
 }
 
-// impl_affine_add!(AffinePoint);
-impl_jacobian_add!();
+impl_affine_add!(AffinePoint);
 
 impl_mul!(PrimeFieldElem, AffinePoint);
 

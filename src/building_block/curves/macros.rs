@@ -156,11 +156,8 @@ macro_rules! impl_jacobian_add {
   () => {
     macro_rules! impl_add {
       ($rhs: ty, $target: ty) => {
-        // given AffinePoint, covert it to JacobianPoint
-        // and perform addition in projective coordinate
-        // then convert it back to AffinePoiht and return
         impl Add<$rhs> for $target {
-          type Output = AffinePoint;
+          type Output = JacobianPoint;
 
           // TODO use self and rhs directly and get rid of jp*
           fn add(self, rhs: $rhs) -> Self::Output {
@@ -177,7 +174,7 @@ macro_rules! impl_jacobian_add {
               if self.y.is_zero() || rhs.y.is_zero() {
                 return self.zero().into();
               }
-              let jp: JacobianPoint = self.clone().into();
+              let jp: JacobianPoint = self.clone();  // TODO use self directly
 
               // formula described in: http://hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#doubling-dbl-2009-l
               // w/ unnecessary computation removed
@@ -194,8 +191,8 @@ macro_rules! impl_jacobian_add {
               JacobianPoint::new(&self.curve, &x3, &y3, &z3).into()
 
             } else {  // when line through p1 and p2 is non-vertical line
-              let jp1: JacobianPoint = self.clone().into();
-              let jp2: JacobianPoint = rhs.into();
+              let jp1: JacobianPoint = self.clone();  // TODO use self and rhs directly
+              let jp2: JacobianPoint = rhs.clone();
 
               // formula described in: https://hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-3.html#addition-add-2007-bl
               // w/ unnecessary computation removed
@@ -214,9 +211,9 @@ macro_rules! impl_jacobian_add {
         }
       }
     }
-    impl_add!(AffinePoint, AffinePoint);
-    impl_add!(&AffinePoint, AffinePoint);
-    impl_add!(AffinePoint, &AffinePoint);
-    impl_add!(&AffinePoint, &AffinePoint);
+    impl_add!(JacobianPoint, JacobianPoint);
+    impl_add!(&JacobianPoint, JacobianPoint);
+    impl_add!(JacobianPoint, &JacobianPoint);
+    impl_add!(&JacobianPoint, &JacobianPoint);
   }
 }

@@ -1,12 +1,19 @@
-use crate::building_block::{
-  curves::secp256k1::{
-    affine_point::AffinePoint,
-    secp256k1::Secp256k1,
+use crate::{
+  impl_jacobian_add,
+  impl_mul,
+  building_block::{
+    curves::secp256k1::{
+      affine_point::AffinePoint,
+      secp256k1::Secp256k1,
+    },
+    field::prime_field_elem::PrimeFieldElem,
+    zero::Zero,
   },
-  field::prime_field_elem::PrimeFieldElem,
-  zero::Zero,
 };
-use std::rc::Rc;
+use std::{
+  ops::{Add, Mul},
+  rc::Rc,
+};
 
 #[derive(Clone)]
 pub struct JacobianPoint {
@@ -48,6 +55,10 @@ impl Zero<JacobianPoint> for JacobianPoint {
     )
   }
 }
+
+impl_jacobian_add!();
+
+impl_mul!(PrimeFieldElem, JacobianPoint);
 
 impl From<AffinePoint> for JacobianPoint {
   fn from(p: AffinePoint) -> Self {
