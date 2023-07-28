@@ -1,4 +1,5 @@
 use std::{
+  fmt,
   ops,
   ops::{Index, Deref},
 };
@@ -6,6 +7,16 @@ use crate::building_block::field::prime_field_elem::PrimeFieldElem;
 
 #[derive(Clone)]
 pub struct PrimeFieldElems(pub Vec<PrimeFieldElem>);
+
+impl fmt::Debug for PrimeFieldElems {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+      write!(f, "{{")?;
+      for x in &self.0 {
+        write!(f, "{:?},", x)?;
+      }
+      write!(f, "}}")
+  }
+}
 
 impl<'a> Index<usize> for PrimeFieldElems {
   type Output = PrimeFieldElem;

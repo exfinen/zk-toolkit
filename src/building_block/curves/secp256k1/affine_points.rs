@@ -10,6 +10,7 @@ use crate::building_block::{
   zero::Zero,
 };
 use std::{
+  fmt,
   ops::{Add, Mul, Deref},
   rc::Rc,
 };
@@ -74,6 +75,16 @@ impl AffinePoints {
   }
 }
 
+impl fmt::Debug for AffinePoints {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+      write!(f, "{{")?;
+      for x in &self.points {
+        write!(f, "{:?},", x)?;
+      }
+      write!(f, "}}")
+  }
+}
+
 macro_rules! impl_add {
   ($rhs: ty, $target: ty) => {
     impl<'a> Add<$rhs> for $target {
@@ -85,7 +96,7 @@ macro_rules! impl_add {
         }
         let mut points = vec![];
         for i in 0..self.len() {
-          points.push(self.points[i].clone());
+          points.push(&self.points[i] + &rhs.points[i]);
         }
         AffinePoints::new(&self.curve, &points)
       }
@@ -128,7 +139,7 @@ macro_rules! impl_vec_mul {
         }
         let mut points = vec![];
         for i in 0..self.points.len() {
-          points.push(&self.points[i] * rhs[i].clone())
+          points.push(&self.points[i] * &rhs[i])
         }
         AffinePoints::new(&self.curve, &points)
       }
