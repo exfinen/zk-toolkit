@@ -3,12 +3,11 @@ use std::{
   fmt,
 };
 use crate::building_block::{
-  additive_identity::AdditiveIdentity,
-  elliptic_curve::weierstrass::curves::bls12_381::{
+  curves::bls12_381::{
     reduce::Reduce,
     fq6::Fq6,
   },
-  field::field_elem_ops::Inverse,
+  zero::Zero,
 };
 
 
@@ -25,10 +24,8 @@ impl Fq12 {
         w0: w0.clone(),
       }
   }
-}
 
-impl Inverse for Fq12 {
-  fn inv(&self) -> Self {
+  pub fn inv(&self) -> Self {
     let factor = Fq6::inv(&(
       self.w0 * self.w0
       - Fq6::reduce(&(self.w1 * self.w1))
@@ -40,12 +37,16 @@ impl Inverse for Fq12 {
   }
 }
 
-impl AdditiveIdentity<Fq12> for Fq12 {
-  fn get_additive_identity(&self) -> Self {
+impl Zero<Fq12> for Fq12 {
+  fn zero() -> Self {
     Self {
-      w1: Fq6::get_additive_identity(&self.w0),
-      w0: Fq6::get_additive_identity(&self.w0),
+      w1: Fq6::zero(),
+      w0: Fq6::zero(),
     }
+  }
+
+  fn is_zero(&self) -> bool {
+    true
   }
 }
 
@@ -121,7 +122,7 @@ impl fmt::Display for Fq12 {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::building_block::elliptic_curve::weierstrass::curves::bls12_381::fq_test_helper::get_fq6_values;
+  use crate::building_block::curves::bls12_381::fq_test_helper::get_fq6_values;
 
   fn to_strs(x: &Fq12) -> [String; 12] {
     [

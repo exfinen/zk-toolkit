@@ -1,5 +1,3 @@
-pub mod bls12_381_g1;
-// pub mod bls12_381_g2;
 pub mod fq1;
 pub mod fq2;
 pub mod fq6;

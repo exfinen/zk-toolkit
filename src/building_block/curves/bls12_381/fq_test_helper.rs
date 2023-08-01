@@ -1,19 +1,16 @@
-use crate::building_block::{
-  field::prime_field::PrimeField,
-  elliptic_curve::weierstrass::curves::bls12_381::{
-    fq1::{Fq1, FIELD_ORDER},
-    fq2::Fq2,
-    fq6::Fq6,
-  },
+use crate::building_block::curves::bls12_381::{
+  fq1::Fq1,
+  fq2::Fq2,
+  fq6::Fq6,
 };
-use once_cell::sync::Lazy;
+use std::rc::Rc;
 
 pub fn get_fq1_values() -> (Fq1, Fq1, Fq1, Fq1) {
-  let f = &PrimeField::new(Lazy::get(&FIELD_ORDER).unwrap());
-  let a1 = Fq1::new(f, &3u8).negate();
-  let b1 = Fq1::new(f, &5u8).negate();
-  let c1 = Fq1::new(f, &7u8).negate();
-  let d1 = Fq1::new(f, &9u8).negate();
+  let f_q = &Rc::new(Fq1::base_field());
+  let a1 = Fq1::new(f_q, &3u8).negate();
+  let b1 = Fq1::new(f_q, &5u8).negate();
+  let c1 = Fq1::new(f_q, &7u8).negate();
+  let d1 = Fq1::new(f_q, &9u8).negate();
   (a1, b1, c1, d1)
 }
 

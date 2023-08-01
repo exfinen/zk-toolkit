@@ -1,21 +1,17 @@
 #![allow(non_snake_case)]
 use crate::building_block::{
-  curves::ed25519::affine_point::AffinePoint,
-  field::{
-    prime_field::PrimeField,
-    prime_field_elem::PrimeFieldElem,
+  curves::curve25519::affine_point::{
+    AffinePoint,
+    Parity,
   },
+  field::prime_field_elem::PrimeFieldElem,
   hasher::{
     hasher::Hasher,
     sha512::Sha512,
   },
 };
 use num_bigint::BigUint;
-use num_traits::Zero;
-use std::{
-  ops::{Add, Sub, Rem},
-  rc::Rc,
-};
+use std::ops::Rem;
 
 // implementation based on:
 // - https://ed25519.cr.yp.to/ed25519-20110926.pdf
@@ -27,79 +23,23 @@ pub struct KeyPair {
   pub pub_key: [u8; 32],
 }
 
-#[derive(Debug, PartialEq)]
-enum Parity {
-  Even,
-  Odd,
-}
-
 #[derive(Clone)]
 pub struct Ed25519Sha512 {
   H: Sha512,
-  pub f: PrimeField,
-  pub f_l: PrimeField,
-  pub l: BigUint,
-  pub d: PrimeFieldElem,
-  pub zero: PrimeFieldElem,
-  pub one: PrimeFieldElem,
 }
 
 impl Ed25519Sha512 {
-  pub fn new() -> Self {
-    let H = Sha512();
-    let two = BigUint::from(2u8);
-
-    // order of base field q: 2^255 - 19
-    let q = two.pow(255u32).sub(19u8);
-    let f = PrimeField::new(&q);
-
-    // order of base point l: 2^252 + 27742317777372353535851937790883648493
-    let l = two.pow(252u32).add(27742317777372353535851937790883648493u128);
-
-    let f_l = PrimeField::new(&l);
-
-    // d = -121665 / 121666
-    let d = -f.elem(&121665u32) / 121666u32;
-
-    let zero = f.elem(&0u8);
-    let one = f.elem(&1u8);
-
-    Ed25519Sha512 { H, f, f_l, l, d, zero, one }
+  fn new() -> Self {
+    Ed25519Sha512 { H: Sha512() }
+  }
+  fn one() -> PrimeFieldElem {
+    let f = AffinePoint::curve_group();
+    f.elem(&1u8)
   }
 
-  // base point (+x, 4/5)
-  pub fn B(&self) -> AffinePoint {
-    let B_y = self.f.elem(&4u8) / 5u8;
-    let B_x = Self::recover_x(&self.d, &B_y, Parity::Even);  // get positive x
-    AffinePoint::new(&Rc::new(self.clone()), &B_x, &B_y)
-  }
-
-  fn get_parity(e: &PrimeFieldElem) -> Parity {
-    if (&e.e % 2u8).is_zero() { Parity::Even } else { Parity::Odd }
-  }
-
-  // d is passed to allow new() to call this function. ideally d should be replaced by &self
-  fn recover_x(d: &PrimeFieldElem, y: &PrimeFieldElem, x_parity: Parity) -> PrimeFieldElem {
-    let f = &d.f;
-    let q = &d.f.order;
-
-    // xx = x^2 = (y^2 - 1) / (1 + d*y^2)
-    let xx = (y.sq() - 1u8) / ((d * y.sq()) + 1u8);
-
-    // calculate the square root of xx assuming a^((q-1)/4) = 1 mod q
-    let mut x = (&xx).pow(&((q + &3u8) / &8u8));
-
-    // if that doesn't match, calculate the square root of xx again
-    // assuming a^((q-1)/4) = -1 mod q
-    if &x.sq() != &xx {
-      let I = f.elem(&2u8).pow(&((q - &1u8) / &4u8));
-      x = &x * &I;
-    }
-    let root_parity = Self::get_parity(&x);
-    if root_parity != x_parity {
-      x = -&x;
-    }
-    x
+  fn zero() -> PrimeFieldElem {
+    let f = AffinePoint::curve_group();
+    f.elem(&0u8)
   }
 
   fn write_biguint_to_32_byte_buf_as_le_integer(n: &BigUint) -> [u8; 32] {
@@ -116,7 +56,7 @@ impl Ed25519Sha512 {
 
   fn encode_point(&self, pt: &AffinePoint) -> [u8; 32] {
     // get parity of x
-    let x_parity = if (&pt.x & &self.one) == self.zero { Parity::Even } else { Parity::Odd };
+    let x_parity = if (&pt.x & &Self::one()) == Self::zero() { Parity::Even } else { Parity::Odd };
 
     // write y to 32-byte buffer as little-endian integer
     let mut buf = Self::write_biguint_to_32_byte_buf_as_le_integer(&pt.y.e);
@@ -140,10 +80,10 @@ impl Ed25519Sha512 {
     // clear parity bit
     pt_buf[31] &= 0b0111_1111;
 
-    let y = self.f.elem(&BigUint::from_bytes_le(&pt_buf));
-    let x = Self::recover_x(&self.d, &y, x_parity);
+    let y = AffinePoint::base_field().elem(&BigUint::from_bytes_le(&pt_buf));
+    let x = AffinePoint::recover_x(&AffinePoint::d(), &y, x_parity);
 
-    AffinePoint::new(&Rc::new(self.clone()), &x, &y)
+    AffinePoint::new(&x, &y)
   }
 
   fn prune_32_byte_buf(buf: &mut [u8; 32]) {
@@ -167,42 +107,50 @@ impl Ed25519Sha512 {
 
     // multiply B by s to get the public key
     let s = Self::gen_s(&digest[0..32].try_into().unwrap());
-    let pub_key_pt = &self.B() * &self.f.elem(&s);
+    let pub_key_pt = &AffinePoint::B() * &AffinePoint::base_field().elem(&s);
     let pub_key = self.encode_point(&pub_key_pt);
     pub_key
   }
 
   pub fn sign(&self, msg: &[u8], prv_key: &[u8; 32]) -> [u8; 64] {
+    let f = &AffinePoint::base_field();
+    let l = &AffinePoint::curve_group().order;
+    let B = &AffinePoint::B();
+
     let digest = self.H.get_digest(prv_key);
     let s = Self::gen_s(&digest[0..32].try_into().unwrap());
     let prefix = &digest[32..64];
 
-    let A_pt = &self.B() * &self.f.elem(&s);
+    let A_pt = B * f.elem(&s);
     let A = self.encode_point(&A_pt);
 
     let prefix_msg = [prefix, msg].concat();
     let r = BigUint::from_bytes_le(
       &self.H.get_digest(&prefix_msg)
     );
-    let r = r.rem(&self.l);
-    let R_pt = &self.B() * &self.f.elem(&r);
+    let r = r.rem(l);
+    let R_pt = B * f.elem(&r);
     let R = self.encode_point(&R_pt);
 
     let R_A_msg = [&R, &A, msg].concat();
     let k = BigUint::from_bytes_le(
       &self.H.get_digest(&R_A_msg)
     );
-    let k = k.rem(&self.l);
+    let k = k.rem(l);
 
-    let S = (r + k * s).rem(&self.l);
+    let S = (r + k * s).rem(l);
     let S32 = Self::write_biguint_to_32_byte_buf_as_le_integer(&S);
 
     [R, S32].concat().try_into().unwrap()
   }
 
   pub fn verify(&self, sig: &[u8;64], pub_key: &[u8; 32], msg: &[u8]) -> bool {
+    let f = &AffinePoint::base_field();
+    let f_l = &AffinePoint::curve_group();
+    let B = &AffinePoint::B();
+
     let S = BigUint::from_bytes_le(&sig[32..64]);
-    if S >= self.l {
+    if S >= f_l.order {
       return false;
     }
     let R_pt = self.decode_point(&sig[0..32].try_into().unwrap());
@@ -213,11 +161,11 @@ impl Ed25519Sha512 {
     );
     let A_pt = self.decode_point(&pub_key);
 
-    let lhs_factor = self.f_l.elem(&(S * 8u8));
-    let lhs = &self.B() * lhs_factor;
+    let lhs_factor = f_l.elem(&(S * 8u8));
+    let lhs = B * lhs_factor;
 
-    let rhs_term1 = &R_pt * &self.f_l.elem(&8u8);
-    let rhs_term2_factor = self.f_l.elem(&(k * 8u8));
+    let rhs_term1 = &R_pt * f_l.elem(&8u8);
+    let rhs_term2_factor = f_l.elem(&(k * 8u8));
     let rhs_term2 = &A_pt * &rhs_term2_factor;
 
     let rhs = &rhs_term1 + &rhs_term2;

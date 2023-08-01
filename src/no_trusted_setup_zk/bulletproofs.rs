@@ -1,26 +1,27 @@
 use crate::building_block::{
   field::{
+    prime_field::PrimeField,
     prime_field_elem::PrimeFieldElem,
     prime_field_elems::PrimeFieldElems,
   },
   curves::secp256k1::{
     affine_point::AffinePoint,
     affine_points::AffinePoints,
-    secp256k1::Secp256k1,
   },
 };
-use std::rc::Rc;
 
 // implementation based on https://eprint.iacr.org/2017/1066.pdf
 
 pub struct Bulletproofs {
-  curve: Rc<Secp256k1>,
+  f_n: PrimeField,
+  g: AffinePoint,
 }
 
 impl Bulletproofs {
-  pub fn new(curve: &Rc<Secp256k1>) -> Self {
+  pub fn new(f_n: &PrimeField, g: &AffinePoint) -> Self {
     Bulletproofs {
-      curve: curve.clone(),
+      f_n: f_n.clone(),
+      g: g.clone(),
     }
   }
 
@@ -50,7 +51,7 @@ impl Bulletproofs {
       let L = (gg.from(np) * a.to(np)).sum() + (hh.to(np) * b.from(np)).sum() + u * cL;
       let R = (gg.to(np) * a.from(np)).sum() + (hh.from(np) * b.to(np)).sum() + u * cR;
 
-      let x = &self.curve.f_n.rand_elem(true);
+      let x = self.f_n.rand_elem(true);
 
       let ggp = (gg.to(np) * x.inv()) + (gg.from(np) * x);
       let hhp = (hh.to(np) * x) + (hh.from(np) * x.inv());
@@ -78,7 +79,7 @@ impl Bulletproofs {
     hh: &AffinePoints,
     use_inner_product_argument: bool,
   ) -> bool {
-    let f_n = &self.curve.f_n.clone();  // f is curve group
+    let f_n = &self.f_n.clone();  // f is curve group
 
     let one = f_n.elem(&1u8);
     let two = f_n.elem(&2u8);
@@ -141,7 +142,7 @@ impl Bulletproofs {
       + (hhp * ((y_n * z) + (two_n * z.sq()))).sum();
 
     if use_inner_product_argument {
-      let u = self.curve.g().rand_point(true);
+      let u = AffinePoint::rand_point(true);
       let Pp = &(P + h * mu.negate() + &u * (l * r).sum());
       self.inner_product_argument(n, gg, hhp, &u, Pp, l, r)
 
@@ -166,15 +167,15 @@ mod tests {
   // gg^z == gg^(ones * z)
   #[test]
   fn test_gg_ones_times_z() {
-    let curve = Rc::new(Secp256k1::new());
+    let curve_group = AffinePoint::curve_group();
 
     let n = 2;
-    let z = curve.f_n.rand_elem(true);
-    let gg = AffinePoints::rand_points(&curve, true, &n);
+    let z = curve_group.rand_elem(true);
+    let gg = AffinePoints::rand_points(true, &n);
 
     let r1 = &gg * &z;
 
-    let one = curve.f_n.elem(&1u8);
+    let one = curve_group.elem(&1u8);
     let ones = one.repeat(n);
     let r2 = &gg * &(&ones * &z);
 
@@ -183,10 +184,10 @@ mod tests {
 
   #[test]
   fn test_offset_by_negation() {
-    let curve = Rc::new(Secp256k1::new());
+    let curve_group = AffinePoint::curve_group();
     {
-        let z = curve.f_n.elem(&100u8);
-        let basis = curve.f_n.elem(&12345u16);
+        let z = curve_group.elem(&100u8);
+        let basis = curve_group.elem(&12345u16);
 
         let r1 = &basis - &z;
         let r2 = &basis + &z.negate();
@@ -194,11 +195,11 @@ mod tests {
         assert_eq!(r1, r2);
     }
     {
-        let z = curve.f_n.elem(&100u8);
-        let basis = curve.f_n.elem(&12345u16);
-        let g = &curve.g();
+        let z = curve_group.elem(&100u8);
+        let basis = curve_group.elem(&12345u16);
+        let g = &AffinePoint::g();
 
-        let r1 = g * &(&basis - &z);
+        let r1 = g * (&basis - &z);
         let r2 = g * (basis + z.negate());
 
         assert!(r1 == r2);
@@ -208,11 +209,11 @@ mod tests {
   #[test]
   #[allow(non_snake_case)]
   fn test_base_point_field_elem_mul() {
-    let curve = Rc::new(Secp256k1::new());
+    let curve_group = AffinePoint::curve_group();
 
-    let alpha = &curve.f_n.rand_elem(true);
-    let rho = &curve.f_n.rand_elem(true);
-    let h = &curve.g().rand_point(true);
+    let alpha = &curve_group.rand_elem(true);
+    let rho = &curve_group.rand_elem(true);
+    let h = &AffinePoint::rand_point(true);
 
     let a = h * alpha + h * rho;
     let b = h * (alpha + rho);
@@ -222,17 +223,17 @@ mod tests {
   #[test]
   #[allow(non_snake_case)]
   fn test_field_elems_mul_field_elem() {
-    let curve = Rc::new(Secp256k1::new());
+    let curve_group = AffinePoint::curve_group();
 
-    let x = curve.f_n.elem(&5u8);
+    let x = curve_group.elem(&5u8);
     let sL = PrimeFieldElems(vec![
-      curve.f_n.elem(&2u8),
-      curve.f_n.elem(&3u8),
+      curve_group.elem(&2u8),
+      curve_group.elem(&3u8),
     ]);
 
     let exp = PrimeFieldElems(vec![
-      curve.f_n.elem(&10u8),
-      curve.f_n.elem(&15u8),
+      curve_group.elem(&10u8),
+      curve_group.elem(&15u8),
     ]);
     let act = sL * x;
     assert!(act == exp);
@@ -241,16 +242,16 @@ mod tests {
   #[test]
   #[allow(non_snake_case)]
   fn test_mul_field_elem_above_order() {
-    let curve = Rc::new(Secp256k1::new());
-
-    let gg = &AffinePoints::new(&curve, &vec![
-      curve.g(),
-      curve.g(),
+    let curve_group = AffinePoint::curve_group();
+    let g = &AffinePoint::g();
+    let gg = &AffinePoints::new(&vec![
+      g.clone(),
+      g.clone(),
     ]);
 
-    let order_minus_1 = &curve.n - &1u8;
-    let x = curve.f_n.elem(&order_minus_1);
-    let sL = &curve.f_n.rand_elems(gg.len(), true);
+    let order_minus_1 = &curve_group.order - &1u8;
+    let x = curve_group.elem(&order_minus_1);
+    let sL = &curve_group.rand_elems(gg.len(), true);
 
     let sLx = &(sL * &x);
 
@@ -260,22 +261,23 @@ mod tests {
   #[test]
   #[allow(non_snake_case)]
   fn test_range_proof() {
-    let curve = Rc::new(Secp256k1::new());
-    let bp = Bulletproofs::new(&curve);
+    let curve_group = &AffinePoint::curve_group();
+    let g = &AffinePoint::g();
+    let bp = Bulletproofs::new(curve_group, g);
 
     let aL = PrimeFieldElems::new(&vec![
-      curve.f_n.elem(&1u8),
-      curve.f_n.elem(&0u8),
-      curve.f_n.elem(&0u8),
-      curve.f_n.elem(&1u8),
+      curve_group.elem(&1u8),
+      curve_group.elem(&0u8),
+      curve_group.elem(&0u8),
+      curve_group.elem(&1u8),
     ]);
     let n = aL.len();
-    let upsilon = curve.f_n.elem(&9u8);
-    let gamma = curve.f_n.rand_elem(true);
-    let g = curve.g().rand_point(true);
-    let h = curve.g().rand_point(true);
-    let gg = AffinePoints::rand_points(&curve, true, &n);
-    let hh = AffinePoints::rand_points(&curve, true, &n);
+    let upsilon = curve_group.elem(&9u8);
+    let gamma = curve_group.rand_elem(true);
+    let g = AffinePoint::rand_point(true);
+    let h = AffinePoint::rand_point(true);
+    let gg = AffinePoints::rand_points(true, &n);
+    let hh = AffinePoints::rand_points(true, &n);
     let V = (&h * &gamma) + (&g * &upsilon);
 
     for use_inner_product_argument in [false, true] {

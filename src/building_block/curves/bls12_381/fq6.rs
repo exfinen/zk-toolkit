@@ -3,12 +3,11 @@ use std::{
   fmt,
 };
 use crate::building_block::{
-  additive_identity::AdditiveIdentity,
-  elliptic_curve::weierstrass::curves::bls12_381::{
+  curves::bls12_381::{
+    fq_test_helper::get_fq2_values,
     reduce::Reduce,
     fq2::Fq2,
   },
-  field::field_elem_ops::Inverse,
   zero::Zero,
 };
 
@@ -19,8 +18,8 @@ pub struct Fq6 {
   pub v0: Fq2,
 }
 
-impl Inverse for Fq6 {
-  fn inv(&self) -> Self {
+impl Fq6 {
+  pub fn inv(&self) -> Self {
     let t0 = self.v0 * self.v0 - Fq2::reduce(&(self.v1 * self.v2));
     let t1 = Fq2::reduce(&(self.v2 * self.v2)) - self.v0 * self.v1;
     let t2 = self.v1 * self.v1 - self.v0 * self.v2;
@@ -37,13 +36,17 @@ impl Inverse for Fq6 {
   }
 }
 
-impl AdditiveIdentity<Fq6> for Fq6 {
-  fn get_additive_identity(&self) -> Self {
+impl Zero<Fq6> for Fq6 {
+  fn zero() -> Self {
     Self {
-      v2: Fq2::get_additive_identity(&self.v0),
-      v1: Fq2::get_additive_identity(&self.v0),
-      v0: Fq2::get_additive_identity(&self.v0),
+      v2: Fq2::zero(),
+      v1: Fq2::zero(),
+      v0: Fq2::zero(),
     }
+  }
+
+  fn is_zero(&self) -> bool {
+    true
   }
 }
 
@@ -71,7 +74,7 @@ impl Neg for Fq6 {
   type Output = Fq6;
 
   fn neg(self) -> Self::Output {
-    self.get_additive_identity() - self
+    Fq6::zero() - self
   }
 }
 
@@ -149,7 +152,7 @@ impl fmt::Display for Fq6 {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::building_block::elliptic_curve::weierstrass::curves::bls12_381::fq_test_helper::get_fq2_values;
+  use crate::building_block::curves::bls12_381::fq_test_helper::get_fq2_values;
 
   fn to_strs(x: &Fq6) -> [String; 6] {
     [

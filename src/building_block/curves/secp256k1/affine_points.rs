@@ -3,10 +3,7 @@ use crate::building_block::{
     prime_field_elem::PrimeFieldElem,
     prime_field_elems::PrimeFieldElems,
   },
-  curves::secp256k1::{
-    affine_point::AffinePoint,
-    secp256k1::Secp256k1,
-  },
+  curves::secp256k1::affine_point::AffinePoint,
   zero::Zero,
 };
 use std::{
@@ -16,20 +13,18 @@ use std::{
 };
 
 pub struct AffinePoints {
-  curve: Rc<Secp256k1>,
   points: Vec<AffinePoint>,
 }
 
 impl AffinePoints {
-  pub fn new(curve: &Rc<Secp256k1>, points: &Vec<AffinePoint>) -> Self {
+  pub fn new(points: &Vec<AffinePoint>) -> Self {
     AffinePoints {
-      curve: curve.clone(),
       points: points.clone(),
     }
   }
 
   pub fn sum(&self) -> AffinePoint {
-    let mut sum = self.curve.g().zero();
+    let mut sum = AffinePoint::zero();
     for p in &self.points {
       sum = sum + p;
     }
@@ -37,18 +32,17 @@ impl AffinePoints {
   }
 
   pub fn rand_points(
-    curve: &Rc<Secp256k1>,
     exclude_zero: bool,
     length: &usize,
   ) -> Self {
-    let g = &curve.g();
+    let g = &AffinePoint::g();
     let mut points = vec![];
 
     while &points.len() < length {
-      let p = g.rand_point(exclude_zero);
+      let p = AffinePoint::rand_point(exclude_zero);
       points.push(p);
     }
-    AffinePoints::new(&curve, &points)
+    AffinePoints::new(&points)
   }
 
   pub fn from(&self, idx: usize) -> Self {
@@ -59,7 +53,7 @@ impl AffinePoints {
       for i in idx..self.len() {
         points.push(self[i].clone());
       }
-      AffinePoints::new(&self.curve, &points)
+      AffinePoints::new(&points)
     }
   }
 
@@ -71,7 +65,7 @@ impl AffinePoints {
     for i in 0..idx {
       points.push(self[i].clone());
     }
-    AffinePoints::new(&self.curve, &points)
+    AffinePoints::new(&points)
   }
 }
 
@@ -98,7 +92,7 @@ macro_rules! impl_add {
         for i in 0..self.len() {
           points.push(&self.points[i] + &rhs.points[i]);
         }
-        AffinePoints::new(&self.curve, &points)
+        AffinePoints::new(&points)
       }
     }
   };
@@ -118,7 +112,7 @@ macro_rules! impl_scalar_mul {
         for x in &self.points {
           points.push(x * rhs.clone())
         }
-        AffinePoints::new(&self.curve, &points)
+        AffinePoints::new(&points)
       }
     }
   };
@@ -141,7 +135,7 @@ macro_rules! impl_vec_mul {
         for i in 0..self.points.len() {
           points.push(&self.points[i] * &rhs[i])
         }
-        AffinePoints::new(&self.curve, &points)
+        AffinePoints::new(&points)
       }
     }
   };
@@ -178,23 +172,18 @@ impl Eq for AffinePoints {}
 
 #[cfg(test)]
 mod tests {
-  use crate::building_block::curves::secp256k1::{
-    affine_points::AffinePoints,
-    secp256k1::Secp256k1,
-  };
-  use std::rc::Rc;
+  use super::*;
 
   #[test]
   fn test_from() {
-    let curve = Rc::new(Secp256k1::new());
-    let g = &curve.g();
+    let g = &AffinePoint::g();
     let gs_vec = vec![
       g.clone(),
       g + g,
       g + g + g,
       g + g + g + g,
     ];
-    let elems = AffinePoints::new(&curve, &gs_vec);
+    let elems = AffinePoints::new(&gs_vec);
     {
       let res = &elems.from(0);
       assert_eq!(res.len(), 4);
@@ -223,15 +212,14 @@ mod tests {
 
   #[test]
   fn test_to() {
-    let curve = Rc::new(Secp256k1::new());
-    let g = &curve.g();
+    let g = &AffinePoint::g();
     let gs_vec = vec![
       g.clone(),
       g + g,
       g + g + g,
       g + g + g + g,
     ];
-    let elems = AffinePoints::new(&curve, &gs_vec);
+    let elems = AffinePoints::new(&gs_vec);
     {
       let res = &elems.to(0);
       assert_eq!(res.len(), 0);
@@ -267,13 +255,12 @@ mod tests {
 
   #[test]
   fn test_sum() {
-    let curve = Rc::new(Secp256k1::new());
-    let g = &curve.g();
+    let g = &AffinePoint::g();
     let gs_vec = vec![
       g.clone(),
       g + g,
     ];
-    let elems = AffinePoints::new(&curve, &gs_vec);
+    let elems = AffinePoints::new(&gs_vec);
     let act = &elems.sum();
     let exp = g + g + g;
     assert_eq!(act, &exp);

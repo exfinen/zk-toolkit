@@ -7,10 +7,10 @@ To build a zk library from scratch keeping the implementation as easily understa
 ## What's implemented so far
 - Basic operations in field calculation (add, sub, mul, inv, pow, sq, negate)
 - Weierstrass type elliptic curve add and scalar mul operations in affine/jacobian coordinates
-- ECDSA public key generation, signing and signature verification
+- ECDSA public key generation, signing and signature verification on Secp256k1 curve
 - SHA256 and SHA512 hashers
 - Generic HMAC
-- Ed25519 public key generation, signing and signature verification
+- Ed25519 public key generation, signing and signature verification on Curve25519 curve
 - Bulletproofs (inner product argument range proof)
 - Pinnocio (equation parser, R1CS, QAP)
 

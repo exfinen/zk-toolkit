@@ -175,19 +175,104 @@ impl_field_elems_times_field_elem!(PrimeFieldElem, &PrimeFieldElems);
 
 #[cfg(test)]
 mod tests {
-  use crate::building_block::curves::secp256k1::secp256k1::Secp256k1;
+  use super::*;
   use std::rc::Rc;
+  use crate::building_block::curves::secp256k1::affine_point::AffinePoint;
 
   #[test]
   fn test_from() {
-    let _curve = Rc::new(Secp256k1::new());
+    let f = &Rc::new(AffinePoint::base_field());
+    let one = &PrimeFieldElem::new(f, &1u8);
+    let vec = vec![
+      one.clone(),
+      one * 2u8,
+      one * 3u8,
+      one * 4u8,
+    ];
+    let elems = PrimeFieldElems::new(&vec);
+    {
+      let res = &elems.from(0);
+      assert_eq!(res.len(), 4);
+      assert_eq!(res.0.as_slice(), vec.as_slice());
+    }
+    {
+      let res = &elems.from(1);
+      assert_eq!(res.len(), 3);
+      assert_eq!(&res[0], &vec[1]);
+      assert_eq!(&res[1], &vec[2]);
+      assert_eq!(&res[2], &vec[3]);
+    }
+    {
+      let res = &elems.from(2);
+      assert_eq!(res.len(), 2);
+      assert_eq!(&res[0], &vec[2]);
+      assert_eq!(&res[1], &vec[3]);
+    }
+    {
+      let res = &elems.from(3);
+      assert_eq!(res.len(), 1);
+      assert_eq!(&res[0], &vec[3]);
+    }
+    // TODO test elem.from(4) and confirm it panics
   }
 
   #[test]
   fn test_to() {
+    let f = &Rc::new(AffinePoint::base_field());
+    let one = &PrimeFieldElem::new(f, &1u8);
+    let vec = vec![
+      one.clone(),
+      one * 2u8,
+      one * 3u8,
+      one * 4u8,
+    ];
+    let elems = PrimeFieldElems::new(&vec);
+    {
+      let res = &elems.to(0);
+      assert_eq!(res.len(), 0);
+    }
+    {
+      let res = &elems.to(1);
+      assert_eq!(res.len(), 1);
+      assert_eq!(&res[0], &vec[0]);
+    }
+    {
+      let res = &elems.to(2);
+      assert_eq!(res.len(), 2);
+      assert_eq!(&res[0], &vec[0]);
+      assert_eq!(&res[1], &vec[1]);
+    }
+    {
+      let res = &elems.to(3);
+      assert_eq!(res.len(), 3);
+      assert_eq!(&res[0], &vec[0]);
+      assert_eq!(&res[1], &vec[1]);
+      assert_eq!(&res[2], &vec[2]);
+    }
+    {
+      let res = &elems.to(4);
+      assert_eq!(res.len(), 4);
+      assert_eq!(&res[0], &vec[0]);
+      assert_eq!(&res[1], &vec[1]);
+      assert_eq!(&res[2], &vec[2]);
+      assert_eq!(&res[3], &vec[3]);
+    }
+    // TODO test elem.to(5) and confirm it panics
   }
 
   #[test]
   fn test_sum() {
+    let f = &Rc::new(AffinePoint::base_field());
+    let one = &PrimeFieldElem::new(f, &1u8);
+    let vec = vec![
+      one.clone(),
+      one * 2u8,
+      one * 3u8,
+      one * 4u8,
+    ];
+    let elems = PrimeFieldElems::new(&vec);
+    let act = &elems.sum();
+    let exp = one * 10u8;
+    assert_eq!(act, &exp);
   }
 }

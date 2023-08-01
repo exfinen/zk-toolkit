@@ -4,7 +4,6 @@ use crate::building_block::{
     prime_field_elems::PrimeFieldElems,
   },
   to_biguint::ToBigUint,
-  zero::Zero,
 };
 use num_bigint::{BigUint, BigInt, ToBigInt};
 use num_traits::{Zero as NumTraitZero, One, ToPrimitive};
@@ -25,6 +24,20 @@ pub struct PrimeFieldElem {
   pub e: BigUint,
 }
 
+impl PrimeFieldElem {
+  pub fn zero(&self) -> Self {  // not using Zero trait since it requires self
+    PrimeFieldElem {
+      f: self.f.clone(),
+      e: BigUint::from(0u8),
+    }
+  }
+
+  pub fn is_zero(&self) -> bool {
+    BigUint::zero() == self.e
+  }
+
+}
+
 impl fmt::Debug for PrimeFieldElem {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     write!(f, "{:?}", self.e)
@@ -37,21 +50,8 @@ impl ToBigUint for PrimeFieldElem {
   }
 }
 
-impl Zero<PrimeFieldElem> for PrimeFieldElem {
-  fn zero(&self) -> Self {
-    PrimeFieldElem {
-      f: self.f.clone(),
-      e: BigUint::from(0u8),
-    }
-  }
-
-  fn is_zero(&self) -> bool {
-    BigUint::zero() == self.e
-  }
-}
-
 impl PartialEq for PrimeFieldElem {
-  fn eq(&self, other: &Self) -> bool {
+  fn eq(&self, other: &PrimeFieldElem) -> bool {
     self.f == other.f && self.e == other.e
   }
 }
@@ -59,13 +59,13 @@ impl PartialEq for PrimeFieldElem {
 impl Eq for PrimeFieldElem {}
 
 impl Ord for PrimeFieldElem {
-  fn cmp(&self, other: &Self) -> Ordering {
+  fn cmp(&self, other: &PrimeFieldElem) -> Ordering {
     self.e.cmp(&other.e)
   }
 }
 
 impl PartialOrd for PrimeFieldElem {
-  fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+  fn partial_cmp(&self, other: &PrimeFieldElem) -> Option<Ordering> {
     self.e.partial_cmp(&other.e)
   }
 }
