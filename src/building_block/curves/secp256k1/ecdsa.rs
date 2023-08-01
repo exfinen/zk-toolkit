@@ -164,8 +164,8 @@ mod tests {
         );
         match bad_pub_key {
           AffinePoint::AtInfinity => panic!("Should not be visited"),
-          _ => {
-            let is_verified = ecdsa.verify(&sig, &bad_pub_key, &message);
+          p => {
+            let is_verified = ecdsa.verify(&sig, &p, &message);
             assert_eq!(is_verified, false);
           },
         }
