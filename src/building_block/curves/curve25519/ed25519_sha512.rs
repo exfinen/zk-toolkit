@@ -29,9 +29,10 @@ pub struct Ed25519Sha512 {
 }
 
 impl Ed25519Sha512 {
-  fn new() -> Self {
+  pub fn new() -> Self {
     Ed25519Sha512 { H: Sha512() }
   }
+
   fn one() -> PrimeFieldElem {
     let f = AffinePoint::curve_group();
     f.elem(&1u8)
@@ -145,7 +146,6 @@ impl Ed25519Sha512 {
   }
 
   pub fn verify(&self, sig: &[u8;64], pub_key: &[u8; 32], msg: &[u8]) -> bool {
-    let f = &AffinePoint::base_field();
     let f_l = &AffinePoint::curve_group();
     let B = &AffinePoint::B();
 

@@ -4,7 +4,6 @@ use std::{
 };
 use crate::building_block::{
   curves::bls12_381::{
-    fq_test_helper::get_fq2_values,
     reduce::Reduce,
     fq2::Fq2,
   },
@@ -20,13 +19,13 @@ pub struct Fq6 {
 
 impl Fq6 {
   pub fn inv(&self) -> Self {
-    let t0 = self.v0 * self.v0 - Fq2::reduce(&(self.v1 * self.v2));
-    let t1 = Fq2::reduce(&(self.v2 * self.v2)) - self.v0 * self.v1;
-    let t2 = self.v1 * self.v1 - self.v0 * self.v2;
+    let t0 = &self.v0 * &self.v0 - Fq2::reduce(&(&self.v1 * &self.v2));
+    let t1 = Fq2::reduce(&(&self.v2 * &self.v2)) - &self.v0 * &self.v1;
+    let t2 = &self.v1 * &self.v1 - &self.v0 * &self.v2;
     let factor = Fq2::inv(&(
-      self.v0 * &t0
-      + Fq2::reduce(&(self.v2 * &t1))
-      + Fq2::reduce(&(self.v1 * &t2))
+      &self.v0 * &t0
+      + Fq2::reduce(&(&self.v2 * &t1))
+      + Fq2::reduce(&(&self.v1 * &t2))
     ));
     Self {
       v2: &t2 * &factor,

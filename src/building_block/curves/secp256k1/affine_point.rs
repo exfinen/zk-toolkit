@@ -16,8 +16,10 @@ use crate::{
 use std::{
   fmt,
   ops::{Add, Mul},
+  sync::Arc,
 };
 use num_bigint::BigUint;
+use once_cell::sync::Lazy;
 
 #[derive(Clone)]
 pub enum AffinePoint {
@@ -25,25 +27,36 @@ pub enum AffinePoint {
   AtInfinity,
 }
 
+static BASE_FIELD: Lazy<Arc<PrimeField>> = Lazy::new(|| {
+  let q = BigUint::parse_bytes(b"1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab", 16).unwrap();
+  Arc::new(PrimeField::new(&q))
+});
+
+static CURVE_GROUP: Lazy<Arc<PrimeField>> = Lazy::new(|| {
+  let n = BigUint::parse_bytes(b"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", 16).unwrap();
+  Arc::new(PrimeField::new(&n))
+});
+
+static GENERATOR: Lazy<AffinePoint> = Lazy::new(|| {
+  let f = AffinePoint::base_field();
+  let x = BigUint::parse_bytes(b"79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798", 16).unwrap();
+  let y = BigUint::parse_bytes(b"483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8", 16).unwrap();
+  let x = &f.elem(&x);
+  let y = &f.elem(&y);
+  AffinePoint::Rational { x: x.clone(), y: y.clone() }
+});
+
 impl AffinePoint {
-  pub fn base_field() -> PrimeField {
-    let q = BigUint::parse_bytes(b"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F", 16).unwrap();
-    PrimeField::new(&q)
+  pub fn base_field() -> Arc<PrimeField> {
+    BASE_FIELD.clone()
   }
 
-  pub fn curve_group() -> PrimeField {
-    let n = BigUint::parse_bytes(b"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", 16).unwrap();
-    PrimeField::new(&n)
+  pub fn curve_group() -> Arc<PrimeField> {
+    CURVE_GROUP.clone()
   }
 
   pub fn g() -> AffinePoint {
-    // TODO compute only once at the first call
-    let f = AffinePoint::base_field();
-    let x = BigUint::parse_bytes(b"79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798", 16).unwrap();
-    let y = BigUint::parse_bytes(b"483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8", 16).unwrap();
-    let x = &f.elem(&x);
-    let y = &f.elem(&y);
-    AffinePoint::Rational { x: *x, y: *y }
+    GENERATOR.clone()
   }
 
   pub fn new(x: &PrimeFieldElem, y: &PrimeFieldElem) -> Self {
@@ -96,7 +109,7 @@ impl fmt::Debug for AffinePoint {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     match self {
       AffinePoint::AtInfinity => write!(f, "{{ PointAtInfinity }}"),
-      AffinePoint::Rational { x: x, y: y } =>
+      AffinePoint::Rational { x, y } =>
         write!(f, "{{ x: {:?}, y: {:?} }}", &x, &y),
     }
   }

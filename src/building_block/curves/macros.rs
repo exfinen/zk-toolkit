@@ -40,7 +40,7 @@ macro_rules! impl_affine_add {
           type Output = $point;
 
           fn add(self, rhs: $rhs) -> Self::Output {
-            match (self, rhs) {
+            match (&self, &rhs) {
               (AffinePoint::AtInfinity, AffinePoint::AtInfinity) => {  // inf + inf is inf
                 AffinePoint::AtInfinity
               },

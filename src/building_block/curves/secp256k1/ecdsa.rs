@@ -59,7 +59,7 @@ impl Ecdsa {
 
       match p {
         AffinePoint::AtInfinity => continue,
-        AffinePoint::Rational { x, y } => {
+        AffinePoint::Rational { x, y: _ } => {
           // r = p.x mod n
           let r = x.e % n;
 
@@ -89,7 +89,6 @@ impl Ecdsa {
     let f_q = &AffinePoint::base_field();
     let f_n = &AffinePoint::curve_group();
     let n = &f_n.order;
-    let g = &AffinePoint::g();
 
     // confirm pub_key is not inf
     if pub_key.is_zero() {
@@ -121,13 +120,14 @@ impl Ecdsa {
       let u2 = &sig.r * w;  // mod n
 
       // (x, y) = u1 * G + u2 * PubKey
+      let g = AffinePoint::g();
       let p1 = g * &u1;
       let p2 = pub_key * &u2;
       let p3 = &p1 + &p2;
 
-      match p2 {
+      match p3 {
         AffinePoint::AtInfinity => false,
-        AffinePoint::Rational { x, y } => {
+        AffinePoint::Rational { x, y: _ } => {
           sig.r.e == (x.e % n)
         },
       }

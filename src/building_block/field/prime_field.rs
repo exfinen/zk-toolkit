@@ -10,7 +10,7 @@ use crate::building_block::{
 use num_bigint::{BigUint, BigInt, Sign};
 use num_traits::Zero as NumTraitsZero;
 use rand::RngCore;
-use std::rc::Rc;
+use std::sync::Arc;
 
 #[derive(Debug, Clone, Hash)]
 pub struct PrimeField {
@@ -25,12 +25,12 @@ impl PrimeField {
   }
 
   pub fn elem(&self, x: &impl ToBigUint) -> PrimeFieldElem {
-    let f = Rc::new(self.clone());
+    let f = Arc::new(self.clone());
     PrimeFieldElem::new(&f, x)
   }
 
   pub fn elem_from_signed(&self, x: &impl ToBigIntType) -> PrimeFieldElem {
-    let f = Rc::new(self.clone());
+    let f = Arc::new(self.clone());
     let n = x.to_bigint();
     if n.sign() == Sign::Minus {
       let order = &BigInt::from_biguint(Sign::Plus, self.order.clone());
@@ -46,7 +46,7 @@ impl PrimeField {
   }
 
   pub fn repeated_elem(&self, x: &impl ToBigUint, count: usize) -> PrimeFieldElems {
-    let f = Rc::new(self.clone());
+    let f = Arc::new(self.clone());
     let xs = (0..count).map(|_| PrimeFieldElem::new(&f, x)).collect::<Vec<PrimeFieldElem>>();
     PrimeFieldElems(xs)
   }
@@ -65,7 +65,7 @@ impl PrimeField {
   pub fn rand_elem(&self, exclude_zero: bool) -> PrimeFieldElem {
     let buf_size = (self.order.bits() as f64 / 8f64).ceil() as usize;
     let mut buf = vec![0u8; buf_size];
-    let f = Rc::new(self.clone());
+    let f = Arc::new(self.clone());
     loop {
       let mut rand = RandomNumber::new();
       rand.gen.fill_bytes(&mut buf);

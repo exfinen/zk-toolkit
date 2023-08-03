@@ -22,10 +22,10 @@ impl Fq2 {
   }
 
   pub fn inv(&self) -> Self {
-    let factor = &(self.u1 * self.u1 + self.u0 * self.u0).inv();
+    let factor = &(&self.u1 * &self.u1 + &self.u0 * &self.u0).inv();
     Self {
       u1: self.u1.negate() * factor,
-      u0: self.u0 * factor,
+      u0: &self.u0 * factor,
     }
   }
 }
@@ -46,8 +46,8 @@ impl Zero<Fq2> for Fq2 {
 impl Reduce for Fq2 {
   fn reduce(&self) -> Self {
     Self {
-      u1: self.u1 + self.u0,
-      u0: self.u0 - self.u1,
+      u1: &self.u1 + &self.u0,
+      u0: &self.u0 - &self.u1,
     }
   }
 }

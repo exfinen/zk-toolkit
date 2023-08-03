@@ -1,6 +1,5 @@
 use crate::building_block::{
   field::{
-    prime_field::PrimeField,
     prime_field_elem::PrimeFieldElem,
     prime_field_elems::PrimeFieldElems,
   },
@@ -12,23 +11,12 @@ use crate::building_block::{
 
 // implementation based on https://eprint.iacr.org/2017/1066.pdf
 
-pub struct Bulletproofs {
-  f_n: PrimeField,
-  g: AffinePoint,
-}
+pub struct Bulletproofs();
 
 impl Bulletproofs {
-  pub fn new(f_n: &PrimeField, g: &AffinePoint) -> Self {
-    Bulletproofs {
-      f_n: f_n.clone(),
-      g: g.clone(),
-    }
-  }
-
   // P = g^a h^b u^<a,b>
   #[allow(non_snake_case)]
   pub fn inner_product_argument(
-    &self,
     n: usize,
     gg: &AffinePoints,
     hh: &AffinePoints,
@@ -51,7 +39,7 @@ impl Bulletproofs {
       let L = (gg.from(np) * a.to(np)).sum() + (hh.to(np) * b.from(np)).sum() + u * cL;
       let R = (gg.to(np) * a.from(np)).sum() + (hh.from(np) * b.to(np)).sum() + u * cR;
 
-      let x = self.f_n.rand_elem(true);
+      let x = &AffinePoint::curve_group().rand_elem(true);
 
       let ggp = (gg.to(np) * x.inv()) + (gg.from(np) * x);
       let hhp = (hh.to(np) * x) + (hh.from(np) * x.inv());
@@ -61,14 +49,13 @@ impl Bulletproofs {
       let ap = a.to(np) * x + a.from(np) * x.inv();
       let bp = b.to(np) * x.inv() + b.from(np) * x;
 
-      self.inner_product_argument(
+      Bulletproofs::inner_product_argument(
         np, &ggp, &hhp, u, &Pp, &ap, &bp)
     }
   }
 
   #[allow(non_snake_case)]
   pub fn range_proof(
-    &self,
     n: usize,
     V: &AffinePoint,
     aL: &PrimeFieldElems,
@@ -79,7 +66,7 @@ impl Bulletproofs {
     hh: &AffinePoints,
     use_inner_product_argument: bool,
   ) -> bool {
-    let f_n = &self.f_n.clone();  // f is curve group
+    let f_n = AffinePoint::curve_group();
 
     let one = f_n.elem(&1u8);
     let two = f_n.elem(&2u8);
@@ -144,7 +131,7 @@ impl Bulletproofs {
     if use_inner_product_argument {
       let u = AffinePoint::rand_point(true);
       let Pp = &(P + h * mu.negate() + &u * (l * r).sum());
-      self.inner_product_argument(n, gg, hhp, &u, Pp, l, r)
+      Bulletproofs::inner_product_argument(n, gg, hhp, &u, Pp, l, r)
 
     } else {
       let rhs_66_67 = ((h * mu) + (gg * l).sum()) + (hhp * r).sum();
@@ -262,8 +249,6 @@ mod tests {
   #[allow(non_snake_case)]
   fn test_range_proof() {
     let curve_group = &AffinePoint::curve_group();
-    let g = &AffinePoint::g();
-    let bp = Bulletproofs::new(curve_group, g);
 
     let aL = PrimeFieldElems::new(&vec![
       curve_group.elem(&1u8),
@@ -281,7 +266,7 @@ mod tests {
     let V = (&h * &gamma) + (&g * &upsilon);
 
     for use_inner_product_argument in [false, true] {
-      let res = bp.range_proof(
+      let res = Bulletproofs::range_proof(
         n,
         &V,
         &aL,

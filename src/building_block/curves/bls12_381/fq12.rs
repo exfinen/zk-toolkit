@@ -27,12 +27,12 @@ impl Fq12 {
 
   pub fn inv(&self) -> Self {
     let factor = Fq6::inv(&(
-      self.w0 * self.w0
-      - Fq6::reduce(&(self.w1 * self.w1))
+      &self.w0 * &self.w0
+      - Fq6::reduce(&(&self.w1 * &self.w1))
     ));
     Self {
       w1: -self.w1.clone() * &factor,
-      w0: self.w0 * &factor,
+      w0: &self.w0 * &factor,
     }
   }
 }

@@ -9,7 +9,6 @@ use crate::building_block::{
 use std::{
   fmt,
   ops::{Add, Mul, Deref},
-  rc::Rc,
 };
 
 pub struct AffinePoints {
@@ -35,7 +34,6 @@ impl AffinePoints {
     exclude_zero: bool,
     length: &usize,
   ) -> Self {
-    let g = &AffinePoint::g();
     let mut points = vec![];
 
     while &points.len() < length {

@@ -11,8 +11,9 @@ use crate::{
 use std::{
   fmt,
   ops::{Add, Sub, Mul},
-  rc::Rc,
+  sync::Arc,
 };
+use once_cell::sync::Lazy;
 use num_bigint::BigUint;
 use num_traits::Zero as NumTraitsZero;
 
@@ -34,6 +35,20 @@ impl fmt::Debug for AffinePoint {
   }
 }
 
+static BASE_FIELD: Lazy<Arc<PrimeField>> = Lazy::new(|| {
+  // order of base field q: 2^255 - 19
+  let two = BigUint::from(2u8);
+  let q = two.pow(255u32).sub(19u8);
+  Arc::new(PrimeField::new(&q))
+});
+
+static CURVE_GROUP: Lazy<Arc<PrimeField>> = Lazy::new(|| {
+  // order of base point l: 2^252 + 27742317777372353535851937790883648493
+  let two = BigUint::from(2u8);
+  let l = two.pow(252u32).add(27742317777372353535851937790883648493u128);
+  Arc::new(PrimeField::new(&l))
+});
+
 impl AffinePoint {
   pub fn new(x: &PrimeFieldElem, y: &PrimeFieldElem) -> Self {
     Self {
@@ -42,20 +57,12 @@ impl AffinePoint {
     }
   }
 
-  pub fn base_field() -> PrimeField {
-    let two = BigUint::from(2u8);
-
-    // order of base field q: 2^255 - 19
-    let q = two.pow(255u32).sub(19u8);
-    PrimeField::new(&q)
+  pub fn base_field() -> Arc<PrimeField> {
+    BASE_FIELD.clone()
   }
 
-  pub fn curve_group() -> PrimeField {
-    let two = BigUint::from(2u8);
-
-    // order of base point l: 2^252 + 27742317777372353535851937790883648493
-    let l = two.pow(252u32).add(27742317777372353535851937790883648493u128);
-    PrimeField::new(&l)
+  pub fn curve_group() -> Arc<PrimeField> {
+    CURVE_GROUP.clone()
   }
 
   // base point (+x, 4/5)
@@ -153,7 +160,7 @@ impl Eq for AffinePoint {}
 
 impl Zero<AffinePoint> for AffinePoint {
   fn zero() -> AffinePoint {
-      let f = Rc::new(AffinePoint::base_field());
+      let f = AffinePoint::base_field();
       AffinePoint::new(
         &PrimeFieldElem { f: f.clone(), e: BigUint::from(0u8) },
         &PrimeFieldElem { f: f.clone(), e: BigUint::from(1u8) },

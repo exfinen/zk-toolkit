@@ -11,7 +11,7 @@ use std::{
   cmp::{PartialOrd, Ord, Ordering},
   fmt,
   ops::{Add, Sub, Mul, Div, Neg, Rem, BitAnd, ShrAssign, Deref},
-  rc::Rc,
+  sync::Arc,
 };
 use bitvec::{
   prelude::Lsb0,
@@ -20,7 +20,7 @@ use bitvec::{
 
 #[derive(Clone, Hash)]
 pub struct PrimeFieldElem {
-  pub f: Rc<PrimeField>,
+  pub f: Arc<PrimeField>,
   pub e: BigUint,
 }
 
@@ -233,7 +233,7 @@ impl<'a> Neg for &'a PrimeFieldElem {
 }
 
 impl PrimeFieldElem {
-  pub fn new(f: &Rc<PrimeField>, e: &impl ToBigUint) -> Self {
+  pub fn new(f: &Arc<PrimeField>, e: &impl ToBigUint) -> Self {
     let e = e.to_biguint();
     let f = f.clone();
     if e.ge(&f.order) {
@@ -424,24 +424,21 @@ mod tests {
 
   #[test]
   fn new_below_order() {
-    let f = PrimeField::new(&11u8);
-    let f = Rc::new(f);
+    let f = Arc::new(PrimeField::new(&11u8));
     let a = PrimeFieldElem::new(&f, &7u8);
     assert_eq!(a.e, BigUint::from(7u8));
   }
 
   #[test]
   fn new_above_order() {
-    let f = PrimeField::new(&11u8);
-    let f = Rc::new(f);
+    let f = Arc::new(PrimeField::new(&11u8));
     let a = PrimeFieldElem::new(&f, &13u8);
     assert_eq!(a.e, BigUint::from(2u32));
   }
 
   #[test]
   fn inc_below_order() {
-    let f = PrimeField::new(&11u8);
-    let f = Rc::new(f);
+    let f = Arc::new(PrimeField::new(&11u8));
     let mut a = PrimeFieldElem::new(&f, &1u8);
     a.inc();
     assert_eq!(a, f.elem(&2u8));
@@ -449,8 +446,7 @@ mod tests {
 
   #[test]
   fn inc_above_order() {
-    let f = PrimeField::new(&11u8);
-    let f = Rc::new(f);
+    let f = Arc::new(PrimeField::new(&11u8));
     let mut a = PrimeFieldElem::new(&f, &10u8);
     a.inc();
     assert_eq!(a, f.elem(&0u8));
@@ -458,8 +454,7 @@ mod tests {
 
   #[test]
   fn add_eq_order_result() {
-    let f = PrimeField::new(&11u8);
-    let f = Rc::new(f);
+    let f = Arc::new(PrimeField::new(&11u8));
     let a = PrimeFieldElem::new(&f, &9u8);
     let b = PrimeFieldElem::new(&f, &2u8);
     let c = a + &b;
@@ -468,8 +463,7 @@ mod tests {
 
   #[test]
   fn add_below_order_result() {
-    let f = PrimeField::new(&11u8);
-    let f = Rc::new(f);
+    let f = Arc::new(PrimeField::new(&11u8));
     let a = PrimeFieldElem::new(&f, &9u8);
     let b = PrimeFieldElem::new(&f, &1u8);
     let c = a + &b;
@@ -478,8 +472,7 @@ mod tests {
 
   #[test]
   fn add_above_order_result() {
-    let f = PrimeField::new(&11u8);
-    let f = Rc::new(f);
+    let f = Arc::new(PrimeField::new(&11u8));
     let a = PrimeFieldElem::new(&f, &9u8);
     let b = PrimeFieldElem::new(&f, &3u8);
     let c = a + b;
@@ -488,8 +481,7 @@ mod tests {
 
   #[test]
   fn plus_above_order_times_2_result() {
-    let f = PrimeField::new(&11u8);
-    let f = Rc::new(f);
+    let f = Arc::new(PrimeField::new(&11u8));
     let a = PrimeFieldElem::new(&f, &3u8);
     let c = a.plus(&24u8);
     assert_eq!(c.e, BigUint::from(5u8));
@@ -497,8 +489,7 @@ mod tests {
 
   #[test]
   fn sub_smaller_val() {
-    let f = PrimeField::new(&11u8);
-    let f = Rc::new(f);
+    let f = Arc::new(PrimeField::new(&11u8));
     let a = PrimeFieldElem::new(&f, &9u8);
     let b = PrimeFieldElem::new(&f, &2u8);
     let c = a - b;
@@ -507,8 +498,7 @@ mod tests {
 
   #[test]
   fn sub_eq_val() {
-    let f = PrimeField::new(&11u8);
-    let f = Rc::new(f);
+    let f = Arc::new(PrimeField::new(&11u8));
     let a = PrimeFieldElem::new(&f, &9u8);
     let b = PrimeFieldElem::new(&f, &9u8);
     let c = a - b;
@@ -517,8 +507,7 @@ mod tests {
 
   #[test]
   fn sub_larger_val() {
-    let f = PrimeField::new(&11u8);
-    let f = Rc::new(f);
+    let f = Arc::new(PrimeField::new(&11u8));
     let a = PrimeFieldElem::new(&f, &9u8);
     let b = PrimeFieldElem::new(&f, &10u8);
     let c = a - b;
@@ -527,8 +516,7 @@ mod tests {
 
   #[test]
   fn minus_order_times_2() {
-    let f = PrimeField::new(&11u8);
-    let f = Rc::new(f);
+    let f = Arc::new(PrimeField::new(&11u8));
     let a = PrimeFieldElem::new(&f, &3u8);
     let c = a.minus(&24u8);
     assert_eq!(c.e, BigUint::from(1u8));
@@ -536,8 +524,7 @@ mod tests {
 
   #[test]
   fn mul_below_order_result() {
-    let f = PrimeField::new(&11u8);
-    let f = Rc::new(f);
+    let f = Arc::new(PrimeField::new(&11u8));
     let a = PrimeFieldElem::new(&f, &2u8);
     let b = PrimeFieldElem::new(&f, &5u8);
     let c = a * b;
@@ -546,8 +533,7 @@ mod tests {
 
   #[test]
   fn mul_eq_order_result() {
-    let f = PrimeField::new(&11u8);
-    let f = Rc::new(f);
+    let f = Arc::new(PrimeField::new(&11u8));
     let a = PrimeFieldElem::new(&f, &1u8);
     let b = PrimeFieldElem::new(&f, &11u8);
     let c = a * b;
@@ -556,8 +542,7 @@ mod tests {
 
   #[test]
   fn mul_above_order_result() {
-    let f = PrimeField::new(&11u8);
-    let f = Rc::new(f);
+    let f = Arc::new(PrimeField::new(&11u8));
     let a = PrimeFieldElem::new(&f, &3u8);
     let b = PrimeFieldElem::new(&f, &9u8);
     let c = a * b;
@@ -566,8 +551,7 @@ mod tests {
 
   #[test]
   fn mul_u32_below_order_result() {
-    let f = PrimeField::new(&11u8);
-    let f = Rc::new(f);
+    let f = Arc::new(PrimeField::new(&11u8));
     let a = PrimeFieldElem::new(&f, &2u8);
     let b = a * 5u8;
     assert_eq!(b.e, BigUint::from(10u8));
@@ -576,7 +560,7 @@ mod tests {
   #[test]
   fn test_mul_large_number() {
     let order = BigUint::parse_bytes(b"115792089237316195423570985008687907852837564279074904382605163141518161494337", 10).unwrap();
-    let f = Rc::new(PrimeField::new(&order));
+    let f = Arc::new(PrimeField::new(&order));
 
     let lhs_e = BigUint::from(1234u32);
     let lhs = PrimeFieldElem::new(&f, &lhs_e);
@@ -767,8 +751,7 @@ mod tests {
     ];
 
     for x in test_cases {
-      let f = PrimeField::new(&x.order);
-      let f = Rc::new(f);
+      let f = Arc::new(PrimeField::new(&x.order));
       let a = PrimeFieldElem::new(&f, &x.n);
       let inv = a.safe_inv()?;
       assert_eq!(inv.e, BigUint::from(x.exp));
@@ -778,8 +761,7 @@ mod tests {
 
   #[test]
   fn div() {
-    let f = PrimeField::new(&11u8);
-    let f = Rc::new(f);
+    let f = Arc::new(PrimeField::new(&11u8));
     let a = PrimeFieldElem::new(&f, &4u8);
     let b = PrimeFieldElem::new(&f, &2u8);
     let c = a.safe_div(&b).unwrap();
@@ -789,8 +771,7 @@ mod tests {
   #[test]
   fn inv_secp256k1() -> Result<(), String> {
     let p = BigUint::parse_bytes(b"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F", 16).unwrap();
-    let f = PrimeField::new(&p);
-    let f = Rc::new(f);
+    let f = Arc::new(PrimeField::new(&p));
     let a = PrimeFieldElem::new(&f, &1112121212121u64);
 
     let exp = BigUint::parse_bytes(b"52624297956533532283067125375510330718705195823487497799082320305224600546911", 10).unwrap();
@@ -801,8 +782,7 @@ mod tests {
 
   #[test]
   fn neg() {
-    let f = PrimeField::new(&11u8);
-    let f = Rc::new(f);
+    let f = Arc::new(PrimeField::new(&11u8));
     let a = PrimeFieldElem::new(&f, &5u8);
     assert_eq!(a.negate().e, BigUint::from(6u8));
 
@@ -814,16 +794,14 @@ mod tests {
   fn cube() {
     {
       // when value is less than field order
-      let f = PrimeField::new(&100u8);
-      let f = Rc::new(f);
+      let f = Arc::new(PrimeField::new(&100u8));
       let a = PrimeFieldElem::new(&f, &3u8);
       let b = a.cube();
       assert_eq!(b.e.to_u8().unwrap(), 27);
     }
     {
       // when value is larger than field order
-      let f = PrimeField::new(&11u8);
-      let f = Rc::new(f);
+      let f = Arc::new(PrimeField::new(&11u8));
       let a = PrimeFieldElem::new(&f, &3u8);
       let b = a.cube();
       assert_eq!(b.e.to_u8().unwrap(), 5);
@@ -834,8 +812,7 @@ mod tests {
   fn pow_seq() {
     {
       // when value is less than field order
-      let f = PrimeField::new(&100u8);
-      let f = Rc::new(f);
+      let f = Arc::new(PrimeField::new(&100u8));
       let a = PrimeFieldElem::new(&f, &3u8);
       let xs = a.pow_seq(4);
       assert_eq!(xs.len(), 4);
@@ -846,8 +823,7 @@ mod tests {
     }
     {
       // when value is larger than field order
-      let f = PrimeField::new(&11u8);
-      let f = Rc::new(f);
+      let f = Arc::new(PrimeField::new(&11u8));
       let a = PrimeFieldElem::new(&f, &3u8);
       let xs = a.pow_seq(4);
       assert_eq!(xs.len(), 4);
@@ -860,8 +836,7 @@ mod tests {
 
   #[test]
   fn repeat() {
-    let f = PrimeField::new(&11u8);
-    let f = Rc::new(f);
+    let f = Arc::new(PrimeField::new(&11u8));
     let a = PrimeFieldElem::new(&f, &5u8);
     let xs = a.repeat(3);
     assert_eq!(xs.len(), 3);
@@ -872,8 +847,7 @@ mod tests {
 
   #[test]
   fn pow_various_combinations() {
-    let f = PrimeField::new(&100000000u128);
-    let f = Rc::new(f);
+    let f = Arc::new(PrimeField::new(&100000000u128));
     let test_cases = [
       (2u128, 0u128, 1u128),
       (2u128, 1u128, 2u128),
@@ -896,32 +870,28 @@ mod tests {
 
   #[test]
   fn pow_below_order() {
-    let f = PrimeField::new(&11u8);
-    let f = Rc::new(f);
+    let f = Arc::new(PrimeField::new(&11u8));
     let a = PrimeFieldElem::new(&f, &2u8);
     assert_eq!(a.pow(&3u8).e, BigUint::from(8u8));
   }
 
   #[test]
   fn pow_above_order() {
-    let f = PrimeField::new(&11u8);
-    let f = Rc::new(f);
+    let f = Arc::new(PrimeField::new(&11u8));
     let a = PrimeFieldElem::new(&f, &2u8);
     assert_eq!(a.pow(&4u8).e, BigUint::from(5u8));
   }
 
   #[test]
   fn sq_below_order() {
-    let f = PrimeField::new(&11u8);
-    let f = Rc::new(f);
+    let f = Arc::new(PrimeField::new(&11u8));
     let a = PrimeFieldElem::new(&f, &2u8);
     assert_eq!(a.sq().e, BigUint::from(4u8));
   }
 
   #[test]
   fn sq_above_order() {
-    let f = PrimeField::new(&11u8);
-    let f = Rc::new(f);
+    let f = Arc::new(PrimeField::new(&11u8));
     let a = PrimeFieldElem::new(&f, &4u8);
     assert_eq!(a.sq().e, BigUint::from(5u8));
   }
