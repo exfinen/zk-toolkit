@@ -211,10 +211,10 @@ mod tests {
   #[test]
   fn add_vertical_line() {
     let g = &AffinePoint::g();
-    let a = g.clone();
     match g {
       AffinePoint::AtInfinity => panic!("expected rational point, but got point at infinity"),
       AffinePoint::Rational { x, y } => {
+        let a = AffinePoint::new(&x, &y);
         let b = AffinePoint::new(&x, &-y);
         let exp = AffinePoint::AtInfinity;
         let act = &a + &b;
@@ -228,9 +228,8 @@ mod tests {
     let g = &AffinePoint::g();
     match g {
       AffinePoint::AtInfinity => panic!("expected rational point, but got point at infinity"),
-      AffinePoint::Rational { x, y } => {
-        let inf = AffinePoint::zero();
-        let inf_plus_g = g + &inf;
+      g => {
+        let inf_plus_g = g + AffinePoint::AtInfinity;
         assert_eq!(g, &inf_plus_g);
       },
     }
@@ -241,9 +240,8 @@ mod tests {
     let g = &AffinePoint::g();
     match g {
       AffinePoint::AtInfinity => panic!("expected rational point, but got point at infinity"),
-      AffinePoint::Rational { x, y } => {
-        let inf = AffinePoint::zero();
-        let g_plus_inf = &inf + g;
+      g => {
+        let g_plus_inf = AffinePoint::AtInfinity + g;
         assert_eq!(g, &g_plus_inf);
       },
     }
@@ -251,14 +249,10 @@ mod tests {
 
   #[test]
   fn add_inf_and_inf() {
-    let g = &AffinePoint::g();
-    match g {
-      AffinePoint::AtInfinity => panic!("expected rational point, but got point at infinity"),
-      AffinePoint::Rational { x, y } => {
-        let inf = AffinePoint::zero();
-        let inf_plus_inf = &inf + &inf;
-        assert_eq!(inf_plus_inf, inf);
-      },
+    let res = AffinePoint::AtInfinity + AffinePoint::AtInfinity;
+    match res {
+      AffinePoint::AtInfinity => (),
+      _ => panic!("rational point not expected"),
     }
   }
 

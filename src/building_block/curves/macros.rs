@@ -50,105 +50,106 @@ macro_rules! impl_affine_add {
               (AffinePoint::Rational { x: _x, y: _y }, AffinePoint::AtInfinity) => {  // adding self to inf is self
                 self.clone()
               },
-              (AffinePoint::Rational { x: x1, y: y1 }, AffinePoint::Rational { x: x2, y: y2 }) if x1.clone() == x2.clone() && y1.clone() != y2.clone() => {
-                self.clone()
+              (AffinePoint::Rational { x: x1, y: y1 }, AffinePoint::Rational { x: x2, y: y2 })  // vertical line case
+                if x1 == x2 && y1 != y2 => {
+                AffinePoint::AtInfinity
               },
-              _ => AffinePoint::AtInfinity
+              (AffinePoint::Rational { x: x1, y: y1 }, AffinePoint::Rational { x: x2, y: y2 })  // adding the same point
+                if x1 == x2 && y1 == y2 => {
+
+                // if y == 0, the denominator of doubling formula is zero and the result is point at infinity
+                if y1.is_zero() {
+                  return AffinePoint::AtInfinity;
+                }
+
+                // differentiate y^2 = x^3 + Ax + B w/ implicit differentiation
+                // d/dx(y^2) = d/dx(x^3 + Ax + B)
+                // 2y dy/dx = 3x^2 + A
+                // dy/dx = (3x^2 + A) / 2y
+                //
+                // dy/dx is the slope m of the tangent line at the point
+                // m = (3x^2 + A) / 2y
+                let m1 = x1.sq() * 3u8;
+                let m2 = y1 * 2u8;
+                let m = m1 / &m2;
+
+                // equation of intersecting line is
+                // y = m(x − p1.x) + p1.y (1)
+                //
+                // substitute y with (1):
+                // (m(x − p1.x) + p1.y)^2 = x^3 + Ax + B
+                //
+                // moving LHS to RHS, we get:
+                // 0 = x^3 - m^2 x^2 + ...  (2)
+                //
+                // with below equation:
+                // (x - r)(x - s)(x - t) = x^3 + (r + s + t)x^2 + (ab + ac + bc)x − abc
+                //
+                // we know that the coefficient of x^2 term is:
+                // r + s + t
+                //
+                // using (2), the coefficient of x^2 term of the intersecting line is:
+                // m^2 = r + s + t
+                //
+                // since p1 and p2 are the same point, replace r and s w/ p1.x
+                // to get the x-coordinate of the point where (1) intersects the curve
+                // x3 = m^2 − 2*p1.x
+                let p3x = m.sq() - (x1 * 2u8);
+
+                // then get the y-coordinate by substituting x in (1) w/ x3 to get y3
+                // y3 = m(x3 − p1.x) + p1.y
+                //
+                // reflecting y3 across the x-axis results in the addition result y-coordinate
+                // result.y = -1 * y3 = m(p1.x - x3) - p1.y
+                let p3y_neg = m * (x1 - &p3x) - y1;
+
+                AffinePoint::new(&p3x, &p3y_neg)
+              },
+              (AffinePoint::Rational { x: x1, y: y1 }, AffinePoint::Rational { x: x2, y: y2 }) => {  // adding non-inf different points
+                // slope m of the line that intersects the curve at p1 and p2:
+                // p2.y - p1.y = m(p2.x - p1.x)
+                // m(p2.x - p1.x) = p2.y - p1.y
+                // m = (p2.y - p1.y) / (p2.x - p1.x)
+                let m = (y2 - y1) / (x2 - x1);
+
+                // then the equation of the line is:
+                // y = m(x − p1.x) + p1.y  (1)
+                //
+                // starting from a curve equation of Weierstrass form:
+                // y^2 = x^3 + Ax + B
+                //
+                // substitute y with (1):
+                // (m(x − p1.x) + p1.y)^2 = x^3 + Ax + B
+                //
+                // moving LHS to RHS, we get:
+                // 0 = x^3 - m^2 x^2 + ...  (2)
+                //
+                // with below equation:
+                // (x - r)(x - s)(x - t) = x^3 + (r + s + t)x^2 + (ab + ac + bc)x − abc
+                //
+                // we know that the coefficient of x^2 term is:
+                // r + s + t
+                //
+                // using (2), the coefficient of x^2 term of the intersecting line is:
+                // m^2 = r + s + t
+                //
+                // substitute r and s with the known 2 roots -p1.x and p2.x:
+                // m^2 = p1.x + p2. + t
+                // t = m^2 - p1.x - p2.x
+                //
+                // here t is the x coordinate of the p3 we're trying to find:
+                // p3.x = m^2 - p1.x - p2.x
+                let p3x = m.sq() - x1 - x2;
+
+                // using (1), find the y-coordinate of the 3rd intersecting point and p3x obtained above
+                // y = m(x − p1.x) + p1.y
+                // p3.y = m(p3.x − p1.x) + p1.y
+                let p3y = m * (&p3x - x1) + y1;
+
+                // then (p3.x, -p3.y) is the result of adding p1 and p2
+                AffinePoint::new(&p3x, &-p3y)
+              },
             }
-            // } else if self.x == rhs.x && self.y != rhs.y {  // if line through p1 and p2 is vertical line
-            //   self.zero()
-            // } else if self.x == rhs.x && self.y == rhs.y {  // if adding the same point
-            //   // special case: if y == 0, the tangent line is vertical
-            //   if self.x.is_zero() || self.y.is_zero() {
-            //     return self.zero()
-            //   }
-            //   // differentiate y^2 = x^3 + Ax + B w/ implicit differentiation
-            //   // d/dx(y^2) = d/dx(x^3 + Ax + B)
-            //   // 2y dy/dx = 3x^2 + A
-            //   // dy/dx = (3x^2 + A) / 2y
-            //   //
-            //   // dy/dx is the slope m of the tangent line at the point
-            //   // m = (3x^2 + A) / 2y
-            //   let m1 = self.x.sq() * 3u8;
-            //   let m2 = &self.y * 2u8;
-            //   let m = m1 / &m2;
-
-            //   // equation of intersecting line is
-            //   // y = m(x − p1.x) + p1.y (1)
-            //   //
-            //   // substitute y with (1):
-            //   // (m(x − p1.x) + p1.y)^2 = x^3 + Ax + B
-            //   //
-            //   // moving LHS to RHS, we get:
-            //   // 0 = x^3 - m^2 x^2 + ...  (2)
-            //   //
-            //   // with below equation:
-            //   // (x - r)(x - s)(x - t) = x^3 + (r + s + t)x^2 + (ab + ac + bc)x − abc
-            //   //
-            //   // we know that the coefficient of x^2 term is:
-            //   // r + s + t
-            //   //
-            //   // using (2), the coefficient of x^2 term of the intersecting line is:
-            //   // m^2 = r + s + t
-            //   //
-            //   // since p1 and p2 are the same point, replace r and s w/ p1.x
-            //   // to get the x-coordinate of the point where (1) intersects the curve
-            //   // x3 = m^2 − 2*p1.x
-            //   let p3x = m.sq() - (&self.x * 2u8);
-
-            //   // then get the y-coordinate by substituting x in (1) w/ x3 to get y3
-            //   // y3 = m(x3 − p1.x) + p1.y
-            //   //
-            //   // reflecting y3 across the x-axis results in the addition result y-coordinate
-            //   // result.y = -1 * y3 = m(p1.x - x3) - p1.y
-            //   let p3y_neg = m * (&self.x - &p3x) - &self.y;
-
-            //   AffinePoint::new(&p3x, &p3y_neg)
-
-            // } else {  // when line through p1 and p2 is non-vertical line
-            //   // slope m of the line that intersects the curve at p1 and p2:
-            //   // p2.y - p1.y = m(p2.x - p1.x)
-            //   // m(p2.x - p1.x) = p2.y - p1.y
-            //   // m = (p2.y - p1.y) / (p2.x - p1.x)
-            //   let m = (&rhs.y - &self.y) / (&rhs.x - &self.x);
-
-            //   // then the equation of the line is:
-            //   // y = m(x − p1.x) + p1.y  (1)
-            //   //
-            //   // starting from a curve equation of Weierstrass form:
-            //   // y^2 = x^3 + Ax + B
-            //   //
-            //   // substitute y with (1):
-            //   // (m(x − p1.x) + p1.y)^2 = x^3 + Ax + B
-            //   //
-            //   // moving LHS to RHS, we get:
-            //   // 0 = x^3 - m^2 x^2 + ...  (2)
-            //   //
-            //   // with below equation:
-            //   // (x - r)(x - s)(x - t) = x^3 + (r + s + t)x^2 + (ab + ac + bc)x − abc
-            //   //
-            //   // we know that the coefficient of x^2 term is:
-            //   // r + s + t
-            //   //
-            //   // using (2), the coefficient of x^2 term of the intersecting line is:
-            //   // m^2 = r + s + t
-            //   //
-            //   // substitute r and s with the known 2 roots -p1.x and p2.x:
-            //   // m^2 = p1.x + p2. + t
-            //   // t = m^2 - p1.x - p2.x
-            //   //
-            //   // here t is the x coordinate of the p3 we're trying to find:
-            //   // p3.x = m^2 - p1.x - p2.x
-            //   let p3x = m.sq() - &self.x - &rhs.x;
-
-            //   // using (1), find the y-coordinate of the 3rd intersecting point and p3x obtained above
-            //   // y = m(x − p1.x) + p1.y
-            //   // p3.y = m(p3.x − p1.x) + p1.y
-            //   let p3y = m * (&p3x - &self.x) + &self.y;
-
-            //   // then (p3.x, -p3.y) is the result of adding p1 and p2
-            //   AffinePoint::new(&self.curve, &p3x, &-p3y)
-            // }
           }
         }
       }

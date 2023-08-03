@@ -56,20 +56,25 @@ impl Ed25519Sha512 {
   }
 
   fn encode_point(&self, pt: &AffinePoint) -> [u8; 32] {
-    // get parity of x
-    let x_parity = if (&pt.x & &Self::one()) == Self::zero() { Parity::Even } else { Parity::Odd };
+    match pt {
+      AffinePoint::AtInfinity => panic!("Not expecting point at infinity"),
+      AffinePoint::Rational { x, y } => {
+        // get parity of x
+        let x_parity = if (x & &Self::one()) == Self::zero() { Parity::Even } else { Parity::Odd };
 
-    // write y to 32-byte buffer as little-endian integer
-    let mut buf = Self::write_biguint_to_32_byte_buf_as_le_integer(&pt.y.e);
+        // write y to 32-byte buffer as little-endian integer
+        let mut buf = Self::write_biguint_to_32_byte_buf_as_le_integer(&y.e);
 
-    // the most significant bit of the last octet (=parity bit) should be 0
-    assert_eq!(buf[31] & 0b1000_0000, 0);
+        // the most significant bit of the last octet (=parity bit) should be 0
+        assert_eq!(buf[31] & 0b1000_0000, 0);
 
-    // set the parity bit if parity is odd
-    if x_parity == Parity::Odd {
-      buf[31] |= 0b1000_0000;
+        // set the parity bit if parity is odd
+        if x_parity == Parity::Odd {
+          buf[31] |= 0b1000_0000;
+        }
+        buf
+      }
     }
-    buf
   }
 
   fn decode_point(&self, pt_buf: &[u8; 32]) -> AffinePoint {

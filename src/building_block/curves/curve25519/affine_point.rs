@@ -24,14 +24,17 @@ pub enum Parity {
 }
 
 #[derive(Clone)]
-pub struct AffinePoint {
-  pub x: PrimeFieldElem,
-  pub y: PrimeFieldElem,
+pub enum AffinePoint {
+  AtInfinity,
+  Rational { x: PrimeFieldElem, y: PrimeFieldElem },
 }
 
 impl fmt::Debug for AffinePoint {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    write!(f, "{{ x: {:?}, y: {:?} }}", &self.x, &self.y)
+    match self {
+      AffinePoint::AtInfinity => write!(f, "{{ Point at infinity }}"),
+      AffinePoint::Rational { x, y } => write!(f, "{{ x: {:?}, y: {:?} }}", x, y),
+    }
   }
 }
 
@@ -51,10 +54,7 @@ static CURVE_GROUP: Lazy<Arc<PrimeField>> = Lazy::new(|| {
 
 impl AffinePoint {
   pub fn new(x: &PrimeFieldElem, y: &PrimeFieldElem) -> Self {
-    Self {
-      x: x.clone(),
-      y: y.clone(),
-    }
+    AffinePoint::Rational { x: x.clone(), y: y.clone() }
   }
 
   pub fn base_field() -> Arc<PrimeField> {
@@ -122,18 +122,22 @@ macro_rules! impl_add {
       // Edwards Addition Law
       // (x1,y1) + (x2,y2) = ((x1y2 + x2y1) / (1 + d x1x2 y1y2), (y1y2 + x1x2) / (1 - d x1x2 y1y2))
       fn add(self, rhs: $rhs) -> Self::Output {
-        let one = AffinePoint::base_field().elem(&1u8);
-        let x1y2 = &self.x * &rhs.y;
-        let x2y1 = &rhs.x * &self.y;
-        let x1x2y1y2 = &x1y2 * &x2y1;
-        let y1y2 = &self.y * &rhs.y;
-        let x1x2 = &self.x * &rhs.x;
-        let x = (x1y2 + x2y1) / (&one + (&AffinePoint::d() * &x1x2y1y2));
-        let y = (y1y2 + x1x2) / (&one - (&AffinePoint::d() * x1x2y1y2));
+        match (self, rhs) {
+          (AffinePoint::AtInfinity, AffinePoint::AtInfinity) => AffinePoint::AtInfinity,
+          (AffinePoint::AtInfinity, p) => p.clone(),
+          (p, AffinePoint::AtInfinity) => p.clone(),
+          (AffinePoint::Rational { x: x1, y: y1 }, AffinePoint::Rational { x: x2, y: y2 }) => {
+            let one = AffinePoint::base_field().elem(&1u8);
+            let x1y2 = x1.clone() * y2.clone();
+            let x2y1 = x2.clone() * y1.clone();
+            let x1x2y1y2 = &x1y2 * &x2y1;
+            let y1y2 = y1 * y2;
+            let x1x2 = x1 * x2;
+            let x = (x1y2 + x2y1) / (&one + (&AffinePoint::d() * &x1x2y1y2));
+            let y = (y1y2 + x1x2) / (&one - (&AffinePoint::d() * x1x2y1y2));
 
-        AffinePoint {
-          x: x,
-          y: y,
+            AffinePoint::Rational { x, y }
+          },
         }
       }
     }
@@ -146,12 +150,13 @@ impl_add!(&AffinePoint, &AffinePoint);
 
 impl PartialEq for AffinePoint {
   fn eq(&self, rhs: &Self) -> bool {
-    if self.is_zero() != rhs.is_zero() { // false if one is zero and the other is non-zero
-      false
-    } else if self.is_zero() {  // true if both are zero
-      true
-    } else {  // otherwise check if coordinates are the same
-      self.x == rhs.x && self.y == rhs.y
+    match (self, rhs) {
+      (AffinePoint::AtInfinity, AffinePoint::AtInfinity) => true,
+      (_, AffinePoint::AtInfinity) => false,
+      (AffinePoint::AtInfinity, _) => false,
+      (AffinePoint::Rational { x: x1, y: y1 }, AffinePoint::Rational { x: x2, y: y2 }) => {
+        x1 == x2 && y1 == y2
+      },
     }
   }
 }
@@ -168,7 +173,7 @@ impl Zero<AffinePoint> for AffinePoint {
   }
 
   fn is_zero(&self) -> bool {
-    self == &AffinePoint::zero()
+    if let AffinePoint::AtInfinity = self { true } else { false }
   }
 }
 
@@ -178,8 +183,20 @@ mod tests {
   use super::*;
 
   #[test]
+  #[allow(non_snake_case)]
+  fn add_same_points() {
+    let B = &AffinePoint::B();
+    let B2 = B + B;
+    match B2 {
+      AffinePoint::AtInfinity => panic!("expected rational point, but got point at infinity"),
+      AffinePoint::Rational { x, y } => {
+      },
+    }
+  }
+
+  #[test]
   fn adding_zero_test() {
-    let zero = &AffinePoint::zero();
+    let zero = &AffinePoint::AtInfinity;
     #[allow(non_snake_case)]
     let B = &AffinePoint::B();
     {

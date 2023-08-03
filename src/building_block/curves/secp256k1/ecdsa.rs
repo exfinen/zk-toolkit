@@ -157,7 +157,7 @@ mod tests {
     let good_pub_key = g * &priv_key;
     match good_pub_key {
       AffinePoint::AtInfinity => panic!("Expected rational point, but got point at infinity"),
-      AffinePoint::Rational { x, y } => {
+      AffinePoint::Rational { x, y: _ } => {
         let bad_pub_key = AffinePoint::new(
           &x,
           &x,
