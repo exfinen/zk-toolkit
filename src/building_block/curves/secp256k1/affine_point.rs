@@ -264,7 +264,7 @@ mod tests {
 
   impl<'a> Into<AffinePoint> for Xy<'a> {
     fn into(self) -> AffinePoint {
-      let f = AffinePoint::curve_group();
+      let f = AffinePoint::base_field();
       let gx = BigUint::parse_bytes(self.x, 16).unwrap();
       let gy = BigUint::parse_bytes(self.y, 16).unwrap();
       AffinePoint::new(
@@ -360,7 +360,7 @@ mod tests {
     ];
 
     use std::time::Instant;
-    let f = AffinePoint::curve_group();
+    let f = AffinePoint::base_field();
     let g = &AffinePoint::g();
 
     for t in &test_cases {
