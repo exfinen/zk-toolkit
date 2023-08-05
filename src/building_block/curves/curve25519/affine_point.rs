@@ -189,7 +189,7 @@ mod tests {
     let B2 = B + B;
     match B2 {
       AffinePoint::AtInfinity => panic!("expected rational point, but got point at infinity"),
-      AffinePoint::Rational { x, y } => {
+      AffinePoint::Rational { x: _x, y: _y } => {
       },
     }
   }
