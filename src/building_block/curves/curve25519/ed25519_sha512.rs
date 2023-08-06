@@ -11,6 +11,7 @@ use crate::building_block::{
   },
 };
 use num_bigint::BigUint;
+use num_traits::Zero;
 use std::ops::Rem;
 
 // implementation based on:
@@ -55,12 +56,16 @@ impl Ed25519Sha512 {
     buf
   }
 
+  fn get_parity(e: &PrimeFieldElem) -> Parity {
+    if (&e.e % 2u8).is_zero() { Parity::Even } else { Parity::Odd }
+  }
+
   fn encode_point(&self, pt: &AffinePoint) -> [u8; 32] {
     match pt {
       AffinePoint::AtInfinity => panic!("Not expecting point at infinity"),
       AffinePoint::Rational { x, y } => {
         // get parity of x
-        let x_parity = if (x & &Self::one()) == Self::zero() { Parity::Even } else { Parity::Odd };
+        let x_parity = Ed25519Sha512::get_parity(&x);
 
         // write y to 32-byte buffer as little-endian integer
         let mut buf = Self::write_biguint_to_32_byte_buf_as_le_integer(&y.e);
@@ -114,6 +119,7 @@ impl Ed25519Sha512 {
     // multiply B by s to get the public key
     let s = Self::gen_s(&digest[0..32].try_into().unwrap());
     let pub_key_pt = &AffinePoint::B() * &AffinePoint::base_field().elem(&s);
+    println!("pt={:?}", &pub_key_pt);
     let pub_key = self.encode_point(&pub_key_pt);
     pub_key
   }
