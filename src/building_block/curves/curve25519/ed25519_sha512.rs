@@ -34,15 +34,15 @@ impl Ed25519Sha512 {
     Ed25519Sha512 { H: Sha512() }
   }
 
-  fn one() -> PrimeFieldElem {
-    let f = AffinePoint::curve_group();
-    f.elem(&1u8)
-  }
+  // fn one() -> PrimeFieldElem {
+  //   let f = AffinePoint::curve_group();
+  //   f.elem(&1u8)
+  // }
 
-  fn zero() -> PrimeFieldElem {
-    let f = AffinePoint::curve_group();
-    f.elem(&0u8)
-  }
+  // fn zero() -> PrimeFieldElem {
+  //   let f = AffinePoint::curve_group();
+  //   f.elem(&0u8)
+  // }
 
   fn write_biguint_to_32_byte_buf_as_le_integer(n: &BigUint) -> [u8; 32] {
     // serialize n to little-endian integer
