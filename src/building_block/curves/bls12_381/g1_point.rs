@@ -106,7 +106,6 @@ impl Zero<G1Point> for G1Point {
 
 type AffinePoint = G1Point;
 impl_affine_add!(G1Point);
-
 impl_mul!(Fq1, G1Point);
 
 impl PartialEq for G1Point {
