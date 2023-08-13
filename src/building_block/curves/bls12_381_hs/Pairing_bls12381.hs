@@ -110,7 +110,21 @@ instance Field Fq1 where
 -- Binary Extended Euclidean Algorithm (note that there are no divisions)
 -- See: Guide to Elliptic Curve Cryptography by Hankerson, Menezes, and Vanstone
 beea :: Integer -> Integer -> Integer -> Integer -> Integer -> Integer
-beea u v x1 x2 p
+beea u v x1 x2 pimpl PartialEq for G1Point {
+  fn eq(&self, other: &Self) -> bool {
+    match (self, other) {
+      (G1Point::AtInfinity, G1Point::AtInfinity) => true,
+      (G1Point::AtInfinity, G1Point::Rational { x: _x, y: _y }) => false,
+      (G1Point::Rational { x: _x, y: _y }, G1Point::AtInfinity) => false,
+      (G1Point::Rational { x: x1, y: y1 }, G1Point::Rational { x: x2, y: y2 }) => {
+        x1 == x2 && y1 == y2
+      },
+    }
+  }
+}
+
+impl Eq for AffinePoint {}
+
   | not (u > 0 && v > 0) = error "beea operands u,v must be greater than zero"
   | u == 1 = mod x1 p
   | v == 1 = mod x2 p

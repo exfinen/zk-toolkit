@@ -1,5 +1,5 @@
 use crate::{
-  impl_mul,
+  impl_scalar_mul_point,
   impl_affine_add,
   building_block::{
     field::{
@@ -144,8 +144,7 @@ impl Zero<AffinePoint> for AffinePoint {
 }
 
 impl_affine_add!(AffinePoint);
-
-impl_mul!(PrimeFieldElem, AffinePoint);
+impl_scalar_mul_point!(PrimeFieldElem, AffinePoint);
 
 impl PartialEq for AffinePoint {
   fn eq(&self, other: &Self) -> bool {

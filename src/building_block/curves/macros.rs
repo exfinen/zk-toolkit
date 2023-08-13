@@ -1,10 +1,10 @@
 #[macro_export]
-macro_rules! impl_mul {
-  ($element: ty, $point: ty) => {
+macro_rules! impl_scalar_mul_point {
+  ($multiplier: ty, $multiplicand: ty) => {
     macro_rules! impl_mul {
       ($rhs: ty, $target: ty) => {
         impl Mul<$rhs> for $target {
-          type Output = $point;
+          type Output = $multiplicand;
 
           fn mul(self, rhs: $rhs) -> Self::Output {
             let mut n = rhs.clone();
@@ -24,10 +24,10 @@ macro_rules! impl_mul {
         }
       }
     }
-    impl_mul!($element, $point);
-    impl_mul!($element, &$point);
-    impl_mul!(&$element, $point);
-    impl_mul!(&$element, &$point);
+    impl_mul!($multiplier, $multiplicand);
+    impl_mul!($multiplier, &$multiplicand);
+    impl_mul!(&$multiplier, $multiplicand);
+    impl_mul!(&$multiplier, &$multiplicand);
   }
 }
 
@@ -69,9 +69,10 @@ macro_rules! impl_affine_add {
                 //
                 // dy/dx is the slope m of the tangent line at the point
                 // m = (3x^2 + A) / 2y
-                let m1 = x1.sq() * 3u8;
-                let m2 = y1 * 2u8;
-                let m = m1 / &m2;
+                let x1_sq = &x1.sq();
+                let m1 = x1_sq + x1_sq + x1_sq;  // x1.sq() * 3u8;
+                let m2 = y1 + y1;  // y1 * 2u8;
+                let m = m1 * &m2.inv();  // m1 / &m2;
 
                 // equation of intersecting line is
                 // y = m(x − p1.x) + p1.y (1)
@@ -94,7 +95,7 @@ macro_rules! impl_affine_add {
                 // since p1 and p2 are the same point, replace r and s w/ p1.x
                 // to get the x-coordinate of the point where (1) intersects the curve
                 // x3 = m^2 − 2*p1.x
-                let p3x = m.sq() - (x1 * 2u8);
+                let p3x = m.sq() - (x1 + x1);  // (x1 * 2u8);
 
                 // then get the y-coordinate by substituting x in (1) w/ x3 to get y3
                 // y3 = m(x3 − p1.x) + p1.y
@@ -110,7 +111,7 @@ macro_rules! impl_affine_add {
                 // p2.y - p1.y = m(p2.x - p1.x)
                 // m(p2.x - p1.x) = p2.y - p1.y
                 // m = (p2.y - p1.y) / (p2.x - p1.x)
-                let m = (y2 - y1) / (x2 - x1);
+                let m = (y2 - y1) * (x2 - x1).inv();  // (y2 - y1) / (x2 - x1);
 
                 // then the equation of the line is:
                 // y = m(x − p1.x) + p1.y  (1)

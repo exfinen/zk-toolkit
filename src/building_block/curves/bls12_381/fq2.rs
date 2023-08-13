@@ -1,5 +1,5 @@
 use std::{
-  ops::{Add, Sub, Mul},
+  ops::{Add, Sub, Mul, Neg},
   fmt,
 };
 use crate::building_block::{
@@ -28,6 +28,10 @@ impl Fq2 {
       u0: &self.u0 * factor,
     }
   }
+
+  pub fn sq(&self) -> Self {
+    self * self
+  }
 }
 
 impl Zero<Fq2> for Fq2 {
@@ -51,6 +55,28 @@ impl Reduce for Fq2 {
     }
   }
 }
+
+impl PartialEq for Fq2 {
+  fn eq(&self, other: &Self) -> bool {
+    self.u1 == other.u1 && self.u0 == other.u0
+  }
+}
+
+impl Eq for Fq2 {}
+
+macro_rules! impl_neg {
+  ($target: ty) => {
+    impl Neg for $target {
+      type Output = Fq2;
+
+      fn neg(self) -> Self::Output {
+          Fq2::zero() - self
+      }
+    }
+  }
+}
+impl_neg!(Fq2);
+impl_neg!(&Fq2);
 
 macro_rules! impl_add {
   ($rhs: ty, $target: ty) => {
@@ -117,8 +143,9 @@ impl fmt::Display for Fq2 {
 
 #[cfg(test)]
 mod tests {
-  use crate::building_block::curves::bls12_381::{
-    fq_test_helper::get_fq1_values,
+  use crate::building_block::curves::bls12_381::fq_test_helper::{
+    get_fq1_values,
+    get_fq2_values,
   };
   use super::*;
 
@@ -187,5 +214,14 @@ mod tests {
     let [u1, u0] = to_strs(&x);
     assert_eq!(u1, "86");
     assert_eq!(u0, "4002409555221667393417789825735904156556882819939007885332058136124031650490837864442687629129015664037894272559749");
+  }
+
+  #[test]
+  fn test_neg() {
+    let (a1, b1, c1, d1) = &get_fq2_values();
+    assert_eq!(-a1 + a1, Fq2::zero());
+    assert_eq!(-b1 + b1, Fq2::zero());
+    assert_eq!(-c1 + c1, Fq2::zero());
+    assert_eq!(-d1 + d1, Fq2::zero());
   }
 }

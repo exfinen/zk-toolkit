@@ -1,6 +1,6 @@
 use crate::{
   impl_affine_add,
-  impl_mul,
+  impl_scalar_mul_point,
   building_block::{
     field::prime_field::PrimeField,
     curves::{
@@ -106,7 +106,7 @@ impl Zero<G1Point> for G1Point {
 
 type AffinePoint = G1Point;
 impl_affine_add!(G1Point);
-impl_mul!(Fq1, G1Point);
+impl_scalar_mul_point!(Fq1, G1Point);
 
 impl PartialEq for G1Point {
   fn eq(&self, other: &Self) -> bool {

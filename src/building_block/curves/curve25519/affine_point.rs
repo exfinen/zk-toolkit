@@ -1,5 +1,5 @@
 use crate::{
-  impl_mul,
+  impl_scalar_mul_point,
   building_block::{
     field::{
       prime_field::PrimeField,
@@ -112,7 +112,7 @@ impl AffinePoint {
   }
 }
 
-impl_mul!(PrimeFieldElem, AffinePoint);
+impl_scalar_mul_point!(PrimeFieldElem, AffinePoint);
 
 macro_rules! impl_add {
   ($rhs: ty, $target: ty) => {
