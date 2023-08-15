@@ -55,8 +55,9 @@ interpreter session.
 Just True@
 -}
 
-module Pairing_bls12381 (g1Point, g2Point, g1Generator, g2Generator, pointMul, pointAdd,
-                         pairing, fieldPrime, groupOrder, smokeTest, Num( (*) ) ) where
+module Pairing_bls12381 (g1Point, g2Point, g1Generator, g2Generator, pointMul, pointAdd, Point(..),
+                         pairing, fieldPrime, groupOrder, smokeTest, Num( (*) ), Fq1(..),
+                         Field(..), Fq2(..), Fq6(..), Fq12(..) ) where
 
 
 import Data.Bits (shiftR)
@@ -110,21 +111,7 @@ instance Field Fq1 where
 -- Binary Extended Euclidean Algorithm (note that there are no divisions)
 -- See: Guide to Elliptic Curve Cryptography by Hankerson, Menezes, and Vanstone
 beea :: Integer -> Integer -> Integer -> Integer -> Integer -> Integer
-beea u v x1 x2 pimpl PartialEq for G1Point {
-  fn eq(&self, other: &Self) -> bool {
-    match (self, other) {
-      (G1Point::AtInfinity, G1Point::AtInfinity) => true,
-      (G1Point::AtInfinity, G1Point::Rational { x: _x, y: _y }) => false,
-      (G1Point::Rational { x: _x, y: _y }, G1Point::AtInfinity) => false,
-      (G1Point::Rational { x: x1, y: y1 }, G1Point::Rational { x: x2, y: y2 }) => {
-        x1 == x2 && y1 == y2
-      },
-    }
-  }
-}
-
-impl Eq for AffinePoint {}
-
+beea u v x1 x2 p
   | not (u > 0 && v > 0) = error "beea operands u,v must be greater than zero"
   | u == 1 = mod x1 p
   | v == 1 = mod x2 p
@@ -219,7 +206,8 @@ instance Field Fq12 where
 
   mul_nonres _ = error "not needed for Fq12"
 
-  inv (Fq12 a1 a0) = Fq12 (-a1 * factor) (a0 * factor)
+  inv (Fq12 a1 a0) =
+    Fq12 (-a1 * factor) (a0 * factor)
     where
       factor = inv (a0 * a0 - mul_nonres (a1 * a1))
 
