@@ -1,6 +1,5 @@
 import Pairing_bls12381
 import Data.Maybe (fromJust)
-import Text.Printf
 
 get_pt :: Point Fq2 -> (Integer, Integer, Integer, Integer)
 get_pt (Affine (Fq2 (Fq1 x1) (Fq1 x0)) (Fq2 (Fq1 y1) (Fq1 y0))) = (x1, x0, y1, y0)
