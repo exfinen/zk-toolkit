@@ -13,7 +13,7 @@ use crate::{
 };
 use num_bigint::BigUint;
 use std::{
-  ops::{Add, Mul},
+  ops::{Add, Mul, Neg},
   sync::Arc,
 };
 use once_cell::sync::Lazy;
@@ -123,6 +123,25 @@ impl PartialEq for G1Point {
 
 impl Eq for AffinePoint {}
 
+macro_rules! impl_neg {
+  ($target: ty) => {
+    impl Neg for $target {
+      type Output = G1Point;
+
+      fn neg(self) -> Self::Output {
+        match self {
+          G1Point::AtInfinity => G1Point::AtInfinity,
+          G1Point::Rational { x, y } => {
+            G1Point::new(&x, &y.neg())
+          }
+        }
+      }
+    }
+  }
+}
+impl_neg!(G1Point);
+impl_neg!(&G1Point);
+
 
 #[cfg(test)]
 mod tests {
@@ -167,8 +186,14 @@ mod tests {
   }
 
   #[test]
-  fn add_same_point_y_eq_0() {
-    // TODO implement this. need to find the x-coord when y is zero
+  fn negate() {
+    let g = &G1Point::g();
+    let res = g + -g;
+
+    match res {
+      G1Point::AtInfinity => {},
+      _ => panic!("expected point at infinity, but got rational point"),
+    }
   }
 
   #[test]

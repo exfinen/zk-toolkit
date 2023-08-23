@@ -1,6 +1,7 @@
 use std::{
-  ops::{Add, Sub, Mul, Neg},
+  convert::From,
   fmt,
+  ops::{Add, Sub, Mul, Neg},
 };
 use crate::building_block::{
   curves::bls12_381::{
@@ -63,6 +64,12 @@ impl PartialEq for Fq2 {
 }
 
 impl Eq for Fq2 {}
+
+impl From<&Fq1> for Fq2 {
+  fn from(elem: &Fq1) -> Self {
+    Fq2::new(&Fq1::fq1_zero(), &elem)
+  }
+}
 
 macro_rules! impl_neg {
   ($target: ty) => {

@@ -1,10 +1,12 @@
 use std::{
-  ops::{Add, Sub, Mul, Neg},
   fmt,
+  convert::From,
+  ops::{Add, Sub, Mul, Neg},
 };
 use crate::building_block::{
   curves::bls12_381::{
     reduce::Reduce,
+    fq1::Fq1,
     fq2::Fq2,
   },
   zero::Zero,
@@ -74,6 +76,16 @@ impl Neg for Fq6 {
 
   fn neg(self) -> Self::Output {
     Fq6::zero() - self
+  }
+}
+
+impl From<&Fq1> for Fq6 {
+  fn from(elem: &Fq1) -> Self {
+    Fq6::new(
+      &Fq2::zero(),
+      &Fq2::zero(),
+      &Fq2::from(elem),
+    )
   }
 }
 

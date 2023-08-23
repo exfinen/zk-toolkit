@@ -7,7 +7,6 @@ use crate::{
       bls12_381::{
         fq1::Fq1,
         fq2::Fq2,
-        g1_point::G1Point,
       },
       rational_point::RationalPoint,
     },
@@ -16,7 +15,7 @@ use crate::{
 };
 use num_bigint::BigUint;
 use std::{
-  ops::{Add, Mul},
+  ops::{Add, Mul, Neg},
   sync::Arc,
 };
 use once_cell::sync::Lazy;
@@ -28,12 +27,12 @@ pub enum G2Point {
 }
 
 static BASE_POINT: Lazy<G2Point> = Lazy::new(|| {
-  let x1: Fq1 = Fq1::from(b"13e02b6052719f607dacd3a088274f65596bd0d09920b61ab5da61bbdc7f5049334cf11213945d57e5ac7d055d042b7e");
-  let x0: Fq1 = Fq1::from(b"024aa2b2f08f0a91260805272dc51051c6e47ad4fa403b02b4510b647ae3d1770bac0326a805bbefd48056c8c121bdb8");
+  let x1: Fq1 = Fq1::from_u8_slice(b"13e02b6052719f607dacd3a088274f65596bd0d09920b61ab5da61bbdc7f5049334cf11213945d57e5ac7d055d042b7e");
+  let x0: Fq1 = Fq1::from_u8_slice(b"024aa2b2f08f0a91260805272dc51051c6e47ad4fa403b02b4510b647ae3d1770bac0326a805bbefd48056c8c121bdb8");
   let x = Fq2::new(&x1, &x0);
 
-  let y1 = Fq1::from(b"0606c4a02ea734cc32acd2b02bc28b99cb3e287e85a763af267492ab572e99ab3f370d275cec1da1aaa9075ff05f79be");
-  let y0 = Fq1::from(b"0ce5d527727d6e118cc9cdc6da2e351aadfd9baa8cbdd3a76d429a695160d12c923ac9cc3baca289e193548608b82801");
+  let y1 = Fq1::from_u8_slice(b"0606c4a02ea734cc32acd2b02bc28b99cb3e287e85a763af267492ab572e99ab3f370d275cec1da1aaa9075ff05f79be");
+  let y0 = Fq1::from_u8_slice(b"0ce5d527727d6e118cc9cdc6da2e351aadfd9baa8cbdd3a76d429a695160d12c923ac9cc3baca289e193548608b82801");
   let y = Fq2::new(&y1, &y0);
 
   G2Point::Rational { x, y }
@@ -64,6 +63,25 @@ impl G2Point {
     }
   }
 }
+
+macro_rules! impl_neg {
+  ($target: ty) => {
+    impl Neg for $target {
+      type Output = G2Point;
+
+      fn neg(self) -> Self::Output {
+        match self {
+          G2Point::AtInfinity => G2Point::AtInfinity,
+          G2Point::Rational { x, y } => {
+            G2Point::new(&x, &y.neg())
+          }
+        }
+      }
+    }
+  }
+}
+impl_neg!(G2Point);
+impl_neg!(&G2Point);
 
 impl RationalPoint for G2Point {
   fn is_rational_point(&self) -> bool {
@@ -109,6 +127,7 @@ impl Eq for AffinePoint {}
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crate::building_block::curves::bls12_381::g1_point::G1Point;
   use num_bigint::BigUint;
   use std::rc::Rc;
 
@@ -166,8 +185,14 @@ mod tests {
   }
 
   #[test]
-  fn add_same_point_y_eq_0() {
-    // TODO implement this. need to find the x-coord when y is zero
+  fn negate() {
+    let g = &G2Point::g();
+    let res = g + -g;
+
+    match res {
+      G2Point::AtInfinity => {},
+      _ => panic!("expected point at infinity, but got rational point"),
+    }
   }
 
   #[test]

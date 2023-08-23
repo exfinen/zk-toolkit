@@ -1,10 +1,12 @@
 use std::{
-  ops::{Add, Sub, Mul},
+  convert::From,
   fmt,
+  ops::{Add, Sub, Mul},
 };
 use crate::building_block::{
   curves::bls12_381::{
     reduce::Reduce,
+    fq1::Fq1,
     fq6::Fq6,
   },
   zero::Zero,
@@ -53,6 +55,15 @@ impl Zero<Fq12> for Fq12 {
 impl Reduce for Fq12 {
   fn reduce(&self) -> Self {
     panic!("Not implemented");
+  }
+}
+
+impl From<&Fq1> for Fq12 {
+  fn from(elem: &Fq1) -> Self {
+    Fq12::new(
+      &Fq6::zero(),
+      &Fq6::from(elem),
+    )
   }
 }
 

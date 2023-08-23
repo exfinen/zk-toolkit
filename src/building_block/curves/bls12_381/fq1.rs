@@ -4,10 +4,10 @@ use crate::building_block::{
     prime_field::PrimeField,
     prime_field_elem::PrimeFieldElem,
   },
+  to_biguint::ToBigUint,
 };
 use num_bigint::BigUint;
 use std::{
-  convert::From,
   fmt,
   sync::Arc,
 };
@@ -35,10 +35,15 @@ impl Fq1 {
   }
 
   // not using From trait since that would implment the trait to PrimeFieldElem
-  pub fn from(buf: &[u8]) -> Self {
+  pub fn from_u8_slice(buf: &[u8]) -> Self {
     let f = Fq1::base_field();
     let n = BigUint::parse_bytes(buf, 16).unwrap();
     PrimeFieldElem::new(&f, &n)
+  }
+
+  // not using From trait since that would implment the trait to PrimeFieldElem
+  pub fn from_to_biguint(n: &dyn ToBigUint) -> Self {
+    Fq1::new(&Fq1::base_field(), &n.to_biguint())
   }
 }
 
