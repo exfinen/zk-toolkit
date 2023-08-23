@@ -33,7 +33,7 @@ use crate::building_block::curves::bls12_381::{
           let v2 = &(&V + &V);
           let g_num = RationalFunction::new(&V, &V);
           let g_deno = RationalFunction::new(v2, &-v2);
-          f = &(&f * &f) * g_num.evaluate(q) * g_deno.evaluate(q).inv();
+          f = &(&f * &f) * g_num.eval_at(q) * g_deno.eval_at(q).inv();
         }
 
         if *bit {
@@ -42,7 +42,7 @@ use crate::building_block::curves::bls12_381::{
             let v_plus_p = &(&V + p);
             let g_num = RationalFunction::new(&V, p);
             let g_deno = RationalFunction::new(v_plus_p, &(-v_plus_p));
-            f = f * g_num.evaluate(q) * g_deno.evaluate(q).inv();
+            f = f * g_num.eval_at(q) * g_deno.eval_at(q).inv();
           }
         }
       }

@@ -20,7 +20,7 @@ impl RationalFunction {
     }
   }
 
-  pub fn evaluate(&self, _p: &G2Point) -> Fq12 {
+  pub fn eval_at(&self, _p: &G2Point) -> Fq12 {
     Fq12::zero()
   }
 }
