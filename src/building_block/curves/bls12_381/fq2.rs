@@ -36,24 +36,6 @@ impl Fq2 {
   pub fn sq(&self) -> Self {
     self * self
   }
-
-  /*
-  -- Untwist point on E2 for pairing calculation
-  untwist :: Point Fq2 -> Point Fq12
-  untwist Affine {ax=x1, ay=y1} = Affine {ax=wideX, ay=wideY}
-    where
-      root = Fq6 0 1 0
-      wideX = Fq12 0 (Fq6 0 0 x1) * inv (Fq12 0 root)
-      wideY = Fq12 0 (Fq6 0 0 y1) * inv (Fq12 root 0)
-   */
-  pub fn untwist(&self) -> Fq12 {
-    let one = &Fq2::from(&1u8 as &dyn ToBigUint);
-    let root = &Fq6::new(&Fq2::zero(), one, &Fq2::zero());
-
-    let x_w0 = Fq6::new(&Fq6::zero(), &Fq6::zero(), &self);
-    let x = Fq12::new(&Fq6::zero(), ) * Fq12::new(&Fq12::zero(), root).inv();
-    Fq12::zero()
-  }
 }
 
 impl Zero<Fq2> for Fq2 {
