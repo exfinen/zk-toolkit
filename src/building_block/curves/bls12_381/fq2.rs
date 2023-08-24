@@ -7,7 +7,10 @@ use crate::building_block::{
   curves::bls12_381::{
     reduce::Reduce,
     fq1::Fq1,
+    fq6::Fq6,
+    fq12::Fq12,
   },
+  to_biguint::ToBigUint,
   zero::Zero,
 };
 
@@ -32,6 +35,24 @@ impl Fq2 {
 
   pub fn sq(&self) -> Self {
     self * self
+  }
+
+  /*
+  -- Untwist point on E2 for pairing calculation
+  untwist :: Point Fq2 -> Point Fq12
+  untwist Affine {ax=x1, ay=y1} = Affine {ax=wideX, ay=wideY}
+    where
+      root = Fq6 0 1 0
+      wideX = Fq12 0 (Fq6 0 0 x1) * inv (Fq12 0 root)
+      wideY = Fq12 0 (Fq6 0 0 y1) * inv (Fq12 root 0)
+   */
+  pub fn untwist(&self) -> Fq12 {
+    let one = &Fq2::from(&1u8 as &dyn ToBigUint);
+    let root = &Fq6::new(&Fq2::zero(), one, &Fq2::zero());
+
+    let x_w0 = Fq6::new(&Fq6::zero(), &Fq6::zero(), &self);
+    let x = Fq12::new(&Fq6::zero(), ) * Fq12::new(&Fq12::zero(), root).inv();
+    Fq12::zero()
   }
 }
 
@@ -65,9 +86,10 @@ impl PartialEq for Fq2 {
 
 impl Eq for Fq2 {}
 
-impl From<&Fq1> for Fq2 {
-  fn from(elem: &Fq1) -> Self {
-    Fq2::new(&Fq1::fq1_zero(), &elem)
+impl From<&dyn ToBigUint> for Fq2 {
+  fn from(n: &dyn ToBigUint) -> Self {
+    let u0 = Fq1::from_to_biguint(n);
+    Fq2::new(&Fq1::fq1_zero(), &u0)
   }
 }
 

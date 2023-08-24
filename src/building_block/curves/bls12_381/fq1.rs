@@ -1,5 +1,8 @@
 use crate::building_block::{
-  curves::bls12_381::reduce::Reduce,
+  curves::bls12_381::{
+    fq2::Fq2,
+    reduce::Reduce,
+  },
   field::{
     prime_field::PrimeField,
     prime_field_elem::PrimeFieldElem,
@@ -44,6 +47,11 @@ impl Fq1 {
   // not using From trait since that would implment the trait to PrimeFieldElem
   pub fn from_to_biguint(n: &dyn ToBigUint) -> Self {
     Fq1::new(&Fq1::base_field(), &n.to_biguint())
+  }
+
+  // not using Into trait since that would implment the trait to PrimeFieldElem
+  pub fn into_fq2(&self) -> Fq2 {
+    Fq2::new(&Fq1::fq1_zero(), self)
   }
 }
 

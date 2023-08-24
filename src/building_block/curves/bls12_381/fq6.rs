@@ -9,6 +9,7 @@ use crate::building_block::{
     fq1::Fq1,
     fq2::Fq2,
   },
+  to_biguint::ToBigUint,
   zero::Zero,
 };
 
@@ -79,12 +80,12 @@ impl Neg for Fq6 {
   }
 }
 
-impl From<&Fq1> for Fq6 {
-  fn from(elem: &Fq1) -> Self {
+impl From<&dyn ToBigUint> for Fq6 {
+  fn from(n: &dyn ToBigUint) -> Self {
     Fq6::new(
       &Fq2::zero(),
       &Fq2::zero(),
-      &Fq2::from(elem),
+      &Fq2::from(n),
     )
   }
 }

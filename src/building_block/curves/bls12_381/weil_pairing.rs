@@ -1,10 +1,13 @@
-use crate::building_block::curves::bls12_381::{
+use crate::building_block::{
+  curves::bls12_381::{
     g1_point::G1Point,
     g2_point::G2Point,
     fq1::Fq1,
     fq12::Fq12,
     rational_function::RationalFunction,
-  };
+  },
+  to_biguint::ToBigUint,
+};
 
   pub struct WeilPairing {
     l_bits: Vec<bool>,
@@ -23,8 +26,7 @@ use crate::building_block::curves::bls12_381::{
     }
 
     pub fn compute(&self, p: &G1Point, q: &G2Point) -> Fq12 {
-      let one = Fq1::from_to_biguint(&1u8);
-      let mut f = Fq12::from(&one);
+      let mut f = Fq12::from(&1u8 as &dyn ToBigUint);
       let mut V = p.clone();
 
       for bit in &self.l_bits {
