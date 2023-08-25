@@ -1,12 +1,11 @@
 use std::{
   convert::From,
   fmt,
-  ops::{Add, Sub, Mul},
+  ops::{Add, Sub, Mul, Neg},
 };
 use crate::building_block::{
   curves::bls12_381::{
     reduce::Reduce,
-    fq1::Fq1,
     fq6::Fq6,
   },
   to_biguint::ToBigUint,
@@ -130,6 +129,20 @@ impl fmt::Display for Fq12 {
     write!(f, "{{ w1: {}, w0: {} }}", self.w1, self.w0)
   }
 }
+
+macro_rules! impl_neg {
+  ($target: ty) => {
+    impl Neg for $target {
+      type Output = Fq12;
+
+      fn neg(self) -> Self::Output {
+          Fq12::zero() - self
+      }
+    }
+  }
+}
+impl_neg!(Fq12);
+impl_neg!(&Fq12);
 
 #[cfg(test)]
 mod tests {

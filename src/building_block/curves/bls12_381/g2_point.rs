@@ -7,19 +7,14 @@ use crate::{
       bls12_381::{
         fq1::Fq1,
         fq2::Fq2,
-        fq6::Fq6,
-        fq12::Fq12,
-        g12_point::G12Point,
       },
       rational_point::RationalPoint,
     },
-    to_biguint::ToBigUint,
     zero::Zero,
   },
 };
 use num_bigint::BigUint;
 use std::{
-  convert::Into,
   ops::{Add, Mul, Neg},
   sync::Arc,
 };
@@ -65,27 +60,6 @@ impl G2Point {
     match self {
       G2Point::AtInfinity => panic!("No inverse exists for point at infinitty"),
       G2Point::Rational { x, y } => G2Point::new(&x, &y.inv()),
-    }
-  }
-}
-
-impl Into<G12Point> for G2Point {
-  // Untwise G2Point into G12Point
-  fn into(self) -> G12Point {
-    match self {
-      G2Point::AtInfinity => G12Point::AtInfinity,
-      G2Point::Rational { x, y } => {
-        let one = &Fq2::from(&1u8 as &dyn ToBigUint);
-        let root = &Fq6::new(&Fq2::zero(), one, &Fq2::zero());
-
-        let x_w0 = Fq6::new(&Fq2::zero(), &Fq2::zero(), &x);
-        let y_w0 = Fq6::new(&Fq2::zero(), &Fq2::zero(), &y);
-
-        let x = Fq12::new(&Fq6::zero(), &x_w0) * Fq12::new(&Fq6::zero(), root).inv();
-        let y = Fq12::new(&Fq6::zero(), &y_w0) * Fq12::new(root, &Fq6::zero()).inv();
-
-        G12Point::Rational { x, y }
-      }
     }
   }
 }

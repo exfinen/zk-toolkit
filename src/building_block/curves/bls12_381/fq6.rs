@@ -6,7 +6,6 @@ use std::{
 use crate::building_block::{
   curves::bls12_381::{
     reduce::Reduce,
-    fq1::Fq1,
     fq2::Fq2,
   },
   to_biguint::ToBigUint,

@@ -142,7 +142,6 @@ macro_rules! impl_neg {
 impl_neg!(G1Point);
 impl_neg!(&G1Point);
 
-
 #[cfg(test)]
 mod tests {
   use super::*;

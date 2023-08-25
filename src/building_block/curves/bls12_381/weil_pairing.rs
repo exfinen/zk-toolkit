@@ -25,6 +25,7 @@ use crate::building_block::{
       WeilPairing { l_bits }
     }
 
+    #[allow(non_snake_case)]
     pub fn compute(&self, p: &G1Point, q: &G2Point) -> Fq12 {
       let mut f = Fq12::from(&1u8 as &dyn ToBigUint);
       let mut V = p.clone();

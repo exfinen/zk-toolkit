@@ -7,8 +7,6 @@ use crate::building_block::{
   curves::bls12_381::{
     reduce::Reduce,
     fq1::Fq1,
-    fq6::Fq6,
-    fq12::Fq12,
   },
   to_biguint::ToBigUint,
   zero::Zero,
