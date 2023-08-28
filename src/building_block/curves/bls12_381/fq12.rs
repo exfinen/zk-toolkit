@@ -67,6 +67,15 @@ impl From<&dyn ToBigUint> for Fq12 {
   }
 }
 
+impl PartialEq for Fq12 {
+  fn eq(&self, other: &Self) -> bool {
+    self.w1 == other.w1 &&
+    self.w0 == other.w0  
+  }
+}
+
+impl Eq for Fq12 {}
+
 macro_rules! impl_add {
   ($rhs: ty, $target: ty) => {
     impl Add<$rhs> for $target {
