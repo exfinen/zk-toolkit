@@ -2,7 +2,6 @@ use crate::building_block::{
   curves::bls12_381::{
     g1_point::G1Point,
     g2_point::G2Point,
-    fq1::Fq1,
     fq12::Fq12,
     rational_function::RationalFunction,
   },
@@ -14,13 +13,22 @@ pub struct WeilPairing {
 }
 
 impl WeilPairing {
-  pub fn new(l: &Fq1) -> Self {
+  pub fn new() -> Self {
+    let mut l = u64::from_str_radix("d201000000010000", 16).unwrap();  // l-torsion points
     let mut l_bits: Vec<bool> = vec![];
-
-    for i in 0..l.bits() {
-      l_bits.push(l.bit(i));
+    
+    while l > 0 {
+      let b = l & 1;
+      l_bits.push(b != 0);
+      l = l >> 1
     }
     l_bits.reverse();
+    l_bits.remove(0);  // drop msb 1 
+
+    for b in &l_bits {
+      print!("{}", if *b { 1 } else { 0 });
+    }
+    println!("");
 
     WeilPairing { l_bits }
   }
@@ -31,22 +39,22 @@ impl WeilPairing {
     let mut V = p.clone();
 
     for bit in &self.l_bits {
-      V = &V + &V;
       {
         let v2 = &(&V + &V);
         let g_num = RationalFunction::new(&V, &V);
         let g_deno = RationalFunction::new(v2, &-v2);
         f = &(&f * &f) * g_num.eval_at(q) * g_deno.eval_at(q).inv();
       }
+      V = &V + &V;
 
       if *bit {
-        V = &V + p;
         {
           let v_plus_p = &(&V + p);
           let g_num = RationalFunction::new(&V, p);
           let g_deno = RationalFunction::new(v_plus_p, &(-v_plus_p));
           f = f * g_num.eval_at(q) * g_deno.eval_at(q).inv();
         }
+        V = &V + p;
       }
     }
     f
@@ -56,14 +64,10 @@ impl WeilPairing {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use num_bigint::BigUint;
 
   #[test]
   fn do_it() {
-    let l = BigUint::parse_bytes(b"d201000000010000", 16).unwrap();  // l-torsion points
-
-    let l_fq1 = Fq1::from_to_biguint(&l);
-    let wp = WeilPairing::new(&l_fq1);
+    let wp = WeilPairing::new();
 
     let p1 = G1Point::g();
     let p2 = &p1 + &p1;
