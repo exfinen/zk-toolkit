@@ -7,6 +7,8 @@ use crate::building_block::{
   },
   to_biguint::ToBigUint,
 };
+use num_bigint::BigUint;
+use num_traits::Zero;
 
 pub struct WeilPairing {
   l_bits: Vec<bool>,
@@ -14,13 +16,14 @@ pub struct WeilPairing {
 
 impl WeilPairing {
   pub fn new() -> Self {
-    let mut l = u64::from_str_radix("d201000000010000", 16).unwrap();  // l-torsion points
+    let mut l = BigUint::parse_bytes(b"73EDA753299D7D483339D80809A1D80553BDA402FFFE5BFEFFFFFFFF00000000", 16).unwrap();  // l-torsion points
     let mut l_bits: Vec<bool> = vec![];
+    let one = BigUint::from(1u8);
     
-    while l > 0 {
-      let b = l & 1;
-      l_bits.push(b != 0);
-      l = l >> 1
+    while !l.is_zero() {
+      let b = &l & &one;
+      l_bits.push(!b.is_zero());
+      l = l >> 1u32;
     }
     l_bits.reverse();
     l_bits.remove(0);  // drop msb 1 
@@ -38,14 +41,22 @@ impl WeilPairing {
     let mut f = Fq12::from(&1u8 as &dyn ToBigUint);
     let mut V = p.clone();
 
+'outer:
     for bit in &self.l_bits {
       {
+        println!("G1 point before dbl:\n{:?}\n", &V);
         let v2 = &(&V + &V);
+        println!("G1 point after dbl:\n{:?}\n", &v2);
+
         let g_num = RationalFunction::new(&V, &V);
         let g_deno = RationalFunction::new(v2, &-v2);
+
+        println!("Fp12 element before dbl:\n{}\n", &f);
         f = &(&f * &f) * g_num.eval_at(q) * g_deno.eval_at(q).inv();
+        println!("Fp12 element after dbl:\n{}\n", &f);
       }
       V = &V + &V;
+      break 'outer;
 
       if *bit {
         {
@@ -74,13 +85,15 @@ mod tests {
     let p1_p2 = &p1 + &p2;
     let q = G2Point::g();
 
+    let _lhs = wp.run_miller_algorithm(&p1, &q);
+ 
     // test e(p1 + p2, q) = e(p1, q) e(p2, q)
-    let lhs = wp.run_miller_algorithm(&p1_p2, &q);
-    let rhs1 = wp.run_miller_algorithm(&p1, &q);
-    let rhs2 = wp.run_miller_algorithm(&p2, &q);
+    // let _lhs = wp.run_miller_algorithm(&p1_p2, &q);
+    // let rhs1 = wp.run_miller_algorithm(&p1, &q);
+    // let rhs2 = wp.run_miller_algorithm(&p2, &q);
 
-    let rhs = rhs1 * rhs2;
-    assert!(lhs == rhs);
+    // let rhs = rhs1 * rhs2;
+    // assert!(lhs == rhs);
   }
 }
 

@@ -63,6 +63,18 @@ impl Reduce for Fq1 {
 
 impl fmt::Display for Fq1 {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{}", self)
+    let mut s = self.to_str_radix(16).to_uppercase();
+    if s.len() < 96 {
+      s = "0".repeat(96 - s.len()) + &s;
+    }
+    write!(f, "{} {} {} {} {} {}", 
+      &s[0..16],
+      &s[16..32],
+      &s[32..48],
+      &s[48..64],
+      &s[64..80],
+      &s[80..96],
+    )
   }
 }
+

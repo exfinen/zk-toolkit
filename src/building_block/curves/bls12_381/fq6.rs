@@ -99,6 +99,12 @@ impl PartialEq for Fq6 {
 
 impl Eq for Fq6 {}
 
+impl fmt::Display for Fq6 {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}\n{}\n{}", self.v0, self.v1, self.v2)
+  }
+}
+
 macro_rules! impl_add {
   ($rhs: ty, $target: ty) => {
     impl Add<$rhs> for $target {
@@ -163,12 +169,6 @@ impl_mul!(Fq6, Fq6);
 impl_mul!(Fq6, &Fq6);
 impl_mul!(&Fq6, Fq6);
 impl_mul!(&Fq6, &Fq6);
-
-impl fmt::Display for Fq6 {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{{ v2: {}, v1: {}, v0: {} }}", self.v2, self.v1, self.v0)
-  }
-}
 
 #[cfg(test)]
 mod tests {

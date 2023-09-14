@@ -135,7 +135,7 @@ impl_mul!(&Fq12, &Fq12);
 
 impl fmt::Display for Fq12 {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{{ w1: {}, w0: {} }}", self.w1, self.w0)
+    write!(f, "{}\n{}", self.w0, self.w1)
   }
 }
 

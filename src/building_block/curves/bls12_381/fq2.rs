@@ -73,6 +73,12 @@ impl From<&dyn ToBigUint> for Fq2 {
   }
 }
 
+impl fmt::Display for Fq2 {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}\n{}", self.u0, self.u1)
+  }
+}
+
 macro_rules! impl_neg {
   ($target: ty) => {
     impl Neg for $target {
@@ -143,12 +149,6 @@ impl_mul!(Fq2, Fq2);
 impl_mul!(Fq2, &Fq2);
 impl_mul!(&Fq2, Fq2);
 impl_mul!(&Fq2, &Fq2);
-
-impl fmt::Display for Fq2 {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{{ u1: {}, u0: {} }}", self.u1, self.u0)
-  }
-}
 
 #[cfg(test)]
 mod tests {

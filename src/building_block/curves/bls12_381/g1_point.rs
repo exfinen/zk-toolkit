@@ -13,12 +13,13 @@ use crate::{
 };
 use num_bigint::BigUint;
 use std::{
+  fmt,
   ops::{Add, Mul, Neg},
   sync::Arc,
 };
 use once_cell::sync::Lazy;
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub enum G1Point {
   Rational { x: Fq1, y: Fq1 },
   AtInfinity,
@@ -71,6 +72,21 @@ impl G1Point {
       G1Point::Rational { x, y } => G1Point::new(&x, &y.inv()),
     }
   }
+
+  fn fmt_hex(s: &str) -> String {
+    let mut ns = s.to_uppercase();
+    if s.len() < 96 {
+      ns = "0".repeat(96 - ns.len()) + &ns;
+    }
+    format!("{} {} {} {} {} {}",
+      &ns[0..16],
+      &ns[16..32],
+      &ns[32..48],
+      &ns[48..64],
+      &ns[64..80],
+      &ns[80..96],
+    )
+  }
 }
 
 impl RationalPoint for G1Point {
@@ -90,6 +106,24 @@ impl RationalPoint for G1Point {
     }
   }
 }
+
+impl fmt::Debug for G1Point {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    match self {
+      G1Point::AtInfinity => {
+        write!(f, "Point at infinity")
+
+      },
+      G1Point::Rational { x, y } => {
+        write!(f, "{}\n{}",
+          G1Point::fmt_hex(&x.e.to_str_radix(16)),
+          G1Point::fmt_hex(&y.e.to_str_radix(16)),
+        )
+      },
+    }
+  }
+}
+
 
 impl Zero<G1Point> for G1Point {
   fn zero() -> G1Point {
