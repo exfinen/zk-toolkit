@@ -41,7 +41,6 @@ impl WeilPairing {
     let mut f = Fq12::from(&1u8 as &dyn ToBigUint);
     let mut V = p.clone();
 
-'outer:
     for bit in &self.l_bits {
       {
         println!("G1 point before dbl:\n{:?}\n", &V);
@@ -51,12 +50,12 @@ impl WeilPairing {
         let g_num = RationalFunction::new(&V, &V);
         let g_deno = RationalFunction::new(v2, &-v2);
 
+        // this is not working!!!
         println!("Fp12 element before dbl:\n{}\n", &f);
         f = &(&f * &f) * g_num.eval_at(q) * g_deno.eval_at(q).inv();
         println!("Fp12 element after dbl:\n{}\n", &f);
       }
       V = &V + &V;
-      break 'outer;
 
       if *bit {
         {
