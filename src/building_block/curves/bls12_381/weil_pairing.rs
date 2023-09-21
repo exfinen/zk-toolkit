@@ -112,11 +112,12 @@ mod tests {
     assert!(res);
   }
 
-  //#[test]
+  #[test]
   fn test_pairing_with_random_points() {
     let mut errors = 0;
+    let num_tests = 1;
 
-    for i in 0..1000 {
+    for i in 0..num_tests {
       println!("iteration {}", i);
       let wp = WeilPairing::new();
       let p = G1Point::get_random_point();
