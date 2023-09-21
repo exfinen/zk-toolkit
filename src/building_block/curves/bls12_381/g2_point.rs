@@ -13,7 +13,11 @@ use crate::{
     zero::Zero,
   },
 };
-use num_bigint::BigUint;
+use num_bigint::{
+  BigUint,
+  RandBigInt,
+};
+use num_traits::Zero as NumTraitsZero;
 use std::{
   ops::{Add, Mul, Neg},
   sync::Arc,
@@ -61,6 +65,12 @@ impl G2Point {
       G2Point::AtInfinity => panic!("No inverse exists for point at infinitty"),
       G2Point::Rational { x, y } => G2Point::new(&x, &y.inv()),
     }
+  }
+
+  pub fn get_random_point() -> AffinePoint {
+    let mut rng = rand::thread_rng();
+    let n = rng.gen_biguint_range(&NumTraitsZero::zero(), &CURVE_GROUP.order);
+    G2Point::g() * &CURVE_GROUP.elem(&n)
   }
 }
 

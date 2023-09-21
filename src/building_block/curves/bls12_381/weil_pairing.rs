@@ -81,31 +81,53 @@ impl WeilPairing {
 mod tests {
   use super::*;
 
-  #[test]
-  fn do_it() {
-    let wp = WeilPairing::new();
-
-    let p = G1Point::g();
-    let p2 = &p + &p;
-    let q = G2Point::g();
+  fn test_pairing(wp: &WeilPairing, p: &G1Point, q: &G2Point) -> bool {
+    let p2 = p + p;
 
     // test e(p + p2, q) = e(p, q) e(p2, q)
 
-    println!("Calculating e(p + p2, q)...");
-    let lhs = wp.calculate(&(&p + &p2), &q);
+    // println!("Calculating e(p + p2, q)...");
+    let lhs = wp.calculate(&(p + &p2), q);
 
-    println!("Calculating e(p, q)...");
-    let rhs1 = wp.calculate(&p, &q);
+    // println!("Calculating e(p, q)...");
+    let rhs1 = wp.calculate(p, q);
 
-    println!("Calculating e(p2, q)...");
-    let rhs2 = wp.calculate(&p2, &q);
+    // println!("Calculating e(p2, q)...");
+    let rhs2 = wp.calculate(&p2, q);
 
     let rhs = rhs1 * rhs2;
 
-    println!("lhs = {:?}", &lhs);
-    println!("rhs = {:?}", &rhs);
+    // println!("lhs = {:?}", &lhs);
+    // println!("rhs = {:?}", &rhs);
 
-    assert!(lhs == rhs);
+    lhs == rhs
+  }
+
+  #[test]
+  fn test_pairing_with_generators() {
+    let wp = WeilPairing::new();
+    let p = G1Point::g();
+    let q = G2Point::g();
+    let res = test_pairing(&wp, &p, &q);
+    assert!(res);
+  }
+
+  //#[test]
+  fn test_pairing_with_random_points() {
+    let mut errors = 0;
+
+    for i in 0..1000 {
+      println!("iteration {}", i);
+      let wp = WeilPairing::new();
+      let p = G1Point::get_random_point();
+      let q = G2Point::get_random_point();
+      let res = test_pairing(&wp, &p, &q);
+      if res == false {
+        println!("----> iteration {} failed!", i);
+        errors += 1;
+      }
+    }
+    println!("{} tests failed!", errors);
   }
 }
 

@@ -13,6 +13,8 @@ To build a zk library from scratch keeping the implementation as easily understa
 - Ed25519 public key generation, signing and signature verification on Curve25519 curve
 - Bulletproofs (inner product argument range proof)
 - Pinnocio (equation parser, R1CS, QAP)
+- Miller's Algorithm
+- Weil Pairing on BLS12-381
 
 ## What's NOT implemented so far
 - Big number

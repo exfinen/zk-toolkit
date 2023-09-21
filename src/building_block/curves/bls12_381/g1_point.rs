@@ -11,7 +11,11 @@ use crate::{
     zero::Zero,
   },
 };
-use num_bigint::BigUint;
+use num_bigint::{
+  BigUint,
+  RandBigInt,
+};
+use num_traits::Zero as NumTraitsZero;
 use std::{
   fmt,
   ops::{Add, Mul, Neg},
@@ -86,6 +90,12 @@ impl G1Point {
       &ns[64..80],
       &ns[80..96],
     )
+  }
+
+  pub fn get_random_point() -> AffinePoint {
+    let mut rng = rand::thread_rng();
+    let n = rng.gen_biguint_range(&NumTraitsZero::zero(), &CURVE_GROUP.order);
+    G1Point::g() * &CURVE_GROUP.elem(&n)
   }
 }
 
