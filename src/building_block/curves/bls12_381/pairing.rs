@@ -80,9 +80,8 @@ impl Pairing {
   pub fn tate(&self, p: &G1Point, q: &G2Point) -> Fq12 {
     let intmed = self.calc_g1_g2(p, q);
 
-    let one = BigUint::from(1u8);
-
     // apply final exponentiation
+    let one = BigUint::from(1u8);
     let exp = (&P::base_prime_field().order.pow(P::embedding_degree()) - one) / &P::subgroup().order;
     let exp = Fq12::from(&exp as &dyn ToBigUint);
     intmed * exp
@@ -143,6 +142,4 @@ mod tests {
     println!("{} tests failed!", errors);
   }
 }
-
-
 
