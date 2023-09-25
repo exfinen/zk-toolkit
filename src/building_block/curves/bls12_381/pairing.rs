@@ -48,8 +48,8 @@ macro_rules! impl_miller_algorithm {
     }
   };
 }
-impl_miller_algorithm!(G1Point, G2Point, calc_numerator, new_g1, eval_with_g2);
-impl_miller_algorithm!(G2Point, G1Point, calc_denominator, new_g2, eval_with_g1);
+impl_miller_algorithm!(G1Point, G2Point, calc_g1_g2, new_g1, eval_with_g2);
+impl_miller_algorithm!(G2Point, G1Point, calc_g2_g1, new_g2, eval_with_g1);
 
 impl Pairing {
   pub fn new() -> Self {
@@ -70,14 +70,14 @@ impl Pairing {
   }
 
   pub fn weil(&self, p: &G1Point, q: &G2Point) -> Fq12 {
-    let num = self.calc_numerator(p, q);
-    let deno = self.calc_denominator(q, p);
+    let num = self.calc_g1_g2(p, q);
+    let deno = self.calc_g2_g1(q, p);
 
     num * deno.inv()
   }
 
   pub fn tate(&self, p: &G1Point, q: &G2Point) -> Fq12 {
-    let intmed = self.calc_numerator(p, q);
+    let intmed = self.calc_g1_g2(p, q);
 
     let one = BigUint::from(1u8);
     let embedding_degree = 12u32;
