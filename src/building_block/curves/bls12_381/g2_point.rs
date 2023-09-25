@@ -298,7 +298,7 @@ mod tests {
 
   #[test]
   fn scalar_mul_smaller_nums() {
-    let f = Params::subgroup();
+    let f = P::subgroup();
     let g = &G2Point::g();
     let gs = get_g_multiples();
 

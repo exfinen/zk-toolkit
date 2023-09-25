@@ -54,8 +54,8 @@ impl_miller_algorithm!(G2Point, G1Point, calc_g2_g1, new_g2, eval_with_g1);
 
 impl Pairing {
   pub fn new() -> Self {
-    // l is the group order of G1, G2 and G12 curves
-    let mut l = BigUint::parse_bytes(b"73EDA753299D7D483339D80809A1D80553BDA402FFFE5BFEFFFFFFFF00000000", 16).unwrap();
+    // TODO explain why subtracting 1
+    let mut l = &P::subgroup().order - &BigUint::from(1u8);
     let mut l_bits: Vec<bool> = vec![];
     let one = BigUint::from(1u8);
     
@@ -115,7 +115,7 @@ mod tests {
   }
 
   #[test]
-  fn test_weil_lpairing_with_generators() {
+  fn test_weil_pairing_with_generators() {
     let wp = Pairing::new();
     let p = G1Point::g();
     let q = G2Point::g();

@@ -2,11 +2,12 @@ use crate::building_block::curves::bls12_381::{
   fq1::Fq1,
   fq2::Fq2,
   fq6::Fq6,
+  params::Params as P,
 };
 use std::rc::Rc;
 
 pub fn get_fq1_values() -> (Fq1, Fq1, Fq1, Fq1) {
-  let f_q = &Rc::new(Fq1::base_field());
+  let f_q = &Rc::new(P::base_prime_field());
   let a1 = Fq1::new(f_q, &3u8).negate();
   let b1 = Fq1::new(f_q, &5u8).negate();
   let c1 = Fq1::new(f_q, &7u8).negate();
