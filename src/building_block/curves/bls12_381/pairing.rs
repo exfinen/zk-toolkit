@@ -3,6 +3,7 @@ use crate::building_block::{
     g1_point::G1Point,
     g2_point::G2Point,
     fq12::Fq12,
+    params::Params as P,
     rational_function::RationalFunction,
   },
   to_biguint::ToBigUint,
@@ -80,13 +81,10 @@ impl Pairing {
     let intmed = self.calc_g1_g2(p, q);
 
     let one = BigUint::from(1u8);
-    let embedding_degree = 12u32;
-    let base_field_order = &G1Point::base_field().order;
-    let subgroup_order = &G1Point::curve_group().order; 
 
-    let exp = (base_field_order.pow(embedding_degree) - one) / subgroup_order;
+    // apply final exponentiation
+    let exp = (&P::base_prime_field().order.pow(P::embedding_degree()) - one) / &P::subgroup().order;
     let exp = Fq12::from(&exp as &dyn ToBigUint);
-
     intmed * exp
   }
 }

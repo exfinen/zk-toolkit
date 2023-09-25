@@ -7,16 +7,14 @@ use crate::{
       bls12_381::{
         fq1::Fq1,
         fq2::Fq2,
+        params::Params as P,
       },
       rational_point::RationalPoint,
     },
     zero::Zero,
   },
 };
-use num_bigint::{
-  BigUint,
-  RandBigInt,
-};
+use num_bigint::RandBigInt;
 use num_traits::Zero as NumTraitsZero;
 use std::{
   ops::{Add, Mul, Neg},
@@ -42,18 +40,9 @@ static BASE_POINT: Lazy<G2Point> = Lazy::new(|| {
   G2Point::Rational { x, y }
 });
 
-static CURVE_GROUP: Lazy<Arc<PrimeField>> = Lazy::new(|| {
-  let r = BigUint::parse_bytes(b"73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001", 16).unwrap();
-  Arc::new(PrimeField::new(&r))
-});
-
 impl G2Point {
   pub fn new(x: &Fq2, y: &Fq2) -> Self {
     G2Point::Rational { x: x.clone(), y: y.clone() }
-  }
-
-  pub fn curve_group() -> Arc<PrimeField> {
-    CURVE_GROUP.clone()
   }
 
   pub fn g() -> Self {
@@ -69,8 +58,13 @@ impl G2Point {
 
   pub fn get_random_point() -> AffinePoint {
     let mut rng = rand::thread_rng();
-    let n = rng.gen_biguint_range(&NumTraitsZero::zero(), &CURVE_GROUP.order);
-    G2Point::g() * &CURVE_GROUP.elem(&n)
+    let subgroup = &P::subgroup();
+    let n = rng.gen_biguint_range(&NumTraitsZero::zero(), &subgroup.order);
+    G2Point::g() * &subgroup.elem(&n)
+  }
+
+  pub fn curve_group() -> Arc<PrimeField> {
+    P::subgroup()
   }
 }
 
@@ -137,14 +131,13 @@ impl Eq for AffinePoint {}
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::building_block::curves::bls12_381::g1_point::G1Point;
   use num_bigint::BigUint;
   use std::rc::Rc;
 
   #[test]
   fn scalar_mul() {
     let g = &G2Point::g();
-    let f = G2Point::curve_group();
+    let f = P::subgroup();
     {
       let act = g * f.elem(&1u8);
       assert_eq!(&act, g);
@@ -262,7 +255,7 @@ mod tests {
 
   impl<'a> Into<G2Point> for &Xy<'a> {
     fn into(self) -> G2Point {
-      let f = G1Point::base_field();
+      let f = P::base_prime_field();
 
       let x1 = BigUint::parse_bytes(self.x1, 10).unwrap();
       let x0 = BigUint::parse_bytes(self.x0, 10).unwrap();
@@ -304,7 +297,7 @@ mod tests {
 
   #[test]
   fn scalar_mul_smaller_nums() {
-    let f = G2Point::curve_group();
+    let f = Params::subgroup();
     let g = &G2Point::g();
     let gs = get_g_multiples();
 
@@ -355,7 +348,7 @@ mod tests {
       // },
     ];
 
-    let f = G2Point::curve_group();
+    let f = P::subgroup();
     let g = &G2Point::g();
 
     for t in &test_cases {

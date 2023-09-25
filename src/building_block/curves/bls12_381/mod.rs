@@ -9,4 +9,5 @@ pub mod g12_point;
 pub mod rational_function;
 pub mod reduce;
 pub mod pairing;
+pub mod params;
 

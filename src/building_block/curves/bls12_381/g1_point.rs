@@ -4,7 +4,10 @@ use crate::{
   building_block::{
     field::prime_field::PrimeField,
     curves::{
-      bls12_381::fq1::Fq1,
+      bls12_381::{
+        fq1::Fq1,
+        params::Params as P,
+      },
       rational_point::RationalPoint,
       weierstrass_eq::WeierstrassEq,
     },
@@ -29,18 +32,8 @@ pub enum G1Point {
   AtInfinity,
 }
 
-static BASE_FIELD: Lazy<Arc<PrimeField>> = Lazy::new(|| {
-  let q = BigUint::parse_bytes(b"1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab", 16).unwrap();
-  Arc::new(PrimeField::new(&q))
-});
-
-static CURVE_GROUP: Lazy<Arc<PrimeField>> = Lazy::new(|| {
-  let r = BigUint::parse_bytes(b"73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001", 16).unwrap();
-  Arc::new(PrimeField::new(&r))
-});
-
 static GENERATOR: Lazy<AffinePoint> = Lazy::new(|| {
-  let f = G1Point::base_field();
+  let f = P::base_prime_field();
   let x = f.elem(
     &BigUint::parse_bytes(b"17f1d3a73197d7942695638c4fa9ac0fc3688c4f9774b905a14e3a3f171bac586c55e83ff97a1aeffb3af00adb22c6bb", 16).unwrap(),
   );
@@ -56,14 +49,6 @@ impl G1Point {
       x: x.clone(),
       y: y.clone(),
     }
-  }
-
-  pub fn base_field() -> Arc<PrimeField> {
-    BASE_FIELD.clone().clone()
-  }
-
-  pub fn curve_group() -> Arc<PrimeField> {
-    CURVE_GROUP.clone()
   }
 
   pub fn g() -> AffinePoint {
@@ -94,8 +79,13 @@ impl G1Point {
 
   pub fn get_random_point() -> AffinePoint {
     let mut rng = rand::thread_rng();
-    let n = rng.gen_biguint_range(&NumTraitsZero::zero(), &CURVE_GROUP.order);
-    G1Point::g() * &CURVE_GROUP.elem(&n)
+    let subgroup = &P::subgroup();
+    let n = rng.gen_biguint_range(&NumTraitsZero::zero(), &subgroup.order);
+    G1Point::g() * &subgroup.elem(&n)
+  }
+
+  pub fn curve_group() -> Arc<PrimeField> {
+    P::subgroup()
   }
 }
 
@@ -104,7 +94,7 @@ impl RationalPoint for G1Point {
     match self {
       G1Point::AtInfinity => false,
       G1Point::Rational { x, y } => {
-        let f = Self::base_field();
+        let f = P::base_prime_field();
         let a1 = f.elem(&0u8);
         let a2 = f.elem(&0u8);
         let a3 = f.elem(&0u8);
@@ -195,7 +185,7 @@ mod tests {
   #[test]
   fn scalar_mul() {
     let g = &G1Point::g();
-    let f = G1Point::curve_group();
+    let f = P::subgroup();
     {
       let act = g * f.elem(&1u8);
       assert_eq!(&act, g);
@@ -294,7 +284,7 @@ mod tests {
 
   impl<'a> Into<G1Point> for &Xy<'a> {
     fn into(self) -> G1Point {
-      let f = G1Point::base_field();
+      let f = P::base_prime_field();
       let gx = BigUint::parse_bytes(self.x, 10).unwrap();
       let gy = BigUint::parse_bytes(self.y, 10).unwrap();
       G1Point::new(
@@ -326,7 +316,7 @@ mod tests {
 
   #[test]
   fn scalar_mul_smaller_nums() {
-    let f = G1Point::curve_group();
+    let f = P::subgroup();
     let g = &G1Point::g();
     let gs = get_g_multiples();
 
@@ -350,7 +340,7 @@ mod tests {
       ScalarMulTest { p: &Xy { x: b"233428720546585353387591766649253720217324789024335982603773308838219411095446257324273777614133447118484569237158", y: b"739589369061541979943645640116032571136884145267397816113677291549794526953649687502393808128626557292504917003358" }, multiple: b"123456789012345678901234567890" },
     ];
 
-    let f = G1Point::base_field();
+    let f = P::base_prime_field();
     let g = &G1Point::g();
 
     for t in &test_cases {
