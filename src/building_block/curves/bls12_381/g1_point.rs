@@ -84,6 +84,7 @@ impl G1Point {
     G1Point::g() * &subgroup.elem(&n)
   }
 
+  // for impl_scalar_mul_point macro
   pub fn curve_group() -> Arc<PrimeField> {
     P::subgroup()
   }
