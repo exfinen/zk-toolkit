@@ -10,13 +10,13 @@ use crate::building_block::{
 use num_bigint::BigUint;
 use num_traits::Zero;
 
-pub struct WeilPairing {
+pub struct Pairing {
   l_bits: Vec<bool>,
 }
 
 macro_rules! impl_miller_algorithm {
   ($p1: ty, $p2: ty, $func: ident, $new: ident, $eval_at: ident) => {
-    impl WeilPairing {
+    impl Pairing {
       #[allow(non_snake_case)]
       pub fn $func(&self, p: &$p1, q: &$p2) -> Fq12 {
         let mut f = Fq12::from(&1u8 as &dyn ToBigUint);
@@ -51,7 +51,7 @@ macro_rules! impl_miller_algorithm {
 impl_miller_algorithm!(G1Point, G2Point, calc_numerator, new_g1, eval_with_g2);
 impl_miller_algorithm!(G2Point, G1Point, calc_denominator, new_g2, eval_with_g1);
 
-impl WeilPairing {
+impl Pairing {
   pub fn new() -> Self {
     // l is the group order of G1, G2 and G12 curves
     let mut l = BigUint::parse_bytes(b"73EDA753299D7D483339D80809A1D80553BDA402FFFE5BFEFFFFFFFF00000000", 16).unwrap();
@@ -66,14 +66,28 @@ impl WeilPairing {
     l_bits.reverse();
     l_bits.remove(0);  // drop msb 1 
 
-    WeilPairing { l_bits }
+    Pairing { l_bits }
   }
 
-  pub fn calculate(&self, p: &G1Point, q: &G2Point) -> Fq12 {
+  pub fn calculate_weil_pairing(&self, p: &G1Point, q: &G2Point) -> Fq12 {
     let num = self.calc_numerator(p, q);
     let deno = self.calc_denominator(q, p);
 
     num * deno.inv()
+  }
+
+  pub fn calculate_tate_pairing(&self, p: &G1Point, q: &G2Point) -> Fq12 {
+    let intmed = self.calc_numerator(p, q);
+
+    let one = BigUint::from(1u8);
+    let embedding_degree = 12u32;
+    let base_field_order = &G1Point::base_field().order;
+    let subgroup_order = &G1Point::curve_group().order; 
+
+    let exp = (base_field_order.pow(embedding_degree) - one) / subgroup_order;
+    let exp = Fq12::from(&exp as &dyn ToBigUint);
+
+    intmed * exp
   }
 }
 
@@ -81,19 +95,19 @@ impl WeilPairing {
 mod tests {
   use super::*;
 
-  fn test_pairing(wp: &WeilPairing, p: &G1Point, q: &G2Point) -> bool {
+  fn test_pairing(pairing: &Pairing, p: &G1Point, q: &G2Point) -> bool {
     let p2 = p + p;
 
     // test e(p + p2, q) = e(p, q) e(p2, q)
 
     // println!("Calculating e(p + p2, q)...");
-    let lhs = wp.calculate(&(p + &p2), q);
+    let lhs = pairing.calculate_weil_pairing(&(p + &p2), q);
 
     // println!("Calculating e(p, q)...");
-    let rhs1 = wp.calculate(p, q);
+    let rhs1 = pairing.calculate_weil_pairing(p, q);
 
     // println!("Calculating e(p2, q)...");
-    let rhs2 = wp.calculate(&p2, q);
+    let rhs2 = pairing.calculate_weil_pairing(&p2, q);
 
     let rhs = rhs1 * rhs2;
 
@@ -104,8 +118,8 @@ mod tests {
   }
 
   #[test]
-  fn test_pairing_with_generators() {
-    let wp = WeilPairing::new();
+  fn test_weil_lpairing_with_generators() {
+    let wp = Pairing::new();
     let p = G1Point::g();
     let q = G2Point::g();
     let res = test_pairing(&wp, &p, &q);
@@ -113,13 +127,13 @@ mod tests {
   }
 
   #[test]
-  fn test_pairing_with_random_points() {
+  fn test_weil_pairing_with_random_points() {
     let mut errors = 0;
     let num_tests = 1;
 
     for i in 0..num_tests {
       println!("iteration {}", i);
-      let wp = WeilPairing::new();
+      let wp = Pairing::new();
       let p = G1Point::get_random_point();
       let q = G2Point::get_random_point();
       let res = test_pairing(&wp, &p, &q);

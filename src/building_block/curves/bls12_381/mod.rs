@@ -8,4 +8,5 @@ pub mod g2_point;
 pub mod g12_point;
 pub mod rational_function;
 pub mod reduce;
-pub mod weil_pairing;
+pub mod pairing;
+
