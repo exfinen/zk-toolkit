@@ -69,14 +69,14 @@ impl Pairing {
     Pairing { l_bits }
   }
 
-  pub fn calculate_weil(&self, p: &G1Point, q: &G2Point) -> Fq12 {
+  pub fn weil(&self, p: &G1Point, q: &G2Point) -> Fq12 {
     let num = self.calc_numerator(p, q);
     let deno = self.calc_denominator(q, p);
 
     num * deno.inv()
   }
 
-  pub fn calculate_tate(&self, p: &G1Point, q: &G2Point) -> Fq12 {
+  pub fn tate(&self, p: &G1Point, q: &G2Point) -> Fq12 {
     let intmed = self.calc_numerator(p, q);
 
     let one = BigUint::from(1u8);
@@ -101,13 +101,13 @@ mod tests {
     // test e(p + p2, q) = e(p, q) e(p2, q)
 
     // println!("Calculating e(p + p2, q)...");
-    let lhs = pairing.calculate_weil(&(p + &p2), q);
+    let lhs = pairing.weil(&(p + &p2), q);
 
     // println!("Calculating e(p, q)...");
-    let rhs1 = pairing.calculate_weil(p, q);
+    let rhs1 = pairing.weil(p, q);
 
     // println!("Calculating e(p2, q)...");
-    let rhs2 = pairing.calculate_weil(&p2, q);
+    let rhs2 = pairing.weil(&p2, q);
 
     let rhs = rhs1 * rhs2;
 
