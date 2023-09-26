@@ -55,7 +55,7 @@ impl_miller_algorithm!(G2Point, G1Point, calc_g2_g1, new_g2, eval_with_g1);
 impl Pairing {
   pub fn new() -> Self {
     // TODO explain why subtracting 1
-    let mut l = &P::subgroup().order - &BigUint::from(1u8);
+    let mut l = P::subgroup().order_ref() - &BigUint::from(1u8);
     let mut l_bits: Vec<bool> = vec![];
     let one = BigUint::from(1u8);
     
@@ -82,7 +82,9 @@ impl Pairing {
 
     // apply final exponentiation
     let one = BigUint::from(1u8);
-    let exp = (&P::base_prime_field().order.pow(P::embedding_degree()) - one) / &P::subgroup().order;
+    let exp = 
+      (P::base_prime_field().order_ref().pow(P::embedding_degree()) - one)
+      / P::subgroup().order_ref();
     let exp = Fq12::from(&exp as &dyn ToBigUint);
     intmed * exp
   }

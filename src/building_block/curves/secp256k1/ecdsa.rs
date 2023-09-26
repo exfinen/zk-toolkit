@@ -37,12 +37,12 @@ impl Ecdsa {
   pub fn sign(&self, priv_key: &PrimeFieldElem, message: &[u8]) -> Result<Signature, String> {
     let f_n = &AffinePoint::curve_group();
 
-    if &priv_key.f.order != &f_n.order {
+    if priv_key.f.order_ref() != f_n.order_ref() {
       panic!("Private key needs to be an element of curve group");
     }
     // n is 32-byte long in secp256k1
     // dA = private key in [1, n-1]
-    let n = &f_n.order;
+    let n = f_n.order_ref();
     let g = &AffinePoint::g();
     let sha256 = Sha256();
 
@@ -88,7 +88,7 @@ impl Ecdsa {
   pub fn verify(&self, sig: &Signature, pub_key: &AffinePoint, message: &[u8]) -> bool {
     let f_q = &AffinePoint::base_field();
     let f_n = &AffinePoint::curve_group();
-    let n = &f_n.order;
+    let n = f_n.order_ref();
 
     // confirm pub_key is not inf
     if pub_key.is_zero() {
@@ -209,7 +209,7 @@ mod tests {
     let sig = ecdsa.sign(priv_key, &message).unwrap();
 
     let sig_r_too_large = Signature {
-      r: AffinePoint::base_field().elem(&curve_group.order),
+      r: AffinePoint::base_field().elem(curve_group.order_ref()),
       s: sig.s.clone(),
     };
     let is_verified = ecdsa.verify(&sig_r_too_large, &pub_key, &message);
@@ -242,7 +242,7 @@ mod tests {
 
     let sig_s_too_large = Signature {
       r: sig.r.clone(),
-      s: sig.s.clone().f.elem(&curve_group.order),
+      s: sig.s.clone().f.elem(curve_group.order_ref()),
     };
     let is_verified = ecdsa.verify(&sig_s_too_large, &pub_key, &message);
     assert_eq!(is_verified, false);

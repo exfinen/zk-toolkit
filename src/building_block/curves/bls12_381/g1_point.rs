@@ -80,7 +80,7 @@ impl G1Point {
   pub fn get_random_point() -> AffinePoint {
     let mut rng = rand::thread_rng();
     let subgroup = &P::subgroup();
-    let n = rng.gen_biguint_range(&NumTraitsZero::zero(), &subgroup.order);
+    let n = rng.gen_biguint_range(&NumTraitsZero::zero(), subgroup.order_ref());
     G1Point::g() * &subgroup.elem(&n)
   }
 

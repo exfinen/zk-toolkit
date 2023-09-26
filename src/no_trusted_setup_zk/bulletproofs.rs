@@ -236,7 +236,7 @@ mod tests {
       g.clone(),
     ]);
 
-    let order_minus_1 = &curve_group.order - &1u8;
+    let order_minus_1 = curve_group.order_ref() - &1u8;
     let x = curve_group.elem(&order_minus_1);
     let sL = &curve_group.rand_elems(gg.len(), true);
 

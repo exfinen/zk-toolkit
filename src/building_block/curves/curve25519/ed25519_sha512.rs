@@ -126,7 +126,8 @@ impl Ed25519Sha512 {
 
   pub fn sign(&self, msg: &[u8], prv_key: &[u8; 32]) -> [u8; 64] {
     let f = &AffinePoint::base_field();
-    let l = &AffinePoint::curve_group().order;
+    let curve_group = &AffinePoint::curve_group();
+    let l = curve_group.order_ref();
     let B = &AffinePoint::B();
 
     let digest = self.H.get_digest(prv_key);
@@ -161,7 +162,7 @@ impl Ed25519Sha512 {
     let B = &AffinePoint::B();
 
     let S = BigUint::from_bytes_le(&sig[32..64]);
-    if S >= f_l.order {
+    if &S >= f_l.order_ref() {
       return false;
     }
     let R_pt = self.decode_point(&sig[0..32].try_into().unwrap());

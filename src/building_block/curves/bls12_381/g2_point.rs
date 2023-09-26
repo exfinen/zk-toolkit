@@ -59,8 +59,8 @@ impl G2Point {
   pub fn get_random_point() -> AffinePoint {
     let mut rng = rand::thread_rng();
     let subgroup = &P::subgroup();
-    let n = rng.gen_biguint_range(&NumTraitsZero::zero(), &subgroup.order);
-    G2Point::g() * &subgroup.elem(&n)
+    let n = rng.gen_biguint_range(&NumTraitsZero::zero(), subgroup.order_ref());
+    G2Point::g() * subgroup.elem(&n)
   }
 
   // for impl_scalar_mul_point macro

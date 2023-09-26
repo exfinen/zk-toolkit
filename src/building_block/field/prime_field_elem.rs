@@ -236,8 +236,8 @@ impl PrimeFieldElem {
   pub fn new(f: &Arc<PrimeField>, e: &impl ToBigUint) -> Self {
     let e = e.to_biguint();
     let f = f.clone();
-    if e.ge(&f.order) {
-      let e = e.rem(&f.order);
+    if e.ge(f.order_ref()) {
+      let e = e.rem(f.order_ref());
       PrimeFieldElem { f, e }
     } else {
       PrimeFieldElem { f, e }
@@ -249,21 +249,21 @@ impl PrimeFieldElem {
   }
 
   pub fn plus(&self, rhs: &impl ToBigUint) -> PrimeFieldElem {
-    let rhs = rhs.to_biguint() % &self.f.order;
+    let rhs = rhs.to_biguint() % self.f.order_ref();
     let mut e = self.e.clone();
     e += &rhs;
-    if e >= self.f.order {
-      e -= &self.f.order;
+    if &e >= self.f.order_ref() {
+      e -= self.f.order_ref();
     }
     PrimeFieldElem { f: self.f.clone(), e }
   }
 
   pub fn minus(&self, rhs: &impl ToBigUint) -> PrimeFieldElem {
-    let rhs = rhs.to_biguint() % &self.f.order;
+    let rhs = rhs.to_biguint() % self.f.order_ref();
     let f = self.f.clone();
     if self.e < rhs {
       let diff = &rhs - &self.e;
-      let e = &self.f.order - diff;
+      let e = self.f.order_ref() - diff;
       PrimeFieldElem { f, e }
     } else {
       let mut e = self.e.clone();
@@ -273,10 +273,10 @@ impl PrimeFieldElem {
   }
 
   pub fn times(&self, rhs: &impl ToBigUint) -> PrimeFieldElem {
-    let rhs = rhs.to_biguint() % &self.f.order;
+    let rhs = rhs.to_biguint() % self.f.order_ref();
     let mut e = self.e.clone();
     e *= &rhs.to_biguint();
-    e %= &self.f.order;
+    e %= self.f.order_ref();
     PrimeFieldElem { f: self.f.clone(), e }
   }
 
@@ -293,8 +293,8 @@ impl PrimeFieldElem {
       if bit == true {
         sum *= &bit_value;
       }
-      bit_value = (&bit_value * &bit_value) % &self.f.order;
-      sum %= &self.f.order;
+      bit_value = (&bit_value * &bit_value) % self.f.order_ref();
+      sum %= self.f.order_ref();
     }
 
     PrimeFieldElem { f: self.f.clone(), e: sum }
@@ -303,16 +303,16 @@ impl PrimeFieldElem {
   pub fn sq(&self) -> PrimeFieldElem {
     let mut e = self.e.clone();
     e *= &self.e;
-    e %= &self.f.order;
+    e %= self.f.order_ref();
     PrimeFieldElem { f: self.f.clone(), e }
   }
 
   pub fn cube(&self) -> PrimeFieldElem {
     let mut e = self.e.clone();
     e *= &self.e;
-    e %= &self.f.order;
+    e %= self.f.order_ref();
     e *= &self.e;
-    e %= &self.f.order;
+    e %= self.f.order_ref();
     PrimeFieldElem { f: self.f.clone(), e }
   }
 
@@ -340,7 +340,7 @@ impl PrimeFieldElem {
     if self.e == BigUint::zero() {
       return Err("Cannot find inverse of zero".to_string());
     }
-    let order = self.f.order.to_bigint().unwrap();
+    let order = self.f.order_ref().to_bigint().unwrap();
     let v = self.e.to_bigint().unwrap();
     let zero = BigInt::zero();
     let one = BigInt::one();
@@ -396,7 +396,7 @@ impl PrimeFieldElem {
   }
 
   pub fn safe_div(&self, rhs: &impl ToBigUint) -> Result<PrimeFieldElem, String> {
-    let rhs = rhs.to_biguint() % &self.f.order;
+    let rhs = rhs.to_biguint() % self.f.order_ref();
     let inv = self.f.elem(&rhs.to_biguint()).safe_inv()?;
     Ok(self.times(&inv))
   }
@@ -410,7 +410,7 @@ impl PrimeFieldElem {
     if self.e == BigUint::zero() {
       PrimeFieldElem { f, e: self.e.clone() }
     } else {
-      let mut e = self.f.order.clone();
+      let mut e = self.f.order();
       e -= &self.e;
       PrimeFieldElem { f, e }
     }

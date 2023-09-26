@@ -82,7 +82,7 @@ impl AffinePoint {
   #[allow(non_snake_case)]
   pub fn recover_x(d: &PrimeFieldElem, y: &PrimeFieldElem, x_parity: Parity) -> PrimeFieldElem {
     let f = &d.f;
-    let q = &d.f.order;
+    let q = d.f.order_ref();
 
     // xx = x^2 = (y^2 - 1) / (1 + d*y^2)
     let xx = (y.sq() - 1u8) / ((d * y.sq()) + 1u8);

@@ -14,7 +14,7 @@ use std::sync::Arc;
 
 #[derive(Debug, Clone, Hash)]
 pub struct PrimeField {
-  pub order: BigUint,
+  order: BigUint,
 }
 
 impl PrimeField {
@@ -22,6 +22,14 @@ impl PrimeField {
     PrimeField {
       order: order.to_biguint(),
     }
+  }
+
+  pub fn order(&self) -> BigUint {
+    self.order.clone()
+  }
+
+  pub fn order_ref(&self) -> &BigUint {
+    &self.order
   }
 
   pub fn elem(&self, x: &impl ToBigUint) -> PrimeFieldElem {
