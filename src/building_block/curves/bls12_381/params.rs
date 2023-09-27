@@ -15,11 +15,9 @@ static SUBGROUP: Lazy<Arc<PrimeField>> = Lazy::new(|| {
   Arc::new(PrimeField::new(&r))
 });
 
-const EMBEDDING_DEGREE: u32 = 12u32;
-
 impl Params {
   pub fn base_prime_field() -> Arc<PrimeField> {
-    BASE_PRIME_FIELD.clone().clone()
+    BASE_PRIME_FIELD.clone()
   }
 
   pub fn subgroup() -> Arc<PrimeField> {
@@ -27,7 +25,7 @@ impl Params {
   }
 
   pub fn embedding_degree() -> u32 {
-    EMBEDDING_DEGREE
+    12u32
   }
 }
 

@@ -54,7 +54,7 @@ impl_miller_algorithm!(G2Point, G1Point, calc_g2_g1, new_g2, eval_with_g1);
 
 impl Pairing {
   pub fn new() -> Self {
-    // TODO explain why subtracting 1
+    // TODO find out the reason for subtracting 1
     let mut l = P::subgroup().order_ref() - &BigUint::from(1u8);
     let mut l_bits: Vec<bool> = vec![];
     let one = BigUint::from(1u8);
@@ -70,23 +70,25 @@ impl Pairing {
     Pairing { l_bits }
   }
 
-  pub fn weil(&self, p: &G1Point, q: &G2Point) -> Fq12 {
-    let num = self.calc_g1_g2(p, q);
-    let deno = self.calc_g2_g1(q, p);
-
+  pub fn weil(&self, p1: &G1Point, p2: &G2Point) -> Fq12 {
+    println!("Calaulating numerator...");
+    let num = self.calc_g1_g2(p1, p2);
+    println!("Calaulating denominator...");
+    let deno = self.calc_g2_g1(p2, p1);
     num * deno.inv()
   }
 
-  pub fn tate(&self, p: &G1Point, q: &G2Point) -> Fq12 {
-    let intmed = self.calc_g1_g2(p, q);
+  pub fn tate(&self, p1: &G1Point, p2: &G2Point) -> Fq12 {
+    println!("Calaulating base...");
+    let intmed = self.calc_g1_g2(p1, p2);
 
     // apply final exponentiation
+    println!("Applying final exponentiation...");
     let one = BigUint::from(1u8);
-    let exp = 
-      (P::base_prime_field().order_ref().pow(P::embedding_degree()) - one)
-      / P::subgroup().order_ref();
-    let exp = Fq12::from(&exp as &dyn ToBigUint);
-    intmed * exp
+    let q_to_12 = P::base_prime_field().order_ref().pow(P::embedding_degree());
+    let r = P::subgroup().order();
+    let exp = (q_to_12 - one) / r;
+    intmed.pow(&exp)
   }
 }
 
@@ -94,54 +96,70 @@ impl Pairing {
 mod tests {
   use super::*;
 
-  fn test_pairing(pairing: &Pairing, p: &G1Point, q: &G2Point) -> bool {
-    let p2 = p + p;
+  fn test(
+    pairing: &Pairing,
+    pair: &dyn Fn(&Pairing, &G1Point, &G2Point) -> Fq12,
+    p1: &G1Point,
+    p2: &G2Point,
+  ) -> bool {
+    let double_p1 = p1 + p1;
 
-    // test e(p + p2, q) = e(p, q) e(p2, q)
-
-    // println!("Calculating e(p + p2, q)...");
-    let lhs = pairing.weil(&(p + &p2), q);
-
-    // println!("Calculating e(p, q)...");
-    let rhs1 = pairing.weil(p, q);
-
-    // println!("Calculating e(p2, q)...");
-    let rhs2 = pairing.weil(&p2, q);
+    // test e(p1 + doulbe_p1, p2) = e(p1, p2) e(doulbe_p1, p2)
+    let lhs = pair(pairing, &(p1 + &double_p1), p2);
+    let rhs1 = pair(pairing, p1, p2);
+    let rhs2 = pair(pairing, &double_p1, p2);
 
     let rhs = rhs1 * rhs2;
-
-    // println!("lhs = {:?}", &lhs);
-    // println!("rhs = {:?}", &rhs);
 
     lhs == rhs
   }
 
+  fn test_with_generators(
+    pair: &dyn Fn(&Pairing, &G1Point, &G2Point) -> Fq12,
+  ) {
+    let pairing = &Pairing::new();
+    let p1 = G1Point::g();
+    let p2 = G2Point::g();
+    let res = test(pairing, pair, &p1, &p2);
+    assert!(res);
+  }
+
+  fn test_with_random_points(
+    pair: &dyn Fn(&Pairing, &G1Point, &G2Point) -> Fq12,
+  ) {
+    let mut errors = 0;
+    let num_tests = 1;
+
+    for _ in 0..num_tests {
+      let pairing = &Pairing::new();
+      let p1 = G1Point::get_random_point();
+      let p2 = G2Point::get_random_point();
+      let res = test(pairing, pair, &p1, &p2);
+      if res == false {
+        errors += 1;
+      }
+    }
+    assert!(errors == 0);
+  }
+
   #[test]
   fn test_weil_pairing_with_generators() {
-    let wp = Pairing::new();
-    let p = G1Point::g();
-    let q = G2Point::g();
-    let res = test_pairing(&wp, &p, &q);
-    assert!(res);
+    test_with_generators(&Pairing::weil);
   }
 
   #[test]
   fn test_weil_pairing_with_random_points() {
-    let mut errors = 0;
-    let num_tests = 1;
+    test_with_random_points(&Pairing::weil);
+  }
 
-    for i in 0..num_tests {
-      println!("iteration {}", i);
-      let wp = Pairing::new();
-      let p = G1Point::get_random_point();
-      let q = G2Point::get_random_point();
-      let res = test_pairing(&wp, &p, &q);
-      if res == false {
-        println!("----> iteration {} failed!", i);
-        errors += 1;
-      }
-    }
-    println!("{} tests failed!", errors);
+  #[test]
+  fn test_tate_pairing_with_generators() {
+    test_with_generators(&Pairing::tate);
+  }
+
+  #[test]
+  fn test_tate_pairing_with_random_points() {
+    test_with_random_points(&Pairing::tate);
   }
 }
 

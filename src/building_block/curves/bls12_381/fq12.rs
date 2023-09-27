@@ -11,7 +11,8 @@ use crate::building_block::{
   to_biguint::ToBigUint,
   zero::Zero,
 };
-
+use num_bigint::BigUint;
+use num_traits::Zero as NumTraitsZero;
 
 #[derive(Debug, Clone)]
 pub struct Fq12 {
@@ -37,6 +38,32 @@ impl Fq12 {
       w0: &self.w0 * &factor,
     }
   }
+
+  pub fn pow(&self, exp: &BigUint) -> Fq12 {
+    let one = &BigUint::from(1u8);
+    let mut base = self.clone();
+    let mut exp = exp.clone();
+
+    let mut acc = Fq12::from(&1u8 as &dyn ToBigUint);
+
+    while !&exp.is_zero() {
+      if &(&exp & one) == one {
+        acc = &acc * &base;
+      }
+      base = &base * &base;
+      exp >>= 1;
+    }
+    acc
+  }
+}
+
+impl From<&dyn ToBigUint> for Fq12 {
+  fn from(n: &dyn ToBigUint) -> Self {
+    Fq12::new(
+      &Fq6::zero(),
+      &Fq6::from(n),
+    )
+  }
 }
 
 impl Zero<Fq12> for Fq12 {
@@ -55,15 +82,6 @@ impl Zero<Fq12> for Fq12 {
 impl Reduce for Fq12 {
   fn reduce(&self) -> Self {
     panic!("Not implemented");
-  }
-}
-
-impl From<&dyn ToBigUint> for Fq12 {
-  fn from(n: &dyn ToBigUint) -> Self {
-    Fq12::new(
-      &Fq6::zero(),
-      &Fq6::from(n),
-    )
   }
 }
 
@@ -174,6 +192,16 @@ mod tests {
       x.w0.v0.u1.e.to_string(),
       x.w0.v0.u0.e.to_string(),
     ]
+  }
+
+  #[test]
+  fn test_pow() {
+    let base = &Fq12::from(&3u8 as &dyn ToBigUint);
+    let four = &BigUint::from(4u8);   
+
+    let act = base.pow(four);
+    let exp = Fq12::from(&81u8 as &dyn ToBigUint);
+    assert!(act == exp);
   }
 
   #[test]
