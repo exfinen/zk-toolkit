@@ -17,11 +17,13 @@ use crate::{
 };
 use num_bigint::RandBigInt;
 use num_traits::Zero as NumTraitsZero;
+use rand::SeedableRng;
 use std::{
   ops::{Add, Mul, Neg},
   sync::Arc,
 };
 use once_cell::sync::Lazy;
+use rand_chacha::ChaCha12Rng;
 
 #[derive(Clone, Debug)]
 pub enum G2Point {
@@ -58,7 +60,7 @@ impl G2Point {
   }
 
   pub fn get_random_point() -> AffinePoint {
-    let mut rng = rand::thread_rng();
+    let mut rng = ChaCha12Rng::from_entropy();
     let subgroup = &P::subgroup();
     let n = rng.gen_biguint_range(&NumTraitsZero::zero(), subgroup.order_ref());
     G2Point::g() * subgroup.elem(&n)

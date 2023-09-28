@@ -18,8 +18,9 @@ use std::{
   convert::From,
 };
 use num_traits::identities::Zero;
-
 use super::sparse_vec::SparseVec;
+use rand::SeedableRng;
+use rand_chacha::ChaCha12Rng;
 
 #[derive(Clone)]
 pub struct Polynomial {

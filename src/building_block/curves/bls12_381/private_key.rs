@@ -4,6 +4,8 @@ use num_bigint::{
   RandBigInt,
 };
 use num_traits::One;
+use rand::SeedableRng;
+use rand_chacha::ChaCha12Rng;
 
 pub struct PrivateKey {
   pub value: BigUint,
@@ -11,7 +13,7 @@ pub struct PrivateKey {
 
 impl PrivateKey {
   pub fn new() -> Self {
-    let mut rng = rand::thread_rng();
+    let mut rng = ChaCha12Rng::from_entropy();
 
     // integer between 1 and r-1 where r is the subgroup order
     let value = rng.gen_biguint_range(
