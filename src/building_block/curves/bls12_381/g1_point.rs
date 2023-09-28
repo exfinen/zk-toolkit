@@ -7,6 +7,7 @@ use crate::{
       bls12_381::{
         fq1::Fq1,
         params::Params as P,
+        private_key::PrivateKey,
       },
       rational_point::RationalPoint,
       weierstrass_eq::WeierstrassEq,
@@ -138,6 +139,16 @@ impl Zero<G1Point> for G1Point {
     }
   }
 }
+
+impl<'a> Mul<&'a PrivateKey> for &G1Point {
+  type Output = G1Point;
+
+  fn mul(self, rhs: &PrivateKey) -> Self::Output {
+    let rhs = P::subgroup().elem(&rhs.value);
+    self * rhs
+  }
+}
+
 
 type AffinePoint = G1Point;
 impl_affine_add!(G1Point);

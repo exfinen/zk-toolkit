@@ -71,15 +71,17 @@ impl Pairing {
   }
 
   pub fn weil(&self, p1: &G1Point, p2: &G2Point) -> Fq12 {
-    println!("Calaulating numerator...");
+    println!("Started Weil pairing");
+    println!("Running Miller loop G1-G2...");
     let num = self.calc_g1_g2(p1, p2);
-    println!("Calaulating denominator...");
+    println!("Running Miller loop G2-G1...");
     let deno = self.calc_g2_g1(p2, p1);
     num * deno.inv()
   }
 
   pub fn tate(&self, p1: &G1Point, p2: &G2Point) -> Fq12 {
-    println!("Calaulating base...");
+    println!("Started Tate pairing");
+    println!("Running Miller loop G1-G2...");
     let intmed = self.calc_g1_g2(p1, p2);
 
     // apply final exponentiation
@@ -102,12 +104,12 @@ mod tests {
     p1: &G1Point,
     p2: &G2Point,
   ) -> bool {
-    let double_p1 = p1 + p1;
+    let ten_p1s = p1 * P::subgroup().elem(&10u8);
 
-    // test e(p1 + doulbe_p1, p2) = e(p1, p2) e(doulbe_p1, p2)
-    let lhs = pair(pairing, &(p1 + &double_p1), p2);
+    // test e(p1 + ten_p1s, p2) = e(p1, p2) e(ten_p1s, p2)
+    let lhs = pair(pairing, &(p1 + &ten_p1s), p2);
     let rhs1 = pair(pairing, p1, p2);
-    let rhs2 = pair(pairing, &double_p1, p2);
+    let rhs2 = pair(pairing, &ten_p1s, p2);
 
     let rhs = rhs1 * rhs2;
 
@@ -161,5 +163,48 @@ mod tests {
   fn test_tate_pairing_with_random_points() {
     test_with_random_points(&Pairing::tate);
   }
+
+  #[test]
+  fn test_signature_verification() {
+    let pairing = &Pairing::new();
+    let g1 = &G1Point::g();
+    let sk = &P::subgroup().elem(&2u8);
+    let pk = &(g1 * sk);
+
+    let m = &b"hamburg steak".to_vec();
+    let hash_m = &G2Point::hash_to_g2point(m);
+
+    // e(pk, H(m)) = e(g1*sk, H(m)) = e(g1, sk*H(m))
+    let lhs = pairing.tate(pk, hash_m);
+    let rhs = pairing.tate(g1, &(hash_m * sk));
+
+    assert!(lhs == rhs);
+  }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

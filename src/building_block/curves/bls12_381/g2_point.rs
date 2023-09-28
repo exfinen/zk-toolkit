@@ -8,6 +8,7 @@ use crate::{
         fq1::Fq1,
         fq2::Fq2,
         params::Params as P,
+        private_key::PrivateKey,
       },
       rational_point::RationalPoint,
     },
@@ -67,6 +68,11 @@ impl G2Point {
   pub fn curve_group() -> Arc<PrimeField> {
     P::subgroup()
   }
+
+  pub fn hash_to_g2point(_buf: &Vec<u8>) -> G2Point {
+    // TODO implement this
+    G2Point::g()
+  }
 }
 
 macro_rules! impl_neg {
@@ -104,6 +110,15 @@ impl Zero<G2Point> for G2Point {
       G2Point::AtInfinity => true,
       _ => false,
     }
+  }
+}
+
+impl<'a> Mul<&'a PrivateKey> for &G2Point {
+  type Output = G2Point;
+
+  fn mul(self, rhs: &PrivateKey) -> Self::Output {
+    let rhs = P::subgroup().elem(&rhs.value);
+    self * rhs
   }
 }
 
