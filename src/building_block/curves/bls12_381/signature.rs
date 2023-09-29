@@ -26,8 +26,9 @@ impl Signer {
     &self.g1 * sk
   }
 
-  pub fn sign(&self, _m: &Vec<u8>, sk: &PrivateKey) -> G2Point {
-    &G2Point::g() * sk
+  pub fn sign(&self, m: &Vec<u8>, sk: &PrivateKey) -> G2Point {
+    let hash_m = &G2Point::hash_to_g2point(m);
+    hash_m * sk
   }
 
   pub fn verify(&self, m: &Vec<u8>, sig: &G2Point, pk: &G1Point) -> bool {

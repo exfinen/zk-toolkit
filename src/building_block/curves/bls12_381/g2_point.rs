@@ -9,13 +9,15 @@ use crate::{
         fq2::Fq2,
         params::Params as P,
         private_key::PrivateKey,
+        reduce::Reduce,
       },
       rational_point::RationalPoint,
     },
+    to_biguint::ToBigUint,
     zero::Zero,
   },
 };
-use num_bigint::RandBigInt;
+use num_bigint::{BigUint, RandBigInt};
 use num_traits::Zero as NumTraitsZero;
 use rand::SeedableRng;
 use std::{
@@ -71,9 +73,18 @@ impl G2Point {
     P::subgroup()
   }
 
-  pub fn hash_to_g2point(_buf: &Vec<u8>) -> G2Point {
-    // TODO implement this
-    G2Point::g()
+  pub fn is_on_curve(x: &Fq2, y: &Fq2) -> bool {
+    let lhs = y * y;
+    let four = Fq2::from(&4u8 as &dyn ToBigUint);
+    let rhs = x * x * x + four.reduce();
+    lhs == rhs
+  }
+
+  // TODO implement properly with hash-and-check or SWU map
+  pub fn hash_to_g2point(buf: &Vec<u8>) -> G2Point {
+    let n = BigUint::from_bytes_be(buf);
+    let n = P::subgroup().elem(&n);
+    G2Point::g() * n
   }
 }
 
@@ -151,6 +162,13 @@ mod tests {
   use super::*;
   use num_bigint::BigUint;
   use std::rc::Rc;
+
+  #[test]
+  fn hash_to_g2point() {
+    let buf = b"robert kiyosaki".to_vec();
+    G2Point::hash_to_g2point(&buf);
+    //assert!(G2Point::is_on_curve(&p.x, &p.y));
+  }
 
   #[test]
   fn scalar_mul() {
