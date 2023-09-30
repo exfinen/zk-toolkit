@@ -1,20 +1,33 @@
 # zk-toolkit
-Library built from scratch to implement zk-protocols.
+Cryptographic primitives library built from scratch
 
 ## Goal
-To build a zk library from scratch keeping the implementation as easily understadable as possible so that it can help people including myself who are studying zk technology understand lower level details of it.
+Implement cryptographic primitives in the simplest form without any optimization
 
 ## What's implemented so far
-- Finite field
-- Weierstrass type elliptic curve operations in affine/jacobian coordinates
-- ECDSA public key generation, signing and signature verification on Secp256k1 curve
+- BLS12-381 
+  - Extension fields
+  - Miller's Algorithm
+  - Weil/Tate Pairing
+  - Key generation, sign and verify
+- Pinnocio zk-SNARKs
+  - Equation parser
+  - R1CS
+  - QAP
+  - ** remaing parts to be implemented using BLS12-381 pairing
+- Bulletproofs
+- Ed25519
+  - Key generation, EdDSA sign/veriry
+- Weierstrass curve
+  - Affine coordinate operations
+  - Jacobian coordinate operations
+- Secp256k1
+  - Key generation, ECDSA sign/verify
 - SHA256 and SHA512 hashers
 - Generic HMAC
-- Ed25519 public key generation, signing and signature verification on Curve25519 curve
-- Bulletproofs
-- Pinnocio (equation parser, R1CS, QAP)
-- BLS12-381 (Miller's Algorithm, Weil/Tate Pairing, Sign/Verify)
+- Prime finite field with operations
 
 ## What's NOT implemented so far
 - Big number
 - Random number generator
+
