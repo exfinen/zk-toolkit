@@ -405,7 +405,7 @@ mod tests {
 
   #[test]
   fn test_div_3_2_no_remainder() {
-    let f = &PrimeField::new(&3911u16);
+    let f = &PrimeField::new(&7u8);
     {
       /* in GF(7)
               x +  6
