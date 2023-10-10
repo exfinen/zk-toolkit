@@ -2,7 +2,7 @@ use crate::building_block::field::{
   prime_field::PrimeField,
   prime_field_elem::PrimeFieldElem,
 };
-use crate::snarks::{
+use crate::zk::w_trusted_setup::pinocchio::{
   constraint::Constraint,
   r1cs_tmpl::R1CSTmpl,
   sparse_vec::SparseVec,
@@ -123,7 +123,7 @@ impl R1CS {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::snarks::{
+  use crate::zk::w_trusted_setup::pinocchio::{
     equation_parser::Parser,
     gate::Gate,
     r1cs_tmpl::R1CSTmpl,

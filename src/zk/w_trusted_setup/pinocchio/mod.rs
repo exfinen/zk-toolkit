@@ -11,4 +11,3 @@ pub mod term;
 pub mod qap;
 pub mod r1cs;
 pub mod r1cs_tmpl;
-pub mod weil_pairing;

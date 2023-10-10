@@ -1,5 +1,5 @@
 use crate::building_block::field::prime_field::PrimeField;
-use crate::snarks::{
+use crate::zk::w_trusted_setup::pinocchio::{
   term::Term,
   equation_parser::{Equation, MathExpr},
 };
@@ -82,7 +82,7 @@ impl Gate {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::snarks::equation_parser::Parser;
+  use crate::zk::w_trusted_setup::pinocchio::equation_parser::Parser;
 
   #[test]
   fn test_build_add() {

@@ -1,5 +1,5 @@
 use crate::building_block::field::prime_field::PrimeField;
-use crate::snarks::{
+use crate::zk::w_trusted_setup::pinocchio::{
   term::Term,
   gate::Gate,
   constraint::Constraint,
@@ -91,7 +91,7 @@ impl<'a> R1CSTmpl<'a> {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::snarks::equation_parser::Parser;
+  use crate::zk::w_trusted_setup::pinocchio::equation_parser::Parser;
 
   #[test]
   fn test_get_to_vec() {
@@ -249,11 +249,11 @@ mod tests {
     let mut indices = vec.indices().to_vec();
     indices.sort();  // sort to make indices order deterministic
     let s = indices.iter().map(|i| {
-      let i_usize: usize = i.n.clone().try_into().unwrap();
+      let i_usize: usize = i.e.clone().try_into().unwrap();
       match &tmpl.witness[i_usize] {
         Term::Var(s) => s.clone(),
         Term::TmpVar(i) => format!("t{}", i),
-        Term::One => format!("{:?}", &vec.get(i).n),
+        Term::One => format!("{:?}", &vec.get(i).e),
         Term::Out => "out".to_string(),
         // currently not handling Term::Sum since it's not used in tests
         _ => "?".to_string(),

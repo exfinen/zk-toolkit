@@ -1,12 +1,10 @@
 use std::ops::Mul;
 
-use num_traits::Zero;
-
 use crate::building_block::{
   field::prime_field::PrimeField,
   to_biguint::ToBigUint,
 };
-use crate::snarks::{
+use crate::zk::w_trusted_setup::pinocchio::{
   r1cs::R1CS,
   polynomial::{
     Polynomial,
@@ -15,6 +13,7 @@ use crate::snarks::{
   sparse_vec::SparseVec,
   sparse_matrix::SparseMatrix,
 };
+use num_traits::Zero;
 
 pub enum ApplyWitness {
   Beginning,
@@ -46,7 +45,7 @@ impl QAP {
       let target_val = target_vals.get(&(&target_x - &one));
 
       // if target val is zero, simply add 0x^0
-      if target_val.n.is_zero() {
+      if target_val.e.is_zero() {
         target_val_polys.push(Polynomial::new(f, vec![f.elem(&0u8)]));
         target_x.inc();
         continue;
@@ -217,7 +216,7 @@ mod tests {
       prime_field::PrimeField,
       prime_field_elem::PrimeFieldElem,
     },
-    snarks::{
+    zk::w_trusted_setup::pinocchio::{
       constraint::Constraint,
       gate::Gate,
       equation_parser::Parser,
@@ -350,7 +349,7 @@ mod tests {
       out = t4
     */
     let witness = {
-      use crate::snarks::term::Term::*;
+      use crate::zk::w_trusted_setup::pinocchio::term::Term::*;
       HashMap::<Term, PrimeFieldElem>::from([
         (Term::var("x"), f.elem(&3u8)),
         (TmpVar(1), f.elem(&9u8)),
@@ -379,7 +378,7 @@ mod tests {
 
     // build witness
     let good_witness = {
-      use crate::snarks::term::Term::*;
+      use crate::zk::w_trusted_setup::pinocchio::term::Term::*;
       HashMap::<Term, PrimeFieldElem>::from([
         (Term::var("x"), f.elem(&3u8)),
         (TmpVar(1), f.elem(&9u8)),
@@ -390,7 +389,7 @@ mod tests {
       ])
     };
     let bad_witness = {
-      use crate::snarks::term::Term::*;
+      use crate::zk::w_trusted_setup::pinocchio::term::Term::*;
       HashMap::<Term, PrimeFieldElem>::from([
         (Term::var("x"), f.elem(&4u8)),  // replaced 3 with 4
         (TmpVar(1), f.elem(&9u8)),

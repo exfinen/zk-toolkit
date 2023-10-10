@@ -47,7 +47,7 @@ impl SparseVec {
   pub fn set(&mut self, index: &impl ToBigUint, n: &impl ToBigUint) {
     let index = &self.f.elem(index);
     if index >= &self.size {
-      panic!("Index {:?} is out of range. The size of vector is {:?}", index.n, self.size.n);
+      panic!("Index {:?} is out of range. The size of vector is {:?}", index.e, self.size.e);
     }
     let n = self.f.elem(n);
     if !n.is_zero() {
@@ -58,7 +58,7 @@ impl SparseVec {
   pub fn get(&self, index: &impl ToBigUint) -> &PrimeFieldElem {
     let index = &self.f.elem(index);
     if index >= &self.size {
-      panic!("Index {:?} is out of range. The size of vector is {:?}", index.n, self.size.n);
+      panic!("Index {:?} is out of range. The size of vector is {:?}", index.e, self.size.e);
     }
     if self.elems.contains_key(index) {
       self.elems.get(index).unwrap()
@@ -91,7 +91,7 @@ impl SparseVec {
   // empty if containing only zeros
   pub fn is_empty(&self) -> bool {
     for value in self.elems.values() {
-      if !value.n.is_zero() {
+      if !value.e.is_zero() {
         return false;
       }
     }
@@ -104,7 +104,7 @@ impl SparseVec {
     let mut i = self.f.elem(&0u8);
 
     while i < self.size {
-      s += &format!("{:?}", self.get(&i).n);
+      s += &format!("{:?}", self.get(&i).e);
       if i < &self.size - &one {
         s += ",";
       }
@@ -158,7 +158,7 @@ impl From<&Vec<PrimeFieldElem>> for SparseVec {
     let mut vec = SparseVec::new(f, size);
 
     for (i, v) in elems.iter().enumerate() {
-      if !v.n.is_zero() {
+      if !v.e.is_zero() {
         vec.set(&i, v);
       }
     }
@@ -172,14 +172,14 @@ impl Mul<&SparseVec> for &SparseVec {
 
     fn mul(self, rhs: &SparseVec) -> Self::Output {
       if self.size != rhs.size {
-        panic!("Expected size of rhs to be {:?}, but got {:?}", self.size.n, rhs.size.n);
+        panic!("Expected size of rhs to be {:?}, but got {:?}", self.size.e, rhs.size.e);
       }
 
       let mut ret = SparseVec::new(&self.f, &self.size);
       for index in self.elems.keys() {
         let l = self.get(index);
         let r = rhs.get(index);
-        if !l.n.is_zero() && !r.n.is_zero() {
+        if !l.e.is_zero() && !r.e.is_zero() {
           ret.set(index, &(l * r));
         }
       }

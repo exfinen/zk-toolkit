@@ -19,8 +19,6 @@ use std::{
 };
 use num_traits::identities::Zero;
 use super::sparse_vec::SparseVec;
-use rand::SeedableRng;
-use rand_chacha::ChaCha12Rng;
 
 #[derive(Clone)]
 pub struct Polynomial {
@@ -79,11 +77,11 @@ impl Debug for Polynomial {
     let last_idx = self.coeffs.len() - 1;
 
     for (i, coeff) in self.coeffs.iter().rev().enumerate() {
-      if coeff.n != zero {
+      if coeff.e != zero {
         let mut s = String::new();
         // write number
-        if coeff.n != one || i == self.coeffs.len() - 1 {
-          s.push_str(&format!("{:?}", coeff.n));
+        if coeff.e != one || i == self.coeffs.len() - 1 {
+          s.push_str(&format!("{:?}", coeff.e));
         }
 
         // if not the constant term, write variable after number
@@ -191,7 +189,7 @@ impl Polynomial {
     let divisor = rhs;
     let quotient_degree = dividend.len() - divisor.len();
     let divisor_coeff = &divisor[divisor.len() - 1];
-    assert!(!divisor_coeff.n.is_zero(), "found zero coeff at highest index. use Polynomial constructor");
+    assert!(!divisor_coeff.e.is_zero(), "found zero coeff at highest index. use Polynomial constructor");
 
     let mut quotient_coeffs = vec![self.f.elem(&0u8); quotient_degree + 1];
 

@@ -5,7 +5,7 @@ use crate::building_block::field::{
   prime_field_elem::PrimeFieldElem,
 };
 use crate::building_block::to_biguint::ToBigUint;
-use crate::snarks::sparse_vec::SparseVec;
+use crate::zk::w_trusted_setup::pinocchio::sparse_vec::SparseVec;
 use std::{
   collections::HashMap,
   convert::From,
@@ -55,7 +55,7 @@ impl SparseMatrix {
   pub fn multiply_column(&self, col: &SparseVec) -> Self {
     if col.size != self.height {
       panic!("column size is expected to be {:?}, but got {:?}",
-        self.height.n, col.size.n)
+        self.height.e, col.size.e)
     }
     let mut m = SparseMatrix::new(&self.f, &self.width, &self.height);
 
@@ -95,9 +95,9 @@ impl SparseMatrix {
     let y = self.f.elem(y);
     if x >= self.width || y >= self.height {
       panic!("For {:?} x {:?} matrix, ({:?}, {:?}) is out of range",
-        self.width.n, self.height.n, x.n, y.n);
+        self.width.e, self.height.e, x.e, y.e);
     }
-    if v.n.is_zero() {  // don't set if zero
+    if v.e.is_zero() {  // don't set if zero
       return;
     }
 
@@ -113,7 +113,7 @@ impl SparseMatrix {
     let y = self.f.elem(y);
     if x >= self.width || y >= self.height {
       panic!("For {:?} x {:?} matrix, ({:?}, {:?}) is out of range",
-        self.width.n, self.height.n, x.n, y.n);
+        self.width.e, self.height.e, x.e, y.e);
     }
     if !self.rows.contains_key(&y) {
       &self.zero
@@ -133,7 +133,7 @@ impl SparseMatrix {
     let src_row = self.rows.get(y).unwrap();
     for x in src_row.indices() {
       let v = src_row.get(&x);
-      if !v.n.is_zero() {
+      if !v.e.is_zero() {
         row.set(&x, v);
       }
     }
@@ -148,7 +148,7 @@ impl SparseMatrix {
     for y in self.rows.keys() {
       let src_row = self.rows.get(&y).unwrap();
       let v = src_row.get(x);
-      if !v.n.is_zero() {
+      if !v.e.is_zero() {
         col.set(y, v);
       }
     }
@@ -162,7 +162,7 @@ impl SparseMatrix {
 
       for x in src_row.indices() {
         let v = src_row.get(&x);
-        if !v.n.is_zero() {
+        if !v.e.is_zero() {
           m.set(y, &x, v);
         }
       }
@@ -244,7 +244,7 @@ impl From<&Vec<SparseVec>> for SparseMatrix {
     for i in 1..height {
       if width != &rows[i].size {
         panic!("different row sizes found; size is {:?} at 0, but {:?} at {}",
-          width.n, &rows[i].size.n, i)
+          width.e, &rows[i].size.e, i)
       }
     }
     let mut m = SparseMatrix::new(f, width, &height);
@@ -252,7 +252,7 @@ impl From<&Vec<SparseVec>> for SparseMatrix {
     for (y, row) in rows.iter().enumerate() {
       for x in row.indices() {
         let v = row.get(&x);
-        if !v.n.is_zero() {
+        if !v.e.is_zero() {
           m.set(&x, &y, v);
         }
       }
@@ -267,7 +267,7 @@ impl Mul<&SparseMatrix> for &SparseMatrix {
     fn mul(self, rhs: &SparseMatrix) -> Self::Output {
       if self.width != rhs.height {
         panic!("Can only multiply matrix with height {:?}, but the rhs height is {:?}",
-          self.width.n, rhs.height.n);
+          self.width.e, rhs.height.e);
       }
       let mut res = SparseMatrix::new(&self.f, &rhs.width, &self.height);
 
@@ -278,7 +278,7 @@ impl Mul<&SparseMatrix> for &SparseMatrix {
           let lhs = &self.get_row(&y);
           let rhs = &rhs.get_column(&x);
           let v = (lhs * rhs).sum();
-          if !v.n.is_zero() {
+          if !v.e.is_zero() {
             res.set(&x, &y, &v);
           }
           x.inc();

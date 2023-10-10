@@ -13,7 +13,7 @@ use crate::building_block::field::{
   prime_field::PrimeField,
   prime_field_elem::PrimeFieldElem,
 };
-use crate::snarks::config::SignalId;
+use crate::zk::w_trusted_setup::pinocchio::config::SignalId;
 use num_bigint::{BigInt, BigUint};
 use std::cell::Cell;
 

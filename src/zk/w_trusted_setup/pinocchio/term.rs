@@ -1,4 +1,4 @@
-use crate::snarks::config::SignalId;
+use crate::zk::w_trusted_setup::pinocchio::config::SignalId;
 use crate::building_block::field::prime_field_elem::PrimeFieldElem;
 
 #[derive(Clone, Hash, PartialEq, Eq)]
@@ -20,7 +20,7 @@ impl Term {
 impl std::fmt::Debug for Term {
   fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
       match self {
-        Term::Num(n) => write!(f, "{:?}", n.n),
+        Term::Num(n) => write!(f, "{:?}", n.e),
         Term::One => write!(f, "1"),
         Term::Out => write!(f, "out"),
         Term::Sum(a, b) => write!(f, "({:?} + {:?})", a, b),
