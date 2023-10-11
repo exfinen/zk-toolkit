@@ -11,7 +11,7 @@ use crate::{
 
 #[allow(dead_code)]
 pub struct CRS {
-  // Evaluatiom keys
+  // Evaluation keys
   h_si: Vec<G1Point>,
   h_alpha_si: Vec<G1Point>,
   h_vi_mid: Vec<G1Point>,
@@ -62,7 +62,7 @@ impl CRS {
 
     let s_pows = &s.pow_seq(degree);
     let mid: &Vec<usize> = &(*mid_beg..=*degree).collect();
-    let io: &Vec<usize> = &(1usize..*mid_beg).collect();  // TODO 0 is handled separately?
+    let io: &Vec<usize> = &(1usize..*mid_beg).collect();  // TODO is 0 handled separately?
 
     // Evaluation keys
 
