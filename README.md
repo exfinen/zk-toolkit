@@ -2,7 +2,7 @@
 Cryptographic primitives library built from scratch
 
 ## Goal
-Implement cryptographic primitives in the simplest form without any optimization
+To implement cryptographic primitives in the simplest form without any optimization
 
 ## What's implemented so far
 - BLS12-381 
@@ -25,7 +25,6 @@ Implement cryptographic primitives in the simplest form without any optimization
   - Key generation, ECDSA sign/verify
 - SHA256 and SHA512 hashers
 - Generic HMAC
-- Prime finite field with operations
 
 ## What's NOT implemented so far
 - Big number
