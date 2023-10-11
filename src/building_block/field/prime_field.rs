@@ -84,11 +84,10 @@ impl PrimeField {
     }
   }
 
-  pub fn rand_elems(&self, n: usize, exclude_zero: bool) -> PrimeFieldElems {
-    let xs = (0..n).map(|_| self.rand_elem(exclude_zero)).collect::<Vec<PrimeFieldElem>>();
+  pub fn rand_elems(&self, n: &usize, exclude_zero: bool) -> PrimeFieldElems {
+    let xs = (0..*n).map(|_| self.rand_elem(exclude_zero)).collect::<Vec<PrimeFieldElem>>();
     PrimeFieldElems(xs)
   }
-
 }
 
 impl PartialEq for PrimeField {

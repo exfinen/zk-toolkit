@@ -1,6 +1,7 @@
 pub mod calculator;
 pub mod config;
 pub mod constraint;
+pub mod crs;
 pub mod equation_parser;
 pub mod gate;
 pub mod gates;

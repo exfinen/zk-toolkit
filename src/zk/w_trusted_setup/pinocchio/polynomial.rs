@@ -220,10 +220,9 @@ impl Polynomial {
     }
   }
 
-  pub fn eval_at(&self, x: &impl ToBigUint) -> PrimeFieldElem {
+  pub fn eval_at(&self, x: &PrimeFieldElem) -> PrimeFieldElem {
     let mut multiplier = self.f.elem(&1u8);
     let mut sum = self.f.elem(&0u8);
-    let x = &self.f.elem(x);
 
     for coeff in &self.coeffs {
       sum = sum + coeff * &multiplier;
@@ -232,8 +231,7 @@ impl Polynomial {
     sum
   }
 
-  pub fn eval_from_1_to_n(&self, n: &impl ToBigUint) -> SparseVec {
-    let n = &self.f.elem(n);
+  pub fn eval_from_1_to_n(&self, n: &PrimeFieldElem) -> SparseVec {
     let one = &self.f.elem(&1u8);
 
     let mut vec = SparseVec::new(&self.f, n);
@@ -374,8 +372,11 @@ mod tests {
   #[test]
   fn test_eval_at() {
     let f = &PrimeField::new(&3911u16);
+    let zero = f.elem(&0u8);
+    let one = f.elem(&1u8);
+    let two = f.elem(&2u8);
     { // 8
-      let zero = &0u8;
+      let zero = &f.elem(&0u8);
       let eight = &f.elem(&8u8);
       let p = Polynomial::new(f, vec![
         eight.clone(),
@@ -387,9 +388,9 @@ mod tests {
         f.elem(&8u8),
         f.elem(&3u8),
       ]);
-      assert_eq!(p.eval_at(&0u8), f.elem(&8u8));
-      assert_eq!(p.eval_at(&1u8), f.elem(&11u8));
-      assert_eq!(p.eval_at(&2u8), f.elem(&14u8));
+      assert_eq!(p.eval_at(&zero), f.elem(&8u8));
+      assert_eq!(p.eval_at(&one), f.elem(&11u8));
+      assert_eq!(p.eval_at(&two), f.elem(&14u8));
     }
     { // 2x^2 + 3x + 8
       let p = &Polynomial::new(f, vec![
@@ -397,9 +398,9 @@ mod tests {
         f.elem(&3u8),
         f.elem(&2u8),
       ]);
-      assert_eq!(p.eval_at(&0u8), f.elem(&8u8));
-      assert_eq!(p.eval_at(&1u8), f.elem(&13u8));
-      assert_eq!(p.eval_at(&2u8), f.elem(&22u8));
+      assert_eq!(p.eval_at(&zero), f.elem(&8u8));
+      assert_eq!(p.eval_at(&one), f.elem(&13u8));
+      assert_eq!(p.eval_at(&two), f.elem(&22u8));
     }
   }
 

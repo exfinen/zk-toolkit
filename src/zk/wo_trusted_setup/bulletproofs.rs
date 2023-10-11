@@ -17,7 +17,7 @@ impl Bulletproofs {
   // P = g^a h^b u^<a,b>
   #[allow(non_snake_case)]
   pub fn inner_product_argument(
-    n: usize,
+    n: &usize,
     gg: &AffinePoints,
     hh: &AffinePoints,
     u: &AffinePoint,
@@ -25,7 +25,7 @@ impl Bulletproofs {
     a: &PrimeFieldElems,
     b: &PrimeFieldElems,
   ) -> bool {
-    if n == 1 {
+    if n == &1 {
         let c = (a * b).sum();
         let rhs = (gg * a).sum() + (hh * b).sum() + u * c;
         P == &rhs
@@ -50,13 +50,13 @@ impl Bulletproofs {
       let bp = b.to(np) * x.inv() + b.from(np) * x;
 
       Bulletproofs::inner_product_argument(
-        np, &ggp, &hhp, u, &Pp, &ap, &bp)
+        &np, &ggp, &hhp, u, &Pp, &ap, &bp)
     }
   }
 
   #[allow(non_snake_case)]
   pub fn range_proof(
-    n: usize,
+    n: &usize,
     V: &AffinePoint,
     aL: &PrimeFieldElems,
     gamma: &PrimeFieldElem,
@@ -131,7 +131,7 @@ impl Bulletproofs {
     if use_inner_product_argument {
       let u = AffinePoint::rand_point(true);
       let Pp = &(P + h * mu.negate() + &u * (l * r).sum());
-      Bulletproofs::inner_product_argument(n, gg, hhp, &u, Pp, l, r)
+      Bulletproofs::inner_product_argument(&n, gg, hhp, &u, Pp, l, r)
 
     } else {
       let rhs_66_67 = ((h * mu) + (gg * l).sum()) + (hhp * r).sum();
@@ -238,7 +238,7 @@ mod tests {
 
     let order_minus_1 = curve_group.order_ref() - &1u8;
     let x = curve_group.elem(&order_minus_1);
-    let sL = &curve_group.rand_elems(gg.len(), true);
+    let sL = &curve_group.rand_elems(&gg.len(), true);
 
     let sLx = &(sL * &x);
 
@@ -267,7 +267,7 @@ mod tests {
 
     for use_inner_product_argument in [false, true] {
       let res = Bulletproofs::range_proof(
-        n,
+        &n,
         &V,
         &aL,
         &gamma,
