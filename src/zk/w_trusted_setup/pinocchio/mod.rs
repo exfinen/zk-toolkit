@@ -1,4 +1,3 @@
-pub mod calculator;
 pub mod config;
 pub mod constraint;
 pub mod crs;
