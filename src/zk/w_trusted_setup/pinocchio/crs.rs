@@ -52,9 +52,10 @@ impl CRS {
     let beta_y = &f.rand_elem(true);
     let gamma = &f.rand_elem(true);
 
+    // TODO s_pows includes s^0. is this okay?
     let s_pows = &s.pow_seq(&p.max_degree);
     let mid: &Vec<usize> = &(*&p.mid_beg..=*&p.max_degree).collect();
-    let io: &Vec<usize> = &(1usize..*&p.mid_beg).collect();  // TODO is 0 handled separately?
+    let io: &Vec<usize> = &(1usize..*&p.mid_beg).collect();
 
     // Evaluation keys
 
