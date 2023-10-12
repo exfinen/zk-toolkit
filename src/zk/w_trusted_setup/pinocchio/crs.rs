@@ -6,7 +6,7 @@ use crate::{
       prime_field_elem::PrimeFieldElem,
     },
   },
-  zk::w_trusted_setup::pinocchio::polynomial::Polynomial,
+  zk::w_trusted_setup::pinocchio::pinocchio_prover::PinocchioProver,
 };
 
 #[allow(dead_code)]
@@ -39,15 +39,7 @@ pub struct CRS {
 
 impl CRS {
   #[allow(non_snake_case)]
-  pub fn new(
-    f: &PrimeField,
-    max_degree: &usize,
-    mid_beg: &usize,
-    vi: &[Polynomial],
-    wi: &[Polynomial],
-    yi: &[Polynomial],
-    t: &Polynomial,
-  ) -> Self {
+  pub fn new(f: &PrimeField, p: &PinocchioProver) -> Self {
     let g1 = &G1Point::g();
     //let g2 = &G2Point::g();
     let E1 = |n: &PrimeFieldElem| -> G1Point { g1 * n };
@@ -60,9 +52,9 @@ impl CRS {
     let beta_y = &f.rand_elem(true);
     let gamma = &f.rand_elem(true);
 
-    let s_pows = &s.pow_seq(max_degree);
-    let mid: &Vec<usize> = &(*mid_beg..=*max_degree).collect();
-    let io: &Vec<usize> = &(1usize..*mid_beg).collect();  // TODO is 0 handled separately?
+    let s_pows = &s.pow_seq(&p.max_degree);
+    let mid: &Vec<usize> = &(*&p.mid_beg..=*&p.max_degree).collect();
+    let io: &Vec<usize> = &(1usize..*&p.mid_beg).collect();  // TODO is 0 handled separately?
 
     // Evaluation keys
 
@@ -73,14 +65,14 @@ impl CRS {
     }).collect();
 
     // E(vi(s)), E(wi(x), E(yi(x))
-    let h_vi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&vi[*i].eval_at(s)) }).collect();
-    let h_wi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&wi[*i].eval_at(s)) }).collect();
-    let h_yi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&yi[*i].eval_at(s)) }).collect();
+    let h_vi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&p.vi[i - 1].eval_at(s)) }).collect();
+    let h_wi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&p.wi[i - 1].eval_at(s)) }).collect();
+    let h_yi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&p.yi[i - 1].eval_at(s)) }).collect();
 
     // E(beta_v * vi(s)), E(beta_w * wi(s)), E(beta_y * yi(s))
-    let h_beta_vi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&(beta_v * vi[*i].eval_at(s))) }).collect();
-    let h_beta_wi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&(beta_w * wi[*i].eval_at(s))) }).collect();
-    let h_beta_yi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&(beta_v * yi[*i].eval_at(s))) }).collect();
+    let h_beta_vi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&(beta_v * p.vi[i - 1].eval_at(s))) }).collect();
+    let h_beta_wi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&(beta_w * p.wi[i - 1].eval_at(s))) }).collect();
+    let h_beta_yi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&(beta_v * p.yi[i - 1].eval_at(s))) }).collect();
 
     // Verification keys
     let h_one = E1(&f.elem(&1u8));  
@@ -90,14 +82,14 @@ impl CRS {
     let h_beta_w_gamma = E1(&(beta_w * gamma)); 
     let h_beta_y_gamma = E1(&(beta_y * gamma)); 
 
-    let h_t = E1(&t.eval_at(s));
-    let h_v0 = E1(&vi[0].eval_at(s));
-    let h_w0 = E1(&wi[0].eval_at(s));
-    let h_y0 = E1(&yi[0].eval_at(s));
+    let h_t = E1(&p.t.eval_at(s));
+    let h_v0 = E1(&p.vi[0].eval_at(s));
+    let h_w0 = E1(&p.wi[0].eval_at(s));
+    let h_y0 = E1(&p.yi[0].eval_at(s));
 
-    let h_vi_io: Vec<G1Point> = io.iter().map(|i| { E1(&vi[*i].eval_at(s)) }).collect();
-    let h_wi_io: Vec<G1Point> = io.iter().map(|i| { E1(&wi[*i].eval_at(s)) }).collect();
-    let h_yi_io: Vec<G1Point> = io.iter().map(|i| { E1(&yi[*i].eval_at(s)) }).collect();
+    let h_vi_io: Vec<G1Point> = io.iter().map(|i| { E1(&p.vi[*i].eval_at(s)) }).collect();
+    let h_wi_io: Vec<G1Point> = io.iter().map(|i| { E1(&p.wi[*i].eval_at(s)) }).collect();
+    let h_yi_io: Vec<G1Point> = io.iter().map(|i| { E1(&p.yi[*i].eval_at(s)) }).collect();
 
     CRS {
       // Evaluation keys

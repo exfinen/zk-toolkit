@@ -218,7 +218,7 @@ mod tests {
     zk::w_trusted_setup::pinocchio::{
       constraint::Constraint,
       gate::Gate,
-      equation_parser::Parser,
+      equation_parser::EquationParser,
       r1cs_tmpl::R1CSTmpl,
       sparse_vec::SparseVec,
       term::Term,
@@ -334,7 +334,7 @@ mod tests {
   fn blog_post_1_example_1() {
     let f = &PrimeField::new(&37u8);
     let expr = "(x * x * x) + x + 5 == 35";
-    let eq = Parser::parse(f, expr).unwrap();
+    let eq = EquationParser::parse(f, expr).unwrap();
     let gates = &Gate::build(f, &eq);
     let r1cs_tmpl = R1CSTmpl::from_gates(f, gates);
 
@@ -371,7 +371,7 @@ mod tests {
   fn blog_post_1_example_2() {
     let f = &PrimeField::new(&37u8);
     let expr = "(x * x * x) + x + 5 == 35";
-    let eq = Parser::parse(f, expr).unwrap();
+    let eq = EquationParser::parse(f, expr).unwrap();
     let gates = &Gate::build(f, &eq);
     let r1cs_tmpl = R1CSTmpl::from_gates(f, gates);
 

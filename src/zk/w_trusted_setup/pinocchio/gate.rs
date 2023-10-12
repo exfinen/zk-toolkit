@@ -82,13 +82,13 @@ impl Gate {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::zk::w_trusted_setup::pinocchio::equation_parser::Parser;
+  use crate::zk::w_trusted_setup::pinocchio::equation_parser::EquationParser;
 
   #[test]
   fn test_build_add() {
     let f = &PrimeField::new(&3911u16);
     let input = "x + 4 == 9";
-    let eq = Parser::parse(f, input).unwrap();
+    let eq = EquationParser::parse(f, input).unwrap();
     let gates = &Gate::build(f, &eq);
     println!("{:?}", gates);
     assert_eq!(gates.len(), 2);
@@ -108,7 +108,7 @@ mod tests {
   fn test_build_sub() {
     let f = &PrimeField::new(&3911u16);
     let input = "x - 4 == 9";
-    let eq = Parser::parse(f, input).unwrap();
+    let eq = EquationParser::parse(f, input).unwrap();
     let gates = &Gate::build(f, &eq);
     assert_eq!(gates.len(), 2);
 
@@ -127,7 +127,7 @@ mod tests {
   fn test_build_mul() {
     let f = &PrimeField::new(&3911u16);
     let input = "x * 4 == 9";
-    let eq = Parser::parse(f, input).unwrap();
+    let eq = EquationParser::parse(f, input).unwrap();
     let gates = &Gate::build(f, &eq);
     assert_eq!(gates.len(), 2);
 
@@ -145,7 +145,7 @@ mod tests {
   fn test_build_div() {
     let f = &PrimeField::new(&3911u16);
     let input = "x / 4 == 2";
-    let eq = Parser::parse(f, input).unwrap();
+    let eq = EquationParser::parse(f, input).unwrap();
     let gates = &Gate::build(f, &eq);
     assert_eq!(gates.len(), 2);
 
@@ -163,7 +163,7 @@ mod tests {
   fn test_build_combined1() {
     let f = &PrimeField::new(&3911u16);
     let input = "(3 * x + 4) / 2 == 11";
-    let eq = Parser::parse(f, input).unwrap();
+    let eq = EquationParser::parse(f, input).unwrap();
     let gates = &Gate::build(f, &eq);
     assert_eq!(gates.len(), 4);
 
@@ -197,7 +197,7 @@ mod tests {
     let input = "(x * x * x) + x + 5 == 35";
     println!("Equation: {}", input);
 
-    let eq = Parser::parse(f, input).unwrap();
+    let eq = EquationParser::parse(f, input).unwrap();
     let gates = &Gate::build(f, &eq);
     println!("Gates: {:?}", gates);
     assert_eq!(gates.len(), 5);
@@ -238,7 +238,7 @@ mod tests {
   fn blog_post_1_example_1() {
     let f = &PrimeField::new(&37u8);
     let expr = "(x * x * x) + x + 5 == 35";
-    let eq = Parser::parse(f, expr).unwrap();
+    let eq = EquationParser::parse(f, expr).unwrap();
     let gates = &Gate::build(f, &eq);
     println!("{:?}", gates);
   }

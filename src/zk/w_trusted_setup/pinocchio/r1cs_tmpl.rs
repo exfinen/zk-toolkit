@@ -91,7 +91,7 @@ impl<'a> R1CSTmpl<'a> {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::zk::w_trusted_setup::pinocchio::equation_parser::Parser;
+  use crate::zk::w_trusted_setup::pinocchio::equation_parser::EquationParser;
 
   #[test]
   fn test_get_to_vec() {
@@ -224,7 +224,7 @@ mod tests {
   fn test_bulding_witness() {
     let f = &PrimeField::new(&3911u16);
     let input = "(3 * x + 4) / 2 == 11";
-    let eq = Parser::parse(f, input).unwrap();
+    let eq = EquationParser::parse(f, input).unwrap();
 
     let gates = &Gate::build(f, &eq);
     let r1cs = R1CSTmpl::from_gates(f, gates);
@@ -266,7 +266,7 @@ mod tests {
   fn test_r1cs_build_a_b_c_matrix() {
     let f = &PrimeField::new(&3911u16);
     let input = "3 * x + 4 == 11";
-    let eq = Parser::parse(f, input).unwrap();
+    let eq = EquationParser::parse(f, input).unwrap();
 
     let gates = &Gate::build(f, &eq);
     let tmpl = R1CSTmpl::from_gates(f, gates);
@@ -289,7 +289,7 @@ mod tests {
   fn blog_post_1_example_1() {
     let f = &PrimeField::new(&37u8);
     let expr = "(x * x * x) + x + 5 == 35";
-    let eq = Parser::parse(f, expr).unwrap();
+    let eq = EquationParser::parse(f, expr).unwrap();
     let gates = &Gate::build(f, &eq);
     let r1cs_tmpl = R1CSTmpl::from_gates(f, gates);
 
@@ -300,7 +300,7 @@ mod tests {
   fn blog_post_1_example_2() {
     let f = &PrimeField::new(&37u8);
     let expr = "(x * x * x) + x + 5 == 35";
-    let eq = Parser::parse(f, expr).unwrap();
+    let eq = EquationParser::parse(f, expr).unwrap();
     let gates = &Gate::build(f, &eq);
     let r1cs_tmpl = R1CSTmpl::from_gates(f, gates);
 

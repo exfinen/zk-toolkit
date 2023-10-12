@@ -2,9 +2,7 @@ use nom::{
   IResult,
   branch::alt,
   bytes::complete::tag,
-  character::{
-    complete::{ alpha1, char, multispace0, one_of },
-  },
+  character::complete::{ alpha1, char, multispace0, one_of },
   combinator::{ opt, recognize },
   multi::{ many0, many1 },
   sequence::{ tuple, delimited, terminated },
@@ -34,7 +32,7 @@ pub struct Equation {
   pub rhs: PrimeFieldElem,
 }
 
-pub struct Parser();
+pub struct EquationParser();
 
 macro_rules! set_next_id {
   ($signal_id: expr) => {
@@ -42,7 +40,7 @@ macro_rules! set_next_id {
   };
 }
 
-impl Parser {
+impl EquationParser {
   fn num_str_to_field_elem(f: &PrimeField, s: &str) -> PrimeFieldElem {
     if s.starts_with("-") {
       let n = BigInt::parse_bytes(s.as_bytes(), 10).unwrap();
@@ -84,7 +82,7 @@ impl Parser {
           multispace0
         )(input)?;
 
-      let n = Parser::num_str_to_field_elem(f, s);
+      let n = EquationParser::num_str_to_field_elem(f, s);
       Ok((input, MathExpr::Num(n)))
     }
   }
@@ -93,11 +91,11 @@ impl Parser {
   fn term2<'a>(f: &'a PrimeField, signal_id: &'a Cell<u128>) -> impl Fn(&str) -> IResult<&str, MathExpr> + 'a {
     |input| {
       let (input, node) = alt((
-        Parser::variable(),
-        Parser::decimal(f),
+        EquationParser::variable(),
+        EquationParser::decimal(f),
         delimited(
           delimited(multispace0, char('('), multispace0),
-          Parser::expr(f, signal_id),
+          EquationParser::expr(f, signal_id),
           delimited(multispace0, char(')'), multispace0),
         ),
       ))(input)?;
@@ -109,9 +107,9 @@ impl Parser {
   // <term1> ::= <term2> [ ('*'|'/') <term2> ]*
   fn term1<'a>(f: &'a PrimeField, signal_id: &'a Cell<u128>) -> impl Fn(&str) -> IResult<&str, MathExpr> + 'a {
     |input| {
-      let rhs = tuple((alt((char('*'), char('/'))), Parser::term2(f, signal_id)));
+      let rhs = tuple((alt((char('*'), char('/'))), EquationParser::term2(f, signal_id)));
       let (input, (lhs, rhs)) = tuple((
-        Parser::term2(f, signal_id),
+        EquationParser::term2(f, signal_id),
         many0(rhs),
       ))(input)?;
 
@@ -148,9 +146,9 @@ impl Parser {
   // <expr> ::= <term1> [ ('+'|'-') <term1> ]*
   fn expr<'a>(f: &'a PrimeField, signal_id: &'a Cell<u128>) -> impl Fn(&str) -> IResult<&str, MathExpr> + 'a {
     |input| {
-      let rhs = tuple((alt((char('+'), char('-'))), Parser::term1(f, signal_id)));
+      let rhs = tuple((alt((char('+'), char('-'))), EquationParser::term1(f, signal_id)));
       let (input, (lhs, rhs)) = tuple((
-        Parser::term1(f, signal_id),
+        EquationParser::term1(f, signal_id),
         many0(rhs),
       ))(input)?;
 
@@ -190,11 +188,11 @@ impl Parser {
       let (input, out) =
         tuple((
           multispace0,
-          Parser::expr(f, signal_id),
+          EquationParser::expr(f, signal_id),
           multispace0,
           tag("=="),
           multispace0,
-          Parser::decimal(f),
+          EquationParser::decimal(f),
           multispace0,
         ))(input)?;
 
@@ -209,7 +207,7 @@ impl Parser {
   // <equation> ::= <expr> '==' <number>
   pub fn parse<'a>(f: &'a PrimeField, input: &'a str) -> Result<Equation, String> {
     let signal_id = Cell::new(0);
-    let expr = Parser::equation(f, &signal_id);
+    let expr = EquationParser::equation(f, &signal_id);
     match expr(input) {
       Ok((_, expr)) => {
         match expr {
@@ -236,7 +234,7 @@ mod tests {
   #[test]
   fn test_decimal() {
     let f = &PrimeField::new(&3911u16);
-    match Parser::parse(f, "123 == 123") {
+    match EquationParser::parse(f, "123 == 123") {
       Ok(eq) => {
         assert_eq!(eq.lhs, MathExpr::Num(f.elem(&123u8)));
         assert_eq!(eq.rhs, f.elem(&123u8));
@@ -248,7 +246,7 @@ mod tests {
   #[test]
   fn test_decimal_with_spaces() {
     let f = &PrimeField::new(&3911u16);
-    match Parser::parse(f, " 123 == 123 ") {
+    match EquationParser::parse(f, " 123 == 123 ") {
       Ok(eq) => {
         assert_eq!(eq.lhs, MathExpr::Num(f.elem(&123u8)));
         assert_eq!(eq.rhs, f.elem(&123u8));
@@ -260,7 +258,7 @@ mod tests {
   #[test]
   fn test_neg_decimal_below_order() {
     let f = &PrimeField::new(&3911u16);
-    match Parser::parse(f, "-123 == -123") {
+    match EquationParser::parse(f, "-123 == -123") {
       Ok(eq) => {
         assert_eq!(eq.lhs, MathExpr::Num(f.elem_from_signed(&-123)));
         assert_eq!(eq.rhs, f.elem_from_signed(&-123));
@@ -272,7 +270,7 @@ mod tests {
   #[test]
   fn test_neg_decimal_above_order() {
     let f = &PrimeField::new(&11u16);
-    match Parser::parse(f, "-123 == -123") {
+    match EquationParser::parse(f, "-123 == -123") {
       Ok(eq) => {
         assert_eq!(eq.lhs, MathExpr::Num(f.elem_from_signed(&-123)));
         assert_eq!(eq.rhs, f.elem_from_signed(&-123));
@@ -285,7 +283,7 @@ mod tests {
   fn test_1_char_variable() {
     let f = &PrimeField::new(&3911u16);
     for s in vec!["x", "x1", "x0", "xy", "xy1"] {
-      match Parser::parse(f, &format!("{} == 123", s)) {
+      match EquationParser::parse(f, &format!("{} == 123", s)) {
         Ok(eq) => {
           assert_eq!(eq.lhs, MathExpr::Var(s.to_string()));
           assert_eq!(eq.rhs, f.elem(&123u8));
@@ -299,7 +297,7 @@ mod tests {
   fn test_1_char_variable_with_spaces() {
     let f = &PrimeField::new(&3911u16);
     for s in vec!["x", "x1", "x0", "xy", "xy1"] {
-      match Parser::parse(f, &format!("  {} == 123  ", s)) {
+      match EquationParser::parse(f, &format!("  {} == 123  ", s)) {
         Ok(eq) => {
           assert_eq!(eq.lhs, MathExpr::Var(s.to_string()));
           assert_eq!(eq.rhs, f.elem(&123u8));
@@ -312,7 +310,7 @@ mod tests {
   #[test]
   fn test_simple_add_expr() {
     let f = &PrimeField::new(&3911u16);
-    match Parser::parse(f, "123+456==123") {
+    match EquationParser::parse(f, "123+456==123") {
       Ok(eq) => {
         assert_eq!(eq.lhs, MathExpr::Add(1,
           Box::new(MathExpr::Num(f.elem(&123u16))),
@@ -328,7 +326,7 @@ mod tests {
   fn test_simple_add_expr_with_1_var() {
     let f = &PrimeField::new(&3911u16);
     for s in vec!["x", "x1", "x0", "xy", "xy1"] {
-      match Parser::parse(f, &format!("{}+456==123", s)) {
+      match EquationParser::parse(f, &format!("{}+456==123", s)) {
         Ok(eq) => {
           assert_eq!(eq.lhs, MathExpr::Add(1,
             Box::new(MathExpr::Var(s.to_string())),
@@ -345,7 +343,7 @@ mod tests {
   fn test_simple_add_expr_with_2_vars() {
     let f = &PrimeField::new(&3911u16);
     for (a,b) in vec![("x", "y"), ("x1", "y1"), ("xxx1123", "yyy123443")] {
-      match Parser::parse(f, &format!("{}+{}==123", a, b)) {
+      match EquationParser::parse(f, &format!("{}+{}==123", a, b)) {
         Ok(eq) => {
           assert_eq!(eq.lhs, MathExpr::Add(1,
             Box::new(MathExpr::Var(a.to_string())),
@@ -361,7 +359,7 @@ mod tests {
   #[test]
   fn test_simple_add_expr_incl_neg() {
     let f = &PrimeField::new(&3911u16);
-    match Parser::parse(f, "123+-456==123") {
+    match EquationParser::parse(f, "123+-456==123") {
       Ok(eq) => {
         assert_eq!(eq.lhs, MathExpr::Add(1,
           Box::new(MathExpr::Num(f.elem(&123u16))),
@@ -376,7 +374,7 @@ mod tests {
   #[test]
   fn test_simple_sub_expr() {
     let f = &PrimeField::new(&3911u16);
-    match Parser::parse(f, "123-456==123") {
+    match EquationParser::parse(f, "123-456==123") {
       Ok(eq) => {
         assert_eq!(eq.lhs, MathExpr::Sub(1,
           Box::new(MathExpr::Num(f.elem(&123u16))),
@@ -392,7 +390,7 @@ mod tests {
   fn test_simple_sub_expr_1_var() {
     let f = &PrimeField::new(&3911u16);
     for s in vec!["x", "x1", "x0", "xy", "xy1"] {
-      match Parser::parse(f, &format!("123-{}==123", s)) {
+      match EquationParser::parse(f, &format!("123-{}==123", s)) {
         Ok(eq) => {
           assert_eq!(eq.lhs, MathExpr::Sub(1,
             Box::new(MathExpr::Num(f.elem(&123u16))),
@@ -408,7 +406,7 @@ mod tests {
   #[test]
   fn test_simple_sub_expr_incl_neg1() {
     let f = &PrimeField::new(&3911u16);
-    match Parser::parse(f, "-123-456==123") {
+    match EquationParser::parse(f, "-123-456==123") {
       Ok(eq) => {
         assert_eq!(eq.lhs, MathExpr::Sub(1,
           Box::new(MathExpr::Num(f.elem_from_signed(&-123))),
@@ -424,7 +422,7 @@ mod tests {
   fn test_simple_sub_expr_incl_neg1_1_var() {
     let f = &PrimeField::new(&3911u16);
     for s in vec!["x", "x1", "x0", "xy", "xy1"] {
-      match Parser::parse(f, &format!("-123-{}==123", s)) {
+      match EquationParser::parse(f, &format!("-123-{}==123", s)) {
         Ok(eq) => {
           assert_eq!(eq.lhs, MathExpr::Sub(1,
             Box::new(MathExpr::Num(f.elem_from_signed(&-123))),
@@ -440,7 +438,7 @@ mod tests {
   #[test]
   fn test_simple_sub_expr_incl_neg2() {
     let f = &PrimeField::new(&3911u16);
-    match Parser::parse(f, "123--456==123") {
+    match EquationParser::parse(f, "123--456==123") {
       Ok(eq) => {
         assert_eq!(eq.lhs, MathExpr::Sub(1,
           Box::new(MathExpr::Num(f.elem(&123u16))),
@@ -455,7 +453,7 @@ mod tests {
   #[test]
   fn test_simple_sub_expr_incl_neg2_with_spaces() {
     let f = &PrimeField::new(&3911u16);
-    match Parser::parse(f, "123 - -456 == 123") {
+    match EquationParser::parse(f, "123 - -456 == 123") {
       Ok(eq) => {
         assert_eq!(eq.lhs, MathExpr::Sub(1,
           Box::new(MathExpr::Num(f.elem(&123u16))),
@@ -470,7 +468,7 @@ mod tests {
   #[test]
   fn test_simple_sub_expr_incl_neg2_with_spaces_1_var() {
     let f = &PrimeField::new(&3911u16);
-    match Parser::parse(f, "x - -456 == 123") {
+    match EquationParser::parse(f, "x - -456 == 123") {
       Ok(eq) => {
         assert_eq!(eq.lhs, MathExpr::Sub(1,
           Box::new(MathExpr::Var("x".to_string())),
@@ -485,7 +483,7 @@ mod tests {
   #[test]
   fn test_simple_mul_expr() {
     let f = &PrimeField::new(&3911u16);
-    match Parser::parse(f, "123*456==123") {
+    match EquationParser::parse(f, "123*456==123") {
       Ok(eq) => {
         assert_eq!(eq.lhs, MathExpr::Mul(1,
           Box::new(MathExpr::Num(f.elem(&123u16))),
@@ -500,7 +498,7 @@ mod tests {
   #[test]
   fn test_simple_mul_expr_incl_neg1() {
     let f = &PrimeField::new(&3911u16);
-    match Parser::parse(f, "123*-456==123") {
+    match EquationParser::parse(f, "123*-456==123") {
       Ok(eq) => {
         assert_eq!(eq.lhs, MathExpr::Mul(1,
           Box::new(MathExpr::Num(f.elem(&123u16))),
@@ -515,7 +513,7 @@ mod tests {
   #[test]
   fn test_simple_mul_expr_incl_neg2() {
     let f = &PrimeField::new(&3911u16);
-    match Parser::parse(f, "-123*456==123") {
+    match EquationParser::parse(f, "-123*456==123") {
       Ok(eq) => {
         assert_eq!(eq.lhs, MathExpr::Mul(1,
           Box::new(MathExpr::Num(f.elem_from_signed(&-123))),
@@ -530,7 +528,7 @@ mod tests {
   #[test]
   fn test_simple_mul_expr_incl_neg() {
     let f = &PrimeField::new(&3911u16);
-    match Parser::parse(f, "123*-456==123") {
+    match EquationParser::parse(f, "123*-456==123") {
       Ok(eq) => {
         assert_eq!(eq.lhs, MathExpr::Mul(1,
           Box::new(MathExpr::Num(f.elem(&123u16))),
@@ -545,7 +543,7 @@ mod tests {
   #[test]
   fn test_simple_div_expr() {
     let f = &PrimeField::new(&3911u16);
-    match Parser::parse(f, "123/456==123") {
+    match EquationParser::parse(f, "123/456==123") {
       Ok(eq) => {
         assert_eq!(eq.lhs, MathExpr::Div(1,
           Box::new(MathExpr::Num(f.elem(&123u16))),
@@ -560,7 +558,7 @@ mod tests {
   #[test]
   fn test_add_and_mul_expr() {
     let f = &PrimeField::new(&3911u16);
-    match Parser::parse(f, "123+456*789==123") {
+    match EquationParser::parse(f, "123+456*789==123") {
       Ok(eq) => {
         assert_eq!(eq.lhs, MathExpr::Add(2,
           Box::new(MathExpr::Num(f.elem(&123u16))),
@@ -578,7 +576,7 @@ mod tests {
   #[test]
   fn test_add_mul_div_expr() {
     let f = &PrimeField::new(&3911u16);
-    match Parser::parse(f, "111/222+333*444==123") {
+    match EquationParser::parse(f, "111/222+333*444==123") {
       Ok(eq) => {
         assert_eq!(eq.lhs, MathExpr::Add(3,
           Box::new(MathExpr::Div(1,
@@ -599,7 +597,7 @@ mod tests {
   #[test]
   fn test_paren_add_and_mul_expr() {
     let f = &PrimeField::new(&3911u16);
-    match Parser::parse(f, "(123+456)*789==123") {
+    match EquationParser::parse(f, "(123+456)*789==123") {
       Ok(eq) => {
         assert_eq!(eq.lhs, MathExpr::Mul(2,
           Box::new(MathExpr::Add(1,
@@ -617,7 +615,7 @@ mod tests {
   #[test]
   fn test_paren_add_and_mul_expr_with_spaces() {
     let f = &PrimeField::new(&3911u16);
-    match Parser::parse(f, " (123 + 456) * 789 == 123") {
+    match EquationParser::parse(f, " (123 + 456) * 789 == 123") {
       Ok(eq) => {
         assert_eq!(eq.lhs, MathExpr::Mul(2,
           Box::new(MathExpr::Add(1,
@@ -635,7 +633,7 @@ mod tests {
   #[test]
   fn test_paren_add_mul_sub_expr() {
     let f = &PrimeField::new(&3911u16);
-    match Parser::parse(f, "(111+222)*(333-444)==123") {
+    match EquationParser::parse(f, "(111+222)*(333-444)==123") {
       Ok(eq) => {
         assert_eq!(eq.lhs, MathExpr::Mul(3,
           Box::new(MathExpr::Add(1,
@@ -656,7 +654,7 @@ mod tests {
   #[test]
   fn test_multiple_paren() {
     let f = &PrimeField::new(&3911u16);
-    match Parser::parse(f, "((111+222))==123") {
+    match EquationParser::parse(f, "((111+222))==123") {
       Ok(eq) => {
         assert_eq!(eq.lhs, MathExpr::Add(1,
           Box::new(MathExpr::Num(f.elem(&111u8))),
@@ -671,7 +669,7 @@ mod tests {
   #[test]
   fn test_multiple_paren_with_spaces() {
     let f = &PrimeField::new(&3911u16);
-    match Parser::parse(f, " ( (111+222) ) == 123") {
+    match EquationParser::parse(f, " ( (111+222) ) == 123") {
       Ok(eq) => {
         assert_eq!(eq.lhs, MathExpr::Add(1,
           Box::new(MathExpr::Num(f.elem(&111u8))),
@@ -687,7 +685,7 @@ mod tests {
   fn blog_post_1_example_1() {
     let f = &PrimeField::new(&37u8);
     let expr = "(x * x * x) + x + 5 == 35";
-    match Parser::parse(f, expr) {
+    match EquationParser::parse(f, expr) {
       Ok(eq) => {
         println!("{} -> {:?}", expr, eq);
       },

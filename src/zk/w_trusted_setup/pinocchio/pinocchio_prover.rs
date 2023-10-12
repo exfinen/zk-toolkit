@@ -2,7 +2,7 @@ use crate::{
   building_block::field::{prime_field::PrimeField, prime_field_elem::PrimeFieldElem},
   zk::w_trusted_setup::pinocchio::{
     crs::CRS,
-    equation_parser::Parser,
+    equation_parser::EquationParser,
     gate::Gate,
     qap::QAP,
     polynomial::Polynomial,
@@ -18,12 +18,12 @@ use std::{
 };
 
 pub struct PinocchioProver {
-  max_degree: usize,
-  mid_beg: usize,
-  vi: Vec<Polynomial>,
-  wi: Vec<Polynomial>,
-  yi: Vec<Polynomial>,
-  t: Polynomial,
+  pub max_degree: usize,
+  pub mid_beg: usize,
+  pub vi: Vec<Polynomial>,
+  pub wi: Vec<Polynomial>,
+  pub yi: Vec<Polynomial>,
+  pub t: Polynomial,
 }
 
 impl PinocchioProver {
@@ -33,7 +33,7 @@ impl PinocchioProver {
     witness: &HashMap<Term, PrimeFieldElem>,
 
   ) -> Self {
-    let eq = Parser::parse(f, expr).unwrap();
+    let eq = EquationParser::parse(f, expr).unwrap();
 
     let gates = &Gate::build(f, &eq);
     let tmpl = &R1CSTmpl::from_gates(f, gates);
@@ -49,7 +49,7 @@ impl PinocchioProver {
     let t = QAP::build_t(f, &tmpl.constraints.len());
 
     let max_degree = cmp::max(cmp::max(vi.len(), wi.len()), yi.len());
-    let mid_beg = 0usize;  // TODO get actual value
+    let mid_beg = 1usize;  // TODO get actual value 1 or above
 
     PinocchioProver {
       max_degree,
@@ -75,7 +75,7 @@ mod tests {
     let f = &PrimeField::new(&3911u16);
 
     let expr = "(x * x * x) + x + 5 == 35";
-    let eq = Parser::parse(f, expr).unwrap();
+    let eq = EquationParser::parse(f, expr).unwrap();
 
     /*
       x = 3
@@ -97,17 +97,9 @@ mod tests {
       ])
     };
 
-    let prover = PinocchioProver::new(f, expr, &witness);
+    let prover = &PinocchioProver::new(f, expr, &witness);
 
-    let crs = CRS::new(
-      f,
-      &prover.max_degree,
-      &prover.mid_beg,
-      &prover.vi,
-      &prover.wi,
-      &prover.yi,
-      &prover.t, 
-    );
+    let crs = CRS::new(f, prover);
 
     let _proof = prover.prove(crs);
   }

@@ -124,7 +124,7 @@ impl R1CS {
 mod tests {
   use super::*;
   use crate::zk::w_trusted_setup::pinocchio::{
-    equation_parser::Parser,
+    equation_parser::EquationParser,
     gate::Gate,
     r1cs_tmpl::R1CSTmpl,
     term::Term,
@@ -134,7 +134,7 @@ mod tests {
   fn test_validate() {
     let f = &PrimeField::new(&3911u16);
     let input = "x + 4 * y == 11";
-    let eq = Parser::parse(f, input).unwrap();
+    let eq = EquationParser::parse(f, input).unwrap();
 
     let gates = &Gate::build(f, &eq);
     let tmpl = &R1CSTmpl::from_gates(f, gates);
