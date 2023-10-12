@@ -20,10 +20,11 @@ use std::{
 use num_traits::identities::Zero;
 use super::sparse_vec::SparseVec;
 
+// TODO use SparseVec instead of Vec to hold coeffs
 #[derive(Clone)]
 pub struct Polynomial {
   pub f: PrimeField,
-  pub coeffs: Vec<PrimeFieldElem>,
+  pub coeffs: Vec<PrimeFieldElem>,  // e.g. 2x^3 + 5x + 9 -> [9, 5, 0, 2]
   _private: (),  // to force using new()
 }
 
