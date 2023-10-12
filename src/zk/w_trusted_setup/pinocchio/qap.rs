@@ -15,11 +15,6 @@ use crate::zk::w_trusted_setup::pinocchio::{
 };
 use num_traits::Zero;
 
-pub enum ApplyWitness {
-  Beginning,
-  End,
-}
-
 pub struct QAP {
   pub f: PrimeField,
   pub a_polys: SparseMatrix,
@@ -102,7 +97,7 @@ impl QAP {
   pub fn build(
     f: &PrimeField,
     r1cs: &R1CS,
-    apply_witness: &ApplyWitness,
+    multiply_witness: bool,
   ) -> QAP {
     /*
                       a^t
@@ -114,9 +109,10 @@ impl QAP {
     witness         x=1 x=2   0 at x=1 and 2 at x=2
                     x-th col corresponds to x-th constraint
     */
-    let r1cs = match apply_witness {
-      ApplyWitness::Beginning => r1cs.to_constraint_by_witness_matrices(),
-      ApplyWitness::End => r1cs.to_constraint_matrices(),
+    let r1cs = if multiply_witness { 
+      r1cs.to_constraint_by_witness_matrices()
+    } else {
+      r1cs.to_constraint_matrices()
     };
     let a_t = r1cs.a.transpose();
     let b_t = r1cs.b.transpose();
@@ -175,20 +171,23 @@ impl QAP {
     &self,
     witness: &SparseVec,
     num_constraints: &impl ToBigUint,
-    apply_witness: &ApplyWitness,
+    multiply_witness: bool,
   ) -> bool {
     // aggregate polynomials by calculating dot products with witness
-    let a_poly: Polynomial = match apply_witness {
-      ApplyWitness::Beginning => (&self.a_polys.flatten_rows()).into(),
-      ApplyWitness::End => (&self.a_polys.multiply_column(witness).flatten_rows()).into(),
+    let a_poly: Polynomial = if multiply_witness {
+      (&self.a_polys.flatten_rows()).into()
+    } else {
+      (&self.a_polys.multiply_column(witness).flatten_rows()).into()
     };
-    let b_poly: Polynomial = match apply_witness {
-      ApplyWitness::Beginning => (&self.b_polys.flatten_rows()).into(),
-      ApplyWitness::End => (&self.b_polys.multiply_column(witness).flatten_rows()).into(),
+    let b_poly: Polynomial = if multiply_witness {
+      (&self.b_polys.flatten_rows()).into()
+    } else {
+      (&self.b_polys.multiply_column(witness).flatten_rows()).into()
     };
-    let c_poly: Polynomial = match apply_witness {
-      ApplyWitness::Beginning => (&self.c_polys.flatten_rows()).into(),
-      ApplyWitness::End => (&self.c_polys.multiply_column(witness).flatten_rows()).into(),
+    let c_poly: Polynomial = if multiply_witness {
+      (&self.c_polys.flatten_rows()).into()
+    } else {
+      (&self.c_polys.multiply_column(witness).flatten_rows()).into()
     };
 
     let t = a_poly * &b_poly - &c_poly;
@@ -308,9 +307,9 @@ mod tests {
     let num_constraints = &constraints.len();
     let r1cs = R1CS { constraints, witness: witness.clone() };
 
-    for apply_witness in vec![ApplyWitness::Beginning, ApplyWitness::End] {
-      let qap = QAP::build(f, &r1cs, &apply_witness);
-      let is_passed = qap.check_constraints(&witness, num_constraints, &apply_witness);
+    for multiply_witness in vec![true, false] {
+      let qap = QAP::build(f, &r1cs, multiply_witness);
+      let is_passed = qap.check_constraints(&witness, num_constraints, multiply_witness);
       assert!(is_passed);
     }
   }
@@ -361,7 +360,7 @@ mod tests {
     };
 
     let r1cs = R1CS::from_tmpl(f, &r1cs_tmpl, &witness).unwrap();
-    let qap = QAP::build(f, &r1cs, &ApplyWitness::Beginning);
+    let qap = QAP::build(f, &r1cs, true);
 
     println!("a:\n{}", qap.a_polys.pretty_print());
     println!("b:\n{}", qap.b_polys.pretty_print());
@@ -404,7 +403,7 @@ mod tests {
       let (name, witness) = test_case;
       let r1cs = R1CS::from_tmpl(f, &r1cs_tmpl, &witness).unwrap();
 
-      let qap = QAP::build(f, &r1cs, &ApplyWitness::Beginning);
+      let qap = QAP::build(f, &r1cs, true);
       let (a, b, c) = qap.get_flattened_polys();
       let t = a * &b - &c;
 

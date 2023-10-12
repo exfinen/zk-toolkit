@@ -41,7 +41,7 @@ impl CRS {
   #[allow(non_snake_case)]
   pub fn new(
     f: &PrimeField,
-    degree: &usize,
+    max_degree: &usize,
     mid_beg: &usize,
     vi: &[Polynomial],
     wi: &[Polynomial],
@@ -60,8 +60,8 @@ impl CRS {
     let beta_y = &f.rand_elem(true);
     let gamma = &f.rand_elem(true);
 
-    let s_pows = &s.pow_seq(degree);
-    let mid: &Vec<usize> = &(*mid_beg..=*degree).collect();
+    let s_pows = &s.pow_seq(max_degree);
+    let mid: &Vec<usize> = &(*mid_beg..=*max_degree).collect();
     let io: &Vec<usize> = &(1usize..*mid_beg).collect();  // TODO is 0 handled separately?
 
     // Evaluation keys

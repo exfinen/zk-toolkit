@@ -5,7 +5,10 @@ use crate::building_block::field::{
   prime_field_elem::PrimeFieldElem,
 };
 use crate::building_block::to_biguint::ToBigUint;
-use crate::zk::w_trusted_setup::pinocchio::sparse_vec::SparseVec;
+use crate::zk::w_trusted_setup::pinocchio::{
+  polynomial::Polynomial,
+  sparse_vec::SparseVec,
+};
 use std::{
   collections::HashMap,
   convert::From,
@@ -231,6 +234,19 @@ impl PartialEq for SparseMatrix {
     }
     true
   }
+}
+
+impl Into<Vec<Polynomial>> for SparseMatrix {
+    fn into(self) -> Vec<Polynomial> {
+      let mut vec = vec![];
+      let mut i = self.height.f.elem(&0u8);
+      while &i < &self.height {
+        let p = Polynomial::from(&self.get_row(&i));
+        vec.push(p);
+        i.inc();
+      }
+      vec
+    }
 }
 
 // coverts rows of vectors to a matrix
