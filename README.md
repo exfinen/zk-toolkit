@@ -14,7 +14,7 @@ To implement cryptographic primitives in the simplest form without any optimizat
   - Equation parser
   - R1CS
   - QAP
-  - ** remaing parts to be implemented using BLS12-381 pairing
+  - ** remaining parts to be implemented using BLS12-381 pairing
 - Bulletproofs
 - Ed25519
   - Key generation, EdDSA sign/veriry

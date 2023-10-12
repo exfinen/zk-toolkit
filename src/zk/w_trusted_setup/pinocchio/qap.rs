@@ -149,7 +149,7 @@ impl QAP {
   }
 
   // build polynomial (x-1)(x-2)..(x-num_constraints)
-  pub fn build_z(f: &PrimeField, num_constraints: &impl ToBigUint) -> Polynomial {
+  pub fn build_t(f: &PrimeField, num_constraints: &impl ToBigUint) -> Polynomial {
     let num_constraints = f.elem(num_constraints);
     let mut i = f.elem(&1u8);
     let mut polys = vec![];
@@ -193,7 +193,7 @@ impl QAP {
 
     let t = a_poly * &b_poly - &c_poly;
     let num_constraints = self.f.elem(num_constraints);
-    let z = QAP::build_z(&self.f, &num_constraints);
+    let z = QAP::build_t(&self.f, &num_constraints);
     match t.divide_by(&z) {
       DivResult::Quotient(_) => true,
       DivResult::QuotientRemainder(_) => false,
@@ -316,14 +316,14 @@ mod tests {
   }
 
   #[test]
-  fn test_build_z() {
+  fn test_build_t() {
     let f = &PrimeField::new(&3911u16);
 
     let one = &f.elem(&1u8);
     let two = &f.elem(&2u8);
     let neg_three = &f.elem(&3u8).negate();
 
-    let z = QAP::build_z(f, two);
+    let z = QAP::build_t(f, two);
 
     assert_eq!(z.len(), 3);
     assert_eq!(&z[0], two);
@@ -409,7 +409,7 @@ mod tests {
       let t = a * &b - &c;
 
       let num_constraints = f.elem(&gates.len());
-      let z = QAP::build_z(f, &num_constraints);
+      let z = QAP::build_t(f, &num_constraints);
 
       let is_witness_valid = match t.divide_by(&z) {
         DivResult::Quotient(_) => true,
