@@ -18,7 +18,7 @@ use std::{
 };
 
 pub struct PinocchioProver {
-  pub max_degree: usize,
+  pub max_degree: usize,  // TODO use PrimeFieldElem or BigUint
   pub mid_beg: usize,
   pub vi: Vec<Polynomial>,
   pub wi: Vec<Polynomial>,
@@ -64,6 +64,7 @@ impl PinocchioProver {
   }
 
   pub fn prove(&self, _crs: CRS) -> PinocchioProof {
+    self.vi
     PinocchioProof()
   }
 }
