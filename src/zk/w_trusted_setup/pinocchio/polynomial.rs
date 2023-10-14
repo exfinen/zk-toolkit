@@ -45,7 +45,7 @@ impl From<&SparseVec> for Polynomial {
       coeffs.push(v.clone());
       i.inc();
     }
-    let p = Polynomial::new(&vec.f, coeffs);
+    let p = Polynomial::new(&vec.f, &coeffs);
     p.normalize()
   }
 }
@@ -109,10 +109,19 @@ pub enum DivResult {
 }
 
 impl Polynomial {
-  pub fn new(f: &PrimeField, coeffs: Vec<PrimeFieldElem>) -> Self {
+  pub fn new(f: &PrimeField, coeffs: &Vec<PrimeFieldElem>) -> Self {
     if coeffs.len() == 0 { panic!("coeffs is empty"); }
-    let x = Polynomial { f: f.clone(), coeffs, _private: () };
+    let x = Polynomial {
+      f: f.clone(),
+      coeffs: coeffs.clone(),
+      _private: ()
+    };
     x.normalize()
+  }
+
+  pub fn zero(f: &PrimeField) -> Self {
+    let coeffs = &vec![f.elem(&0u8)];
+    Polynomial::new(f, coeffs)
   }
 
   pub fn is_zero(&self) -> bool {
@@ -202,7 +211,7 @@ impl Polynomial {
       let term_degree = dividend.len() - divisor.len();
       let mut term_vec = vec![self.f.elem(&0u8); term_degree + 1];
       term_vec[term_degree] = term_coeff.clone();
-      let term_poly = Polynomial::new(&self.f, term_vec);
+      let term_poly = Polynomial::new(&self.f, &term_vec);
 
       // reflect term coeff to result quotient
       quotient_coeffs[term_degree] = term_coeff;
@@ -263,6 +272,7 @@ impl Polynomial {
   }
 }
 
+// TODO avoid duplicating code
 impl<'a> Add<&Polynomial> for Polynomial {
   type Output = Polynomial;
 
@@ -271,11 +281,32 @@ impl<'a> Add<&Polynomial> for Polynomial {
   }
 }
 
+impl<'a> Add<&Polynomial> for &Polynomial {
+  type Output = Polynomial;
+
+  fn add(self, rhs: &Polynomial) -> Self::Output {
+    self.plus(rhs)
+  }
+}
+
+// TODO avoid duplicating code
 impl<'a> Mul<&Polynomial> for Polynomial {
   type Output = Polynomial;
 
   fn mul(self, rhs: &Polynomial) -> Self::Output {
     self.multiply_by(rhs)
+  }
+}
+
+impl<'a> Mul<&PrimeFieldElem> for &Polynomial {
+  type Output = Polynomial;
+
+  fn mul(self, rhs: &PrimeFieldElem) -> Self::Output {
+    Polynomial {
+      f: self.f.clone(),
+      coeffs: self.coeffs.iter().map(|coeff| coeff * rhs).collect(),
+      _private: (),
+    }
   }
 }
 
@@ -308,7 +339,7 @@ mod tests {
       f.elem(two),
       f.elem(three),
     ];
-    let p = Polynomial::new(f, coeffs);
+    let p = Polynomial::new(f, &coeffs);
     let vec = p.to_sparse_vec(four);
 
     assert_eq!(&vec.size, four);
@@ -323,7 +354,7 @@ mod tests {
     let f = &PrimeField::new(&3911u16);
     // degree 0
     {
-      let p = Polynomial::new(f, vec![
+      let p = Polynomial::new(f, &vec![
         f.elem(&2u8),
       ]);
       assert_eq!(p.degree(), f.elem(&0u8));
@@ -334,7 +365,7 @@ mod tests {
     }
     // degree 1
     {
-      let p = Polynomial::new(f, vec![
+      let p = Polynomial::new(f, &vec![
         f.elem(&2u8),
         f.elem(&3u8),
       ]);
@@ -379,13 +410,13 @@ mod tests {
     { // 8
       let zero = &f.elem(&0u8);
       let eight = &f.elem(&8u8);
-      let p = Polynomial::new(f, vec![
+      let p = Polynomial::new(f, &vec![
         eight.clone(),
       ]);
       assert_eq!(&p.eval_at(zero), eight);
     }
     { // 3x + 8
-      let p = &Polynomial::new(f, vec![
+      let p = &Polynomial::new(f, &vec![
         f.elem(&8u8),
         f.elem(&3u8),
       ]);
@@ -394,7 +425,7 @@ mod tests {
       assert_eq!(p.eval_at(&two), f.elem(&14u8));
     }
     { // 2x^2 + 3x + 8
-      let p = &Polynomial::new(f, vec![
+      let p = &Polynomial::new(f, &vec![
         f.elem(&8u8),
         f.elem(&3u8),
         f.elem(&2u8),
@@ -420,16 +451,16 @@ mod tests {
                    -------
                          0
       */
-      let dividend = Polynomial::new(f, vec![
+      let dividend = Polynomial::new(f, &vec![
         f.elem(&5u8),
         f.elem(&1u8),
         f.elem(&1u8),
       ]);
-      let divisor = Polynomial::new(f, vec![
+      let divisor = Polynomial::new(f, &vec![
         f.elem(&2u8),
         f.elem(&1u8),
       ]);
-      let quotient = Polynomial::new(f, vec![
+      let quotient = Polynomial::new(f, &vec![
         f.elem(&6u8),
         f.elem(&1u8),
       ]);
@@ -456,18 +487,18 @@ mod tests {
               -------
                     3
       */
-      let dividend = Polynomial::new(f, vec![
+      let dividend = Polynomial::new(f, &vec![
         f.elem(&3u8),
         f.elem(&2u8),
       ]);
-      let divisor = Polynomial::new(f, vec![
+      let divisor = Polynomial::new(f, &vec![
         f.elem(&7u8),
         f.elem(&1u8),
       ]);
-      let quotient = Polynomial::new(f, vec![
+      let quotient = Polynomial::new(f, &vec![
         f.elem(&2u8),
       ]);
-      let remainder = Polynomial::new(f, vec![
+      let remainder = Polynomial::new(f, &vec![
         f.elem(&3u8),
       ]);
       let res = dividend.divide_by(&divisor);
@@ -495,18 +526,18 @@ mod tests {
               -------
                    3
       */
-      let dividend = Polynomial::new(f, vec![
+      let dividend = Polynomial::new(f, &vec![
         f.elem(&3u8),
         f.elem(&5u8),
       ]);
-      let divisor = Polynomial::new(f, vec![
+      let divisor = Polynomial::new(f, &vec![
         f.elem(&7u8),
         f.elem(&2u8),
       ]);
-      let quotient = Polynomial::new(f, vec![
+      let quotient = Polynomial::new(f, &vec![
         f.elem(&6u8),
       ]);
-      let remainder = Polynomial::new(f, vec![
+      let remainder = Polynomial::new(f, &vec![
         f.elem(&3u8),
       ]);
       let res = dividend.divide_by(&divisor);
@@ -533,13 +564,13 @@ mod tests {
            --
             0
       */
-      let dividend = Polynomial::new(f, vec![
+      let dividend = Polynomial::new(f, &vec![
         f.elem(&3u8),
       ]);
-      let divisor = Polynomial::new(f, vec![
+      let divisor = Polynomial::new(f, &vec![
         f.elem(&2u8),
       ]);
-      let quotient = Polynomial::new(f, vec![
+      let quotient = Polynomial::new(f, &vec![
         f.elem(&5u8),
       ]);
       let res = dividend.divide_by(&divisor);
@@ -558,7 +589,7 @@ mod tests {
   fn test_div_5_2() {
     let f = &PrimeField::new(&11u8);
     {
-      let dividend = Polynomial::new(f, vec![
+      let dividend = Polynomial::new(f, &vec![
         f.elem(&5u8), // 0
         f.elem(&0u8), // 1
         f.elem(&0u8), // 2
@@ -567,19 +598,19 @@ mod tests {
         f.elem(&0u8), // 5
         f.elem(&3u8), // 6
       ]);
-      let divisor = Polynomial::new(f, vec![
+      let divisor = Polynomial::new(f, &vec![
         f.elem(&4u8), // 0
         f.elem(&0u8), // 1
         f.elem(&0u8), // 2
         f.elem(&3u8), // 3
         f.elem(&1u8), // 4
       ]);
-      let quotient = Polynomial::new(f, vec![
+      let quotient = Polynomial::new(f, &vec![
         f.elem(&1u8), // 0
         f.elem(&2u8), // 1
         f.elem(&3u8), // 2
       ]);
-      let remainder = Polynomial::new(f, vec![
+      let remainder = Polynomial::new(f, &vec![
         f.elem(&1u8),  // 0
         f.elem(&3u8),  // 1
         f.elem(&10u8), // 2
@@ -604,7 +635,7 @@ mod tests {
       let coeff: u32 = rand::thread_rng().gen_range(0..max_coeff);
       coeffs.push(f.elem(&coeff));
     }
-    Polynomial::new(f, coeffs)
+    Polynomial::new(f, &coeffs)
   }
 
   #[test]
@@ -637,20 +668,20 @@ mod tests {
   fn test_is_zero() {
     let f = &PrimeField::new(&11u8);
     {
-      let a = Polynomial::new(f, vec![
+      let a = Polynomial::new(f, &vec![
         f.elem(&12u8),
         f.elem(&7u8),
       ]);
       assert!(!a.is_zero());
     }
     {
-      let a = Polynomial::new(f, vec![
+      let a = Polynomial::new(f, &vec![
         f.elem(&7u8),
       ]);
       assert!(!a.is_zero());
     }
     {
-      let a = Polynomial::new(f, vec![
+      let a = Polynomial::new(f, &vec![
         f.elem(&0u8),
       ]);
       assert!(a.is_zero());
@@ -662,15 +693,15 @@ mod tests {
     let f = &PrimeField::new(&23u8);
     // subtract small poly
     {
-      let a = Polynomial::new(f, vec![
+      let a = Polynomial::new(f, &vec![
         f.elem(&12u8),
         f.elem(&7u8),
       ]);
-      let b = Polynomial::new(f, vec![
+      let b = Polynomial::new(f, &vec![
         f.elem(&3u8),
         f.elem(&4u8),
       ]);
-      let c = Polynomial::new(f, vec![
+      let c = Polynomial::new(f, &vec![
         f.elem(&9u8),
         f.elem(&3u8),
       ]);
@@ -678,15 +709,15 @@ mod tests {
     }
     // subtract bigger poly
     {
-      let a = Polynomial::new(f, vec![
+      let a = Polynomial::new(f, &vec![
         f.elem(&12u8),
         f.elem(&7u8),
       ]);
-      let b = Polynomial::new(f, vec![
+      let b = Polynomial::new(f, &vec![
         f.elem(&15u8),
         f.elem(&8u8),
       ]);
-      let c = Polynomial::new(f, vec![
+      let c = Polynomial::new(f, &vec![
         f.elem(&20u8),
         f.elem(&22u8),
       ]);
@@ -694,11 +725,11 @@ mod tests {
     }
     // subtract the same poly
     {
-      let a = &Polynomial::new(f, vec![
+      let a = &Polynomial::new(f, &vec![
         f.elem(&12u8),
         f.elem(&7u8),
       ]);
-      let c = Polynomial::new(f, vec![
+      let c = Polynomial::new(f, &vec![
         f.elem(&0u8),
       ]);
       println!("res = {:?}", a.minus(a));
@@ -711,10 +742,10 @@ mod tests {
   fn test_bad_sub() {
     std::panic::set_hook(Box::new(|_| {}));
     let f = &PrimeField::new(&3299u16);
-    let a = Polynomial::new(f, vec![
+    let a = Polynomial::new(f, &vec![
       f.elem(&7u8),
     ]);
-    let b = Polynomial::new(f, vec![
+    let b = Polynomial::new(f, &vec![
       f.elem(&3u8),
       f.elem(&4u8),
     ]);
@@ -725,7 +756,7 @@ mod tests {
   fn test_debug_print() {
     let f = &PrimeField::new(&3299u16);
     {
-      let a = Polynomial::new(f, vec![
+      let a = Polynomial::new(f, &vec![
         f.elem(&12u8),
         f.elem(&45u8),
         f.elem(&67u8),
@@ -733,14 +764,14 @@ mod tests {
       println!("{:?}", a);
     }
     {
-      let a = Polynomial::new(f, vec![
+      let a = Polynomial::new(f, &vec![
         f.elem(&12u8),
         f.elem(&45u8),
       ]);
       println!("{:?}", a);
     }
     {
-      let a = Polynomial::new(f, vec![
+      let a = Polynomial::new(f, &vec![
         f.elem(&12u8),
       ]);
       println!("{:?}", a);
@@ -750,7 +781,7 @@ mod tests {
   #[test]
   fn test_new_non_empty_vec() {
     let f = &PrimeField::new(&3299u16);
-    let p = Polynomial::new(f, vec![
+    let p = Polynomial::new(f, &vec![
       f.elem(&12u8),
     ]);
     assert!(p.coeffs.len() == 1);
@@ -762,17 +793,17 @@ mod tests {
   fn test_new_empty_vec() {
     std::panic::set_hook(Box::new(|_| {}));
     let f = &PrimeField::new(&3299u16);
-    Polynomial::new(f, vec![]);
+    Polynomial::new(f, &vec![]);
   }
 
   #[test]
   fn test_normalize() {
     let f = &PrimeField::new(&3299u16);
     {
-      let a = Polynomial::new(f, vec![
+      let a = Polynomial::new(f, &vec![
         f.elem(&0u8),
       ]);
-      let b = Polynomial::new(f, vec![
+      let b = Polynomial::new(f, &vec![
         f.elem(&0u8),
       ]);
       assert!(&a == &b);
@@ -780,22 +811,10 @@ mod tests {
       assert!(&a.coeffs[0] == &f.elem(&0u8));
     }
     {
-      let a = Polynomial::new(f, vec![
+      let a = Polynomial::new(f, &vec![
         f.elem(&1u8),
       ]);
-      let b = Polynomial::new(f, vec![
-        f.elem(&1u8),
-      ]);
-      assert!(&a == &b);
-      assert!(a.coeffs.len() == 1);
-      assert!(&a.coeffs[0] == &f.elem(&1u8));
-    }
-    {
-      let a = Polynomial::new(f, vec![
-        f.elem(&1u8),
-        f.elem(&0u8),
-      ]);
-      let b = Polynomial::new(f, vec![
+      let b = Polynomial::new(f, &vec![
         f.elem(&1u8),
       ]);
       assert!(&a == &b);
@@ -803,12 +822,11 @@ mod tests {
       assert!(&a.coeffs[0] == &f.elem(&1u8));
     }
     {
-      let a = Polynomial::new(f, vec![
+      let a = Polynomial::new(f, &vec![
         f.elem(&1u8),
         f.elem(&0u8),
-        f.elem(&0u8),
       ]);
-      let b = Polynomial::new(f, vec![
+      let b = Polynomial::new(f, &vec![
         f.elem(&1u8),
       ]);
       assert!(&a == &b);
@@ -816,13 +834,26 @@ mod tests {
       assert!(&a.coeffs[0] == &f.elem(&1u8));
     }
     {
-      let a = Polynomial::new(f, vec![
+      let a = Polynomial::new(f, &vec![
+        f.elem(&1u8),
+        f.elem(&0u8),
+        f.elem(&0u8),
+      ]);
+      let b = Polynomial::new(f, &vec![
+        f.elem(&1u8),
+      ]);
+      assert!(&a == &b);
+      assert!(a.coeffs.len() == 1);
+      assert!(&a.coeffs[0] == &f.elem(&1u8));
+    }
+    {
+      let a = Polynomial::new(f, &vec![
         f.elem(&1u8),
         f.elem(&0u8),
         f.elem(&0u8),
         f.elem(&1u8),
       ]);
-      let b = Polynomial::new(f, vec![
+      let b = Polynomial::new(f, &vec![
         f.elem(&1u8),
         f.elem(&0u8),
         f.elem(&0u8),
@@ -841,51 +872,51 @@ mod tests {
   fn test_eq() {
     let f = &PrimeField::new(&3299u16);
     {
-      let a = Polynomial::new(f, vec![
+      let a = Polynomial::new(f, &vec![
         f.elem(&0u8),
       ]);
-      let b = Polynomial::new(f, vec![
+      let b = Polynomial::new(f, &vec![
         f.elem(&0u8),
       ]);
       assert!(&a == &b);
     }
     {
-      let a = Polynomial::new(f, vec![
+      let a = Polynomial::new(f, &vec![
         f.elem(&0u8),
       ]);
-      let b = Polynomial::new(f, vec![
+      let b = Polynomial::new(f, &vec![
         f.elem(&1u8),
       ]);
       assert!(&a != &b);
     }
     {
-      let a = Polynomial::new(f, vec![
+      let a = Polynomial::new(f, &vec![
         f.elem(&2u8),
         f.elem(&1u8),
       ]);
-      let b = Polynomial::new(f, vec![
+      let b = Polynomial::new(f, &vec![
         f.elem(&2u8),
         f.elem(&1u8),
       ]);
       assert!(&a == &b);
     }
     {
-      let a = Polynomial::new(f, vec![
+      let a = Polynomial::new(f, &vec![
         f.elem(&2u8),
         f.elem(&1u8),
       ]);
-      let b = Polynomial::new(f, vec![
+      let b = Polynomial::new(f, &vec![
         f.elem(&1u8),
         f.elem(&2u8),
       ]);
       assert!(&a != &b);
     }
     {
-      let a = Polynomial::new(f, vec![
+      let a = Polynomial::new(f, &vec![
         f.elem(&2u8),
         f.elem(&1u8),
       ]);
-      let b = Polynomial::new(f, vec![
+      let b = Polynomial::new(f, &vec![
         f.elem(&2u8),
         f.elem(&1u8),
         f.elem(&0u8),
@@ -893,11 +924,11 @@ mod tests {
       assert!(&a == &b);
     }
     {
-      let a = Polynomial::new(f, vec![
+      let a = Polynomial::new(f, &vec![
         f.elem(&2u8),
         f.elem(&1u8),
       ]);
-      let b = Polynomial::new(f, vec![
+      let b = Polynomial::new(f, &vec![
         f.elem(&2u8),
         f.elem(&1u8),
         f.elem(&1u8),
@@ -911,13 +942,13 @@ mod tests {
     let f = &PrimeField::new(&3299u16);
     // zero + zero
     {
-      let a = Polynomial::new(f, vec![
+      let a = Polynomial::new(f, &vec![
         f.elem(&0u8),
       ]);
-      let b = Polynomial::new(f, vec![
+      let b = Polynomial::new(f, &vec![
         f.elem(&0u8),
       ]);
-      let c = Polynomial::new(f, vec![
+      let c = Polynomial::new(f, &vec![
         f.elem(&0u8),
       ]);
       let res = a.add(&b);
@@ -925,13 +956,13 @@ mod tests {
     }
     // zero + non-zero
     {
-      let a = Polynomial::new(f, vec![
+      let a = Polynomial::new(f, &vec![
         f.elem(&0u8),
       ]);
-      let b = Polynomial::new(f, vec![
+      let b = Polynomial::new(f, &vec![
         f.elem(&12u8),
       ]);
-      let c = Polynomial::new(f, vec![
+      let c = Polynomial::new(f, &vec![
         f.elem(&12u8),
       ]);
       let res = a.add(&b);
@@ -939,13 +970,13 @@ mod tests {
     }
     // non-zero + non-zero
     {
-      let a = Polynomial::new(f, vec![
+      let a = Polynomial::new(f, &vec![
         f.elem(&100u8),
       ]);
-      let b = Polynomial::new(f, vec![
+      let b = Polynomial::new(f, &vec![
         f.elem(&12u8),
       ]);
-      let c = Polynomial::new(f, vec![
+      let c = Polynomial::new(f, &vec![
         f.elem(&112u8),
       ]);
       let res = a.add(&b);
@@ -958,13 +989,13 @@ mod tests {
     let f = &PrimeField::new(&7u8);
     // 1st term only and it becomes zero
     {
-      let a = Polynomial::new(f, vec![
+      let a = Polynomial::new(f, &vec![
         f.elem(&3u8),
       ]);
-      let b = Polynomial::new(f, vec![
+      let b = Polynomial::new(f, &vec![
         f.elem(&4u8),
       ]);
-      let c = Polynomial::new(f, vec![
+      let c = Polynomial::new(f, &vec![
         f.elem(&0u8),
       ]);
       let res = a.add(&b);
@@ -972,15 +1003,15 @@ mod tests {
     }
     // adding 2-term polynomials and 2nd term becomes zero
     {
-      let a = Polynomial::new(f, vec![
+      let a = Polynomial::new(f, &vec![
         f.elem(&1u8),
         f.elem(&3u8),
       ]);
-      let b = Polynomial::new(f, vec![
+      let b = Polynomial::new(f, &vec![
         f.elem(&2u8),
         f.elem(&4u8),
       ]);
-      let c = Polynomial::new(f, vec![
+      let c = Polynomial::new(f, &vec![
         f.elem(&3u8),
       ]);
       let res = a.add(&b);
@@ -993,13 +1024,13 @@ mod tests {
     let f = &PrimeField::new(&3299u16);
     {
       // 0 * 0
-      let a = Polynomial::new(f, vec![
+      let a = Polynomial::new(f, &vec![
         f.elem(&0u8),
       ]);
-      let b = Polynomial::new(f, vec![
+      let b = Polynomial::new(f, &vec![
         f.elem(&0u8),
       ]);
-      let c = Polynomial::new(f, vec![
+      let c = Polynomial::new(f, &vec![
         f.elem(&0u8),
       ]);
       let res = a.mul(&b);
@@ -1007,13 +1038,13 @@ mod tests {
     }
     {
       // 1 * 0
-      let a = Polynomial::new(f, vec![
+      let a = Polynomial::new(f, &vec![
         f.elem(&1u8),
       ]);
-      let b = Polynomial::new(f, vec![
+      let b = Polynomial::new(f, &vec![
         f.elem(&0u8),
       ]);
-      let c = Polynomial::new(f, vec![
+      let c = Polynomial::new(f, &vec![
         f.elem(&0u8),
       ]);
       let res = a.mul(&b);
@@ -1021,13 +1052,13 @@ mod tests {
     }
     {
       // 0 * 1
-      let a = Polynomial::new(f, vec![
+      let a = Polynomial::new(f, &vec![
         f.elem(&0u8),
       ]);
-      let b = Polynomial::new(f, vec![
+      let b = Polynomial::new(f, &vec![
         f.elem(&1u8),
       ]);
-      let c = Polynomial::new(f, vec![
+      let c = Polynomial::new(f, &vec![
         f.elem(&0u8),
       ]);
       let res = a.mul(&b);
@@ -1035,13 +1066,13 @@ mod tests {
     }
     {
       // 2 * 3
-      let a = Polynomial::new(f, vec![
+      let a = Polynomial::new(f, &vec![
         f.elem(&2u8),
       ]);
-      let b = Polynomial::new(f, vec![
+      let b = Polynomial::new(f, &vec![
         f.elem(&3u8),
       ]);
-      let c = Polynomial::new(f, vec![
+      let c = Polynomial::new(f, &vec![
         f.elem(&6u8),
       ]);
       let res = a.mul(&b);
@@ -1055,14 +1086,14 @@ mod tests {
     let f = &PrimeField::new(&3299u16);
     {
       // (2x - 3) * 4
-      let a = Polynomial::new(f, vec![
+      let a = Polynomial::new(f, &vec![
         f.elem(&3u8),
         f.elem(&2u8),
       ]);
-      let b = Polynomial::new(f, vec![
+      let b = Polynomial::new(f, &vec![
         f.elem(&4u8),
       ]);
-      let c = Polynomial::new(f, vec![
+      let c = Polynomial::new(f, &vec![
         f.elem(&12u8),
         f.elem(&8u8),
       ]);
@@ -1076,17 +1107,17 @@ mod tests {
     let f = &PrimeField::new(&3299u16);
     {
       // 2x + 3
-      let a = &Polynomial::new(f, vec![
+      let a = &Polynomial::new(f, &vec![
         f.elem(&3u8),
         f.elem(&2u8),
       ]);
       // 5x + 4
-      let b = &Polynomial::new(f, vec![
+      let b = &Polynomial::new(f, &vec![
         f.elem(&4u8),
         f.elem(&5u8),
       ]);
       // 10x^2 + 23x + 12
-      let c = &Polynomial::new(f, vec![
+      let c = &Polynomial::new(f, &vec![
         f.elem(&12u8),
         f.elem(&23u8),
         f.elem(&10u8),
@@ -1098,11 +1129,35 @@ mod tests {
   }
 
   #[test]
+  fn test_mul_const() {
+    let f = &PrimeField::new(&3299u16);
+    {
+      // 2x + 3
+      let a = Polynomial::new(f, &vec![
+        f.elem(&3u8),
+        f.elem(&2u8),
+      ]);
+      let ten = f.elem(&10u8);
+
+      // 20x + 30
+      let exp = &Polynomial::new(f, &vec![
+        f.elem(&30u8),
+        f.elem(&20u8),
+      ]);
+
+      let act = &a * &ten;
+
+      println!("({:?}) * {:?} = {:?}", a, &ten, &act);
+      assert!(&act == exp);
+    }
+  }
+
+  #[test]
   fn test_eval_from_1_to_n() {
     let f = &PrimeField::new(&3299u16);
     {
       // evaluating for the same degree as the polynomial degree
-      let p = Polynomial::new(f, vec![
+      let p = Polynomial::new(f, &vec![
           f.elem(&2u8),
           f.elem(&3u8),
           f.elem(&5u8),
@@ -1119,7 +1174,7 @@ mod tests {
       let zero = &f.elem(&0u8);
       let three = &f.elem(&3u8);
 
-      let p = Polynomial::new(f, vec![
+      let p = Polynomial::new(f, &vec![
           zero.clone(),
       ]);
       let vec = p.eval_from_1_to_n(three);

@@ -41,22 +41,22 @@ impl PinocchioProver {
     let r1cs = R1CS::from_tmpl(f, tmpl, &witness).unwrap();
     r1cs.validate().unwrap();
 
-    let qap = QAP::build(f, &r1cs, true);
-    let vi: Vec<Polynomial> = qap.a_polys.into();
-    let wi: Vec<Polynomial> = qap.b_polys.into();
-    let yi: Vec<Polynomial> = qap.c_polys.into();
+    let qap = QAP::build(f, &r1cs );
 
     let t = QAP::build_t(f, &tmpl.constraints.len());
 
-    let max_degree = cmp::max(cmp::max(vi.len(), wi.len()), yi.len());
+    let max_degree = cmp::max(
+      cmp::max(qap.vi.len(), qap.wi.len()),
+      qap.yi.len()
+    );
     let mid_beg = 1usize;  // TODO get actual value 1 or above
 
     PinocchioProver {
       max_degree,
       mid_beg,
-      vi,
-      wi,
-      yi,
+      vi: qap.vi.clone(),
+      wi: qap.wi.clone(),
+      yi: qap.yi.clone(),
       t,
     }
   }

@@ -17,7 +17,13 @@ pub struct R1CS {
   pub witness: SparseVec,
 }
 
-// matrices made of constraint vectors each multiplied by witness
+// matrix representing a constraint whose
+// row is the multiples of each witness value i.e.
+// a  = [a1, a2, ...]
+// *
+// b  = [b1, b2, ...]
+// ||
+// c  = [c1, c2, ...]
 pub struct ConstraintMatrices {
   pub a: SparseMatrix,
   pub b: SparseMatrix,

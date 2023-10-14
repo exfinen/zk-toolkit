@@ -11,24 +11,23 @@ use crate::zk::w_trusted_setup::pinocchio::{
     DivResult,
   },
   sparse_vec::SparseVec,
-  sparse_matrix::SparseMatrix,
 };
 use num_traits::Zero;
 
 pub struct QAP {
   pub f: PrimeField,
-  pub a_polys: SparseMatrix,
-  pub b_polys: SparseMatrix,
-  pub c_polys: SparseMatrix,
+  pub vi: Vec<Polynomial>,
+  pub wi: Vec<Polynomial>,
+  pub yi: Vec<Polynomial>,
 }
 
 impl QAP {
   // build a polynomial that evaluates to target_val at x == index
-  // and zero for x != index.
+  // and zero for x != index for each target value.
   // e.g.
   // (x - 2) * (x - 3) * 3 / ((1 - 2) * (1 - 3))
   // where x in [1, 2, 3]; evaluates to 3 if x == 1 and 0 if x != 1
-  fn build_polynomial_for_target_values(
+  fn build_polynomial(
     f: &PrimeField,
     target_vals: &SparseVec,
   ) -> Polynomial {
@@ -41,13 +40,13 @@ impl QAP {
 
       // if target val is zero, simply add 0x^0
       if target_val.e.is_zero() {
-        target_val_polys.push(Polynomial::new(f, vec![f.elem(&0u8)]));
+        target_val_polys.push(Polynomial::new(f, &vec![f.elem(&0u8)]));
         target_x.inc();
         continue;
       }
 
       let mut numerator_polys = vec![
-        Polynomial::new(f, vec![target_val.clone()]),
+        Polynomial::new(f, &vec![target_val.clone()]),
       ];
       let mut denominator = f.elem(&1u8);
 
@@ -58,7 +57,7 @@ impl QAP {
           continue;
         }
         // (x - i) to let the polynomal evaluate to zero at x = i
-        let numerator_poly = Polynomial::new(f, vec![
+        let numerator_poly = Polynomial::new(f, &vec![
           -f.elem(&i),
           f.elem(&1u8),
         ]);
@@ -72,12 +71,12 @@ impl QAP {
       }
 
       // merge denominator polynomial to numerator polynomial vector
-      let denominator_poly = Polynomial::new(f, vec![denominator.inv()]);
+      let denominator_poly = Polynomial::new(f, &vec![denominator.inv()]);
       let mut polys = numerator_polys;
       polys.push(denominator_poly);
 
       // aggregate numerator polynomial vector
-      let mut acc_poly = Polynomial::new(f, vec![f.elem(&1u8)]);
+      let mut acc_poly = Polynomial::new(f, &vec![f.elem(&1u8)]);
       for poly in polys {
         acc_poly = acc_poly.mul(&poly);
       }
@@ -94,54 +93,65 @@ impl QAP {
     res
   }
 
-  pub fn build(
-    f: &PrimeField,
-    r1cs: &R1CS,
-    multiply_witness: bool,
-  ) -> QAP {
+  pub fn build(f: &PrimeField, r1cs: &R1CS) -> QAP {
     /*
-                      a^t
-           a         a1 a2
-    a1 [0 3 0 0] ->  |0 0|
-    a2 [0 0 0 2]     |3 0| <- need polynomial that returns
-    +------^         |0 0|    3 at x=1 and 0 at x=2
-    r1cs selector *  |0 2| <- here polynomial that returns
-    witness         x=1 x=2   0 at x=1 and 2 at x=2
-                    x-th col corresponds to x-th constraint
+              c1 c2 c3 (coeffs for a1, a2, a3)
+       for w=( 1, 2, 3),
+       at x=1, 3 * 1 (w[3] * a3)
+       at x=2, 2 * 3 (w[1] * a1)
+       at x=3, 0
+       at x=4, 2 * 2 (w[2] * a2)
     */
-    let r1cs = if multiply_witness { 
-      r1cs.to_constraint_by_witness_matrices()
-    } else {
-      r1cs.to_constraint_matrices()
-    };
-    let a_t = r1cs.a.transpose();
-    let b_t = r1cs.b.transpose();
-    let c_t = r1cs.c.transpose();
 
-    let mut a_coeffs: Vec<SparseVec> = vec![];
-    let mut b_coeffs: Vec<SparseVec> = vec![];
-    let mut c_coeffs: Vec<SparseVec> = vec![];
+    //       w1 w2 w3 <- witness values
+    //  x=1 | 0  0  1 |
+    //  x=2 | 3  0  0 |
+    //  x=3 | 0  0  0 |
+    //  x=4 | 0  2  0 |
+    let constraints = r1cs.to_constraint_matrices();
+
+    //   x=1 2 3 4 
+    // w1 [0 3 0 0]
+    // w2 [0 0 0 2]
+    // w3 [1 0 0 0]
+    //  ^
+    //  +-- witness e.g. w=(x,y,z,w1,...)
+    let constraints_v_t = constraints.a.transpose();
+    let constraints_w_t = constraints.b.transpose();
+    let constraints_y_t = constraints.c.transpose();
+
+    // build polynomials for each wirness variable
+    // e.g. vi[0] is a polynomial for the first witness variable
+    // and returns 3 at x=2 and 0 at all other x's
+    let mut vi = vec![];
+    let mut wi = vec![];
+    let mut yi = vec![];
 
     let mut y = f.elem(&0u8);
-    let height = &a_t.height;  // a_t, b_t and c_t are of the same dimention
-    let width = &a_t.width;
 
-    while &y < height {
-      let a_row = a_t.get_row(&y);
-      let b_row = b_t.get_row(&y);
-      let c_row = c_t.get_row(&y);
+    let num_witness_values = &constraints_v_t.height;
 
-      a_coeffs.push(QAP::build_polynomial_for_target_values(f, &a_row).to_sparse_vec(width));
-      b_coeffs.push(QAP::build_polynomial_for_target_values(f, &b_row).to_sparse_vec(width));
-      c_coeffs.push(QAP::build_polynomial_for_target_values(f, &c_row).to_sparse_vec(width));
+    while &y < num_witness_values {
+      // extract a constraint row
+      //   x = 1 2 3 4 
+      // wi = [0 3 0 0]
+      let v_row = constraints_v_t.get_row(&y);
+      let w_row = constraints_w_t.get_row(&y);
+      let y_row = constraints_y_t.get_row(&y);
+
+      // convert a constraint row to a polynomial
+      let v_poly = QAP::build_polynomial(f, &v_row);
+      let w_poly = QAP::build_polynomial(f, &w_row);
+      let y_poly = QAP::build_polynomial(f, &y_row);
+      
+      vi.push(v_poly);
+      wi.push(w_poly);
+      yi.push(y_poly);
 
       y.inc();
     }
-    let a_polys = SparseMatrix::from(&a_coeffs);
-    let b_polys = SparseMatrix::from(&b_coeffs);
-    let c_polys = SparseMatrix::from(&c_coeffs);
 
-    QAP { f: f.clone(), a_polys, b_polys, c_polys }
+    QAP { f: f.clone(), vi, wi, yi }
   }
 
   // build polynomial (x-1)(x-2)..(x-num_constraints)
@@ -152,7 +162,7 @@ impl QAP {
 
     // create (x-i) polynomials
     while i <= num_constraints {
-      let poly = Polynomial::new(f, vec![
+      let poly = Polynomial::new(f, &vec![
         -f.elem(&i),
         f.elem(&1u8),
       ]);
@@ -160,50 +170,53 @@ impl QAP {
       i.inc();
     }
     // aggregate (x-i) polynomial into a single polynomial
-    let mut acc_poly = Polynomial::new(f, vec![f.elem(&1u8)]);
+    let mut acc_poly = Polynomial::new(f, &vec![f.elem(&1u8)]);
     for poly in polys {
       acc_poly = acc_poly.mul(&poly);
     }
     acc_poly
   }
 
-  pub fn check_constraints(
+  pub fn is_valid(
     &self,
     witness: &SparseVec,
     num_constraints: &impl ToBigUint,
-    multiply_witness: bool,
   ) -> bool {
-    // aggregate polynomials by calculating dot products with witness
-    let a_poly: Polynomial = if multiply_witness {
-      (&self.a_polys.flatten_rows()).into()
-    } else {
-      (&self.a_polys.multiply_column(witness).flatten_rows()).into()
+    let zero = &Polynomial::zero(&self.f);
+
+    // aggretate vi, wi, yi to build v, w and y
+    let v = {
+      let mut p = zero.clone();
+      for i in 0..self.vi.len() {
+        let w = &witness[&self.f.elem(&i)];
+        p = &p + &(&self.vi[i] * w);
+      };
+      p
     };
-    let b_poly: Polynomial = if multiply_witness {
-      (&self.b_polys.flatten_rows()).into()
-    } else {
-      (&self.b_polys.multiply_column(witness).flatten_rows()).into()
+    let w = {
+      let mut p = zero.clone();
+      for i in 0..self.wi.len() {
+        let w = &witness[&self.f.elem(&i)];
+        p = &p + &(&self.wi[i] * &w);
+      };
+      p
     };
-    let c_poly: Polynomial = if multiply_witness {
-      (&self.c_polys.flatten_rows()).into()
-    } else {
-      (&self.c_polys.multiply_column(witness).flatten_rows()).into()
+    let y = {
+      let mut p = zero.clone();
+      for i in 0..self.yi.len() {
+        let w = &witness[&self.f.elem(&i)];
+        p = &p + &(&self.yi[i] * &w);
+      };
+      p
     };
 
-    let t = a_poly * &b_poly - &c_poly;
-    let num_constraints = self.f.elem(num_constraints);
-    let z = QAP::build_t(&self.f, &num_constraints);
-    match t.divide_by(&z) {
+    let p = (v * &w) - &y;
+    let t = QAP::build_t(&self.f, num_constraints);
+
+    match p.divide_by(&t) {
       DivResult::Quotient(_) => true,
       DivResult::QuotientRemainder(_) => false,
     }
-  }
-
-  pub fn get_flattened_polys(&self) -> (Polynomial, Polynomial, Polynomial) {
-    let a_poly: Polynomial = (&self.a_polys.flatten_rows()).into();
-    let b_poly: Polynomial = (&self.b_polys.flatten_rows()).into();
-    let c_poly: Polynomial = (&self.c_polys.flatten_rows()).into();
-    (a_poly, b_poly, c_poly)
   }
 }
 
@@ -307,11 +320,9 @@ mod tests {
     let num_constraints = &constraints.len();
     let r1cs = R1CS { constraints, witness: witness.clone() };
 
-    for multiply_witness in vec![true, false] {
-      let qap = QAP::build(f, &r1cs, multiply_witness);
-      let is_passed = qap.check_constraints(&witness, num_constraints, multiply_witness);
-      assert!(is_passed);
-    }
+    let qap = QAP::build(f, &r1cs);
+    let is_passed = qap.is_valid(&witness, num_constraints);
+    assert!(is_passed);
   }
 
   #[test]
@@ -328,93 +339,5 @@ mod tests {
     assert_eq!(&z[0], two);
     assert_eq!(&z[1], neg_three);
     assert_eq!(&z[2], one);
-  }
-
-  #[test]
-  fn blog_post_1_example_1() {
-    let f = &PrimeField::new(&37u8);
-    let expr = "(x * x * x) + x + 5 == 35";
-    let eq = EquationParser::parse(f, expr).unwrap();
-    let gates = &Gate::build(f, &eq);
-    let r1cs_tmpl = R1CSTmpl::from_gates(f, gates);
-
-    // build witness
-    /*
-      x = 3
-      t1 = x(3) * x(3) = 9
-      t2 = t1(9) * x(3) = 27
-      t3 = x(3) + 5 = 8
-      t4 = t2(27) + t2(8) = 35
-      out = t4
-    */
-    let witness = {
-      use crate::zk::w_trusted_setup::pinocchio::term::Term::*;
-      HashMap::<Term, PrimeFieldElem>::from([
-        (Term::var("x"), f.elem(&3u8)),
-        (TmpVar(1), f.elem(&9u8)),
-        (TmpVar(2), f.elem(&27u8)),
-        (TmpVar(3), f.elem(&8u8)),
-        (TmpVar(4), f.elem(&35u8)),
-        (Out, eq.rhs),
-      ])
-    };
-
-    let r1cs = R1CS::from_tmpl(f, &r1cs_tmpl, &witness).unwrap();
-    let qap = QAP::build(f, &r1cs, true);
-
-    println!("a:\n{}", qap.a_polys.pretty_print());
-    println!("b:\n{}", qap.b_polys.pretty_print());
-    println!("c:\n{}", qap.c_polys.pretty_print());
-  }
-
-  #[test]
-  fn blog_post_1_example_2() {
-    let f = &PrimeField::new(&37u8);
-    let expr = "(x * x * x) + x + 5 == 35";
-    let eq = EquationParser::parse(f, expr).unwrap();
-    let gates = &Gate::build(f, &eq);
-    let r1cs_tmpl = R1CSTmpl::from_gates(f, gates);
-
-    // build witness
-    let good_witness = {
-      use crate::zk::w_trusted_setup::pinocchio::term::Term::*;
-      HashMap::<Term, PrimeFieldElem>::from([
-        (Term::var("x"), f.elem(&3u8)),
-        (TmpVar(1), f.elem(&9u8)),
-        (TmpVar(2), f.elem(&27u8)),
-        (TmpVar(3), f.elem(&8u8)),
-        (TmpVar(4), f.elem(&35u8)),
-        (Out, eq.rhs.clone()),
-      ])
-    };
-    let bad_witness = {
-      use crate::zk::w_trusted_setup::pinocchio::term::Term::*;
-      HashMap::<Term, PrimeFieldElem>::from([
-        (Term::var("x"), f.elem(&4u8)),  // replaced 3 with 4
-        (TmpVar(1), f.elem(&9u8)),
-        (TmpVar(2), f.elem(&27u8)),
-        (TmpVar(3), f.elem(&8u8)),
-        (TmpVar(4), f.elem(&35u8)),
-        (Out, eq.rhs),
-      ])
-    };
-
-    for test_case in vec![("good", good_witness), ("bad", bad_witness)] {
-      let (name, witness) = test_case;
-      let r1cs = R1CS::from_tmpl(f, &r1cs_tmpl, &witness).unwrap();
-
-      let qap = QAP::build(f, &r1cs, true);
-      let (a, b, c) = qap.get_flattened_polys();
-      let t = a * &b - &c;
-
-      let num_constraints = f.elem(&gates.len());
-      let z = QAP::build_t(f, &num_constraints);
-
-      let is_witness_valid = match t.divide_by(&z) {
-        DivResult::Quotient(_) => true,
-        DivResult::QuotientRemainder(_) => false,
-      };
-      println!("is {} witness valid? -> {}", name, is_witness_valid);
-    }
   }
 }

@@ -30,6 +30,25 @@ impl std::fmt::Debug for SparseVec {
   }
 }
 
+pub struct SparseVecIterator<'a> {
+  sv: &'a SparseVec,
+  i: PrimeFieldElem,
+}
+
+impl<'a> Iterator for SparseVecIterator<'a> {
+  type Item = PrimeFieldElem;
+
+  fn next(&mut self) -> Option<Self::Item> {
+    if &self.sv.size == &self.i {
+      None
+    } else {
+      let elem = self.sv[&self.i].clone();
+      self.i.inc();
+      Some(elem)
+    }
+  }
+}
+
 impl SparseVec {
   pub fn new(f: &PrimeField, size: &impl ToBigUint) -> Self {
     let size = f.elem(size);
@@ -42,6 +61,10 @@ impl SparseVec {
       size,
       elems: HashMap::<PrimeFieldElem, PrimeFieldElem>::new(),
     }
+  }
+
+  pub fn iter(&self) -> SparseVecIterator {
+    SparseVecIterator { sv: self, i: self.f.elem(&0u8) }
   }
 
   pub fn set(&mut self, index: &impl ToBigUint, n: &impl ToBigUint) {
@@ -455,5 +478,20 @@ mod tests {
     vec_b.set(&1u8, &13u8);
     assert_ne!(vec_a, vec_b);
     assert_ne!(vec_b, vec_a);
+  }
+
+  #[test]
+  fn test_iterator() {
+    let f = &PrimeField::new(&3911u16);
+    let mut sv = SparseVec::new(f, &3u8);
+    sv.set(&0u8, &f.elem(&1u8));
+    sv.set(&1u8, &f.elem(&2u8));
+    sv.set(&2u8, &f.elem(&3u8));
+
+    let it = &mut sv.iter();
+    assert!(it.next().unwrap() == f.elem(&1u8));
+    assert!(it.next().unwrap() == f.elem(&2u8));
+    assert!(it.next().unwrap() == f.elem(&3u8));
+    assert!(it.next() == None);
   }
 }
