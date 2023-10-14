@@ -3,10 +3,17 @@ use crate::building_block::{
     prime_field::PrimeField,
     prime_field_elem::PrimeFieldElem,
   },
-  to_biguint::ToBigUint,
+  curves::bls12_381::{
+    g1_point::G1Point,
+    g2_point::G2Point,
+  },
+  to_biguint::ToBigUint, zero::Zero,
 };
 use num_bigint::BigUint;
-use num_traits::One;
+use num_traits::{
+  One,
+  Zero as NumTraitZero,
+};
 use std::{
   fmt::{Debug, Formatter},
   ops::{
@@ -17,7 +24,6 @@ use std::{
   },
   convert::From,
 };
-use num_traits::identities::Zero;
 use super::sparse_vec::SparseVec;
 
 // TODO use SparseVec instead of Vec to hold coeffs
@@ -259,6 +265,30 @@ impl Polynomial {
       panic!("should have at least 1 coeff. check code");
     }
     self.f.elem(&(self.coeffs.len() - 1))
+  }
+
+  #[allow(non_snake_case)]
+  pub fn eval_with_g1_hidings(
+    &self,
+    g1_powers: &Vec<G1Point>,
+  ) -> G1Point {
+    let mut sum = G1Point::zero();
+    for i in 0..self.coeffs.len() {
+      sum = sum + &g1_powers[i] * &self.coeffs[i];
+    }
+    sum
+  }
+
+  #[allow(non_snake_case)]
+  pub fn eval_with_g2_hidings(
+    &self,
+    g2_powers: &Vec<G2Point>
+  ) -> G2Point {
+    let mut sum = G2Point::zero();
+    for i in 0..self.coeffs.len() {
+      sum = sum + &g2_powers[i] * &self.coeffs[i];
+    }
+    sum
   }
 
   pub fn to_sparse_vec(&self, size: &impl ToBigUint) -> SparseVec {
@@ -1183,5 +1213,79 @@ mod tests {
       assert_eq!(vec.get(&1u8), zero);
       assert_eq!(vec.get(&2u8), zero);
     }
+  }
+
+  #[test]
+  fn test_eval_with_g1_hidings() {
+    let f = &PrimeField::new(&3299u16);
+    let s = f.elem(&3u8);
+    let s0g = &G1Point::g();
+    let s1g = s0g * &s;
+    let s2g = s0g * &s.pow(&2u8);
+    let s3g = s0g * &s.pow(&3u8);
+    let pows = vec![
+      s0g.clone(),
+      s1g.clone(),
+      s2g.clone(),
+      s3g.clone(),
+    ];
+    let two = f.elem(&2u8);
+    let three = f.elem(&3u8);
+    let four = f.elem(&4u8);
+    let five = f.elem(&5u8);
+
+    let exp = 
+      s0g * &two
+      + &s1g * &three
+      + &s2g * &four
+      + &s3g * &five
+    ;
+    // 5x^3 + 4x^2 + 3x + 2
+    let p = Polynomial::new(f, &vec![
+      two,
+      three,
+      four,
+      five,
+    ]);
+    let act = p.eval_with_g1_hidings(&pows);
+
+    assert!(act == exp);
+  }
+
+  #[test]
+  fn test_eval_with_g2_hidings() {
+    let f = &PrimeField::new(&3299u16);
+    let s = f.elem(&3u8);
+    let s0g = &G2Point::g();
+    let s1g = s0g * &s;
+    let s2g = s0g * &s.pow(&2u8);
+    let s3g = s0g * &s.pow(&3u8);
+    let pows = vec![
+      s0g.clone(),
+      s1g.clone(),
+      s2g.clone(),
+      s3g.clone(),
+    ];
+    let two = f.elem(&2u8);
+    let three = f.elem(&3u8);
+    let four = f.elem(&4u8);
+    let five = f.elem(&5u8);
+
+    let exp = 
+      s0g * &two
+      + &s1g * &three
+      + &s2g * &four
+      + &s3g * &five
+    ;
+    // 5x^3 + 4x^2 + 3x + 2
+    let p = Polynomial::new(f, &vec![
+      two,
+      three,
+      four,
+      five,
+    ]);
+    let act = p.eval_with_g2_hidings(&pows);
+
+    assert!(act == exp);
   }
 }
