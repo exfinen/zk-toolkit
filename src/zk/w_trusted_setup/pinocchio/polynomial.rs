@@ -279,6 +279,7 @@ impl Polynomial {
     sum
   }
 
+  // TODO avoid duplicating code
   #[allow(non_snake_case)]
   pub fn eval_with_g2_hidings(
     &self,
@@ -1252,6 +1253,7 @@ mod tests {
     assert!(act == exp);
   }
 
+  // TODO share code with g1 couterpart
   #[test]
   fn test_eval_with_g2_hidings() {
     let f = &PrimeField::new(&3299u16);
