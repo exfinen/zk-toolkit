@@ -64,7 +64,6 @@ impl PinocchioProver {
   }
 
   pub fn prove(&self, _crs: CRS) -> PinocchioProof {
-    self.vi
     PinocchioProof()
   }
 }
