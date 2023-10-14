@@ -316,23 +316,36 @@ impl PrimeFieldElem {
     PrimeFieldElem { f: self.f.clone(), e }
   }
 
-  pub fn pow_seq(&self, e: &usize) -> PrimeFieldElems {
+  pub fn pow_seq(&self, n: &impl ToBigUint) -> PrimeFieldElems {
+    let zero = &BigUint::from(0u8);
+    let one = &BigUint::from(1u8);
+    let n = n.to_biguint();
+
+    let mut i = zero.clone();
     let mut xs = vec![];
     let mut x = self.f.elem(&1u8);
 
-    for _ in 0..*e {
+    while &i < &n {
       xs.push(x.clone());
       x = x * &self.e;
+      i += one;
     }
     PrimeFieldElems::new(&xs)
   }
 
-  pub fn repeat(&self, n: usize) -> PrimeFieldElems {
+  pub fn repeat(&self, n: &impl ToBigUint) -> PrimeFieldElems {
+    let zero = &BigUint::from(0u8);
+    let one = &BigUint::from(1u8);
+    let n = n.to_biguint();
+
+    let mut i = zero.clone();
     let mut xs = vec![];
-    for _ in 0..n {
+
+    while &i < &n {
       xs.push(self.clone());
+      i += one;
     }
-    return PrimeFieldElems::new(&xs);
+    PrimeFieldElems::new(&xs)
   }
 
   // based on extended Euclidean algorithm
@@ -814,7 +827,7 @@ mod tests {
       // when value is less than field order
       let f = Arc::new(PrimeField::new(&100u8));
       let a = PrimeFieldElem::new(&f, &3u8);
-      let xs = a.pow_seq(&4);
+      let xs = a.pow_seq(&4u8);
       assert_eq!(xs.len(), 4);
       assert_eq!(xs[0].e.to_u8().unwrap(), 1);
       assert_eq!(xs[1].e.to_u8().unwrap(), 3);
@@ -825,7 +838,7 @@ mod tests {
       // when value is larger than field order
       let f = Arc::new(PrimeField::new(&11u8));
       let a = PrimeFieldElem::new(&f, &3u8);
-      let xs = a.pow_seq(&4);
+      let xs = a.pow_seq(&4u8);
       assert_eq!(xs.len(), 4);
       assert_eq!(xs[0].e.to_u8().unwrap(), 1);
       assert_eq!(xs[1].e.to_u8().unwrap(), 3);
@@ -838,7 +851,7 @@ mod tests {
   fn repeat() {
     let f = Arc::new(PrimeField::new(&11u8));
     let a = PrimeFieldElem::new(&f, &5u8);
-    let xs = a.repeat(3);
+    let xs = a.repeat(&3u8);
     assert_eq!(xs.len(), 3);
     assert_eq!(xs[0].e.to_u8().unwrap(), 5);
     assert_eq!(xs[1].e.to_u8().unwrap(), 5);

@@ -163,7 +163,7 @@ mod tests {
     let r1 = &gg * &z;
 
     let one = curve_group.elem(&1u8);
-    let ones = one.repeat(n);
+    let ones = one.repeat(&n);
     let r2 = &gg * &(&ones * &z);
 
     assert!(r1 == r2);

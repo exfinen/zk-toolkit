@@ -88,6 +88,20 @@ impl PrimeField {
     let xs = (0..*n).map(|_| self.rand_elem(exclude_zero)).collect::<Vec<PrimeFieldElem>>();
     PrimeFieldElems(xs)
   }
+
+  pub fn seq(&self, from: &PrimeFieldElem, to: &PrimeFieldElem, incl_last_elem: bool) -> Vec<PrimeFieldElem> {
+    let mut i = from.clone();
+    let mut xs = vec![];
+
+    while &i <= to {
+      if !incl_last_elem && &i == to {
+        break;
+      }
+      xs.push(i.clone());
+      i.inc();
+    }
+    xs
+  }
 }
 
 impl PartialEq for PrimeField {

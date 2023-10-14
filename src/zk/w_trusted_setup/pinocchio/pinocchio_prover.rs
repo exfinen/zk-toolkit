@@ -13,8 +13,8 @@ use crate::{
   },
 };
 use std::{
-  cmp,
   collections::HashMap,
+  cmp,
 };
 
 pub struct PinocchioProver {
@@ -31,6 +31,7 @@ impl PinocchioProver {
     f: &PrimeField,
     expr: &str,
     witness: &HashMap<Term, PrimeFieldElem>,
+    mid_beg: &PrimeFieldElem,
 
   ) -> Self {
     let eq = EquationParser::parse(f, expr).unwrap();
@@ -45,15 +46,16 @@ impl PinocchioProver {
 
     let t = QAP::build_t(f, &tmpl.constraints.len());
 
-    let max_degree = cmp::max(
-      cmp::max(qap.vi.len(), qap.wi.len()),
-      qap.yi.len()
-    );
-    let mid_beg = 1usize;  // TODO get actual value 1 or above
+    let max_degree = {
+      let vi = qap.vi.iter().map(|x| x.degree()).max().unwrap();
+      let wi = qap.wi.iter().map(|x| x.degree()).max().unwrap();
+      let yi = qap.yi.iter().map(|x| x.degree()).max().unwrap();
+      cmp::max(cmp::max(vi, wi), yi)
+    };
 
     PinocchioProver {
-      max_degree,
-      mid_beg,
+      max_degree: (&max_degree.e).try_into().unwrap(),
+      mid_beg: (&mid_beg.e).try_into().unwrap(),
       vi: qap.vi.clone(),
       wi: qap.wi.clone(),
       yi: qap.yi.clone(),
@@ -96,8 +98,9 @@ mod tests {
         (Out, eq.rhs),
       ])
     };
+    let mid_beg = f.elem(&1u8);
 
-    let prover = &PinocchioProver::new(f, expr, &witness);
+    let prover = &PinocchioProver::new(f, expr, &witness, &mid_beg);
 
     let crs = CRS::new(f, prover);
 

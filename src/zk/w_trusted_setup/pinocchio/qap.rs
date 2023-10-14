@@ -224,20 +224,9 @@ impl QAP {
 mod tests {
   use super::*;
   use crate::{
-    building_block::field::{
-      prime_field::PrimeField,
-      prime_field_elem::PrimeFieldElem,
-    },
-    zk::w_trusted_setup::pinocchio::{
-      constraint::Constraint,
-      gate::Gate,
-      equation_parser::EquationParser,
-      r1cs_tmpl::R1CSTmpl,
-      sparse_vec::SparseVec,
-      term::Term,
-    }
+    building_block::field::prime_field::PrimeField,
+    zk::w_trusted_setup::pinocchio::constraint::Constraint,
   };
-  use std::collections::HashMap;
 
   #[test]
   fn test_r1cs_to_polynomial() {
