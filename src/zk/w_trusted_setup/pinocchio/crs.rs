@@ -12,14 +12,14 @@ use crate::{
 #[allow(dead_code)]
 pub struct CRS {
   // Evaluation keys
-  h_si: Vec<G1Point>,
-  h_alpha_si: Vec<G1Point>,
-  h_vi_mid: Vec<G1Point>,
-  h_wi_mid: Vec<G1Point>,
-  h_yi_mid: Vec<G1Point>,
-  h_beta_vi_mid: Vec<G1Point>,
-  h_beta_wi_mid: Vec<G1Point>,
-  h_beta_yi_mid: Vec<G1Point>,
+  pub h_si: Vec<G1Point>,
+  pub h_alpha_si: Vec<G1Point>,
+  pub h_vi_mid: Vec<G1Point>,
+  pub h_wi_mid: Vec<G1Point>,
+  pub h_yi_mid: Vec<G1Point>,
+  pub h_beta_vi_mid: Vec<G1Point>,
+  pub h_beta_wi_mid: Vec<G1Point>,
+  pub h_beta_yi_mid: Vec<G1Point>,
 
   // Verification keys
   h_one: G1Point,

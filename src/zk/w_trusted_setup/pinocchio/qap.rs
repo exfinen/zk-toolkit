@@ -13,12 +13,15 @@ use crate::zk::w_trusted_setup::pinocchio::{
   sparse_vec::SparseVec,
 };
 use num_traits::Zero;
+use num_bigint::BigUint;
 
+#[derive(Clone)]
 pub struct QAP {
   pub f: PrimeField,
   pub vi: Vec<Polynomial>,
   pub wi: Vec<Polynomial>,
   pub yi: Vec<Polynomial>,
+  pub num_constraints: BigUint,
 }
 
 impl QAP {
@@ -93,6 +96,61 @@ impl QAP {
     res
   }
 
+  pub fn build_p(&self, witness: &SparseVec) -> Polynomial {
+    let zero = &Polynomial::zero(&self.f);
+
+    // aggretate vi, wi, yi to build v, w and y
+    let v = {
+      let mut p = zero.clone();
+      for i in 0..self.vi.len() {
+        let w = &witness[&self.f.elem(&i)];
+        p = &p + &(&self.vi[i] * w);
+      };
+      p
+    };
+    let w = {
+      let mut p = zero.clone();
+      for i in 0..self.wi.len() {
+        let w = &witness[&self.f.elem(&i)];
+        p = &p + &(&self.wi[i] * &w);
+      };
+      p
+    };
+    let y = {
+      let mut p = zero.clone();
+      for i in 0..self.yi.len() {
+        let w = &witness[&self.f.elem(&i)];
+        p = &p + &(&self.yi[i] * &w);
+      };
+      p
+    };
+
+    (v * &w) - &y
+  }
+
+  // build polynomial (x-1)(x-2)..(x-num_constraints)
+  pub fn build_t(f: &PrimeField, num_constraints: &impl ToBigUint) -> Polynomial {
+    let num_constraints = f.elem(num_constraints);
+    let mut i = f.elem(&1u8);
+    let mut polys = vec![];
+
+    // create (x-i) polynomials
+    while i <= num_constraints {
+      let poly = Polynomial::new(f, &vec![
+        -f.elem(&i),
+        f.elem(&1u8),
+      ]);
+      polys.push(poly);
+      i.inc();
+    }
+    // aggregate (x-i) polynomial into a single polynomial
+    let mut acc_poly = Polynomial::new(&f, &vec![f.elem(&1u8)]);
+    for poly in polys {
+      acc_poly = acc_poly.mul(&poly);
+    }
+    acc_poly
+  }
+
   pub fn build(f: &PrimeField, r1cs: &R1CS) -> QAP {
     /*
               c1 c2 c3 (coeffs for a1, a2, a3)
@@ -129,7 +187,7 @@ impl QAP {
 
     let mut y = f.elem(&0u8);
 
-    let num_witness_values = &constraints_v_t.height;
+    let num_witness_values = &r1cs.witness.size;
 
     while &y < num_witness_values {
       // extract a constraint row
@@ -151,30 +209,9 @@ impl QAP {
       y.inc();
     }
 
-    QAP { f: f.clone(), vi, wi, yi }
-  }
+    let num_constraints = constraints.a.height.e.clone();
 
-  // build polynomial (x-1)(x-2)..(x-num_constraints)
-  pub fn build_t(f: &PrimeField, num_constraints: &impl ToBigUint) -> Polynomial {
-    let num_constraints = f.elem(num_constraints);
-    let mut i = f.elem(&1u8);
-    let mut polys = vec![];
-
-    // create (x-i) polynomials
-    while i <= num_constraints {
-      let poly = Polynomial::new(f, &vec![
-        -f.elem(&i),
-        f.elem(&1u8),
-      ]);
-      polys.push(poly);
-      i.inc();
-    }
-    // aggregate (x-i) polynomial into a single polynomial
-    let mut acc_poly = Polynomial::new(f, &vec![f.elem(&1u8)]);
-    for poly in polys {
-      acc_poly = acc_poly.mul(&poly);
-    }
-    acc_poly
+    QAP { f: f.clone(), vi, wi, yi, num_constraints }
   }
 
   pub fn is_valid(
@@ -182,36 +219,8 @@ impl QAP {
     witness: &SparseVec,
     num_constraints: &impl ToBigUint,
   ) -> bool {
-    let zero = &Polynomial::zero(&self.f);
-
-    // aggretate vi, wi, yi to build v, w and y
-    let v = {
-      let mut p = zero.clone();
-      for i in 0..self.vi.len() {
-        let w = &witness[&self.f.elem(&i)];
-        p = &p + &(&self.vi[i] * w);
-      };
-      p
-    };
-    let w = {
-      let mut p = zero.clone();
-      for i in 0..self.wi.len() {
-        let w = &witness[&self.f.elem(&i)];
-        p = &p + &(&self.wi[i] * &w);
-      };
-      p
-    };
-    let y = {
-      let mut p = zero.clone();
-      for i in 0..self.yi.len() {
-        let w = &witness[&self.f.elem(&i)];
-        p = &p + &(&self.yi[i] * &w);
-      };
-      p
-    };
-
-    let p = (v * &w) - &y;
     let t = QAP::build_t(&self.f, num_constraints);
+    let p = self.build_p(witness);
 
     match p.divide_by(&t) {
       DivResult::Quotient(_) => true,
@@ -232,7 +241,7 @@ mod tests {
   fn test_r1cs_to_polynomial() {
     let f = &PrimeField::new(&3911u16);
 
-    //     x  out t1 y   t2
+    //     x  out t1  y  t2
     //  0  1   2  3   4   5
     // [1, 3, 35, 9, 27, 30]
     let witness = SparseVec::from(&vec![
@@ -307,7 +316,12 @@ mod tests {
       Constraint::new(&a4, &b4, &c4),
     ];
     let num_constraints = &constraints.len();
-    let r1cs = R1CS { constraints, witness: witness.clone() };
+    let mid_beg = f.elem(&3u8);
+    let r1cs = R1CS {
+      constraints,
+      witness: witness.clone(),
+      mid_beg,
+    };
 
     let qap = QAP::build(f, &r1cs);
     let is_passed = qap.is_valid(&witness, num_constraints);
