@@ -14,3 +14,4 @@ pub mod r1cs_tmpl;
 pub mod sparse_matrix;
 pub mod sparse_vec;
 pub mod term;
+pub mod witness;

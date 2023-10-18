@@ -52,9 +52,8 @@ impl CRS {
     let beta_y = &f.rand_elem(true);
     let gamma = &f.rand_elem(true);
 
-    // TODO s_pows includes s^0. is this okay?
     let s_pows = &s.pow_seq(&p.max_degree);
-    let mid: &Vec<usize> = &(*&p.mid_beg..=*&p.max_degree).collect();
+    let mid: &Vec<usize> = &(*&p.mid_beg..*&p.num_constraints).collect();
     let io: &Vec<usize> = &(1usize..*&p.mid_beg).collect();
 
     // Evaluation keys
@@ -66,14 +65,14 @@ impl CRS {
     }).collect();
 
     // E(vi(s)), E(wi(x), E(yi(x))
-    let h_vi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&p.vi[i - 1].eval_at(s)) }).collect();
-    let h_wi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&p.wi[i - 1].eval_at(s)) }).collect();
-    let h_yi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&p.yi[i - 1].eval_at(s)) }).collect();
+    let h_vi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&p.vi[*i].eval_at(s)) }).collect();
+    let h_wi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&p.wi[*i].eval_at(s)) }).collect();
+    let h_yi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&p.yi[*i].eval_at(s)) }).collect();
 
     // E(beta_v * vi(s)), E(beta_w * wi(s)), E(beta_y * yi(s))
-    let h_beta_vi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&(beta_v * p.vi[i - 1].eval_at(s))) }).collect();
-    let h_beta_wi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&(beta_w * p.wi[i - 1].eval_at(s))) }).collect();
-    let h_beta_yi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&(beta_v * p.yi[i - 1].eval_at(s))) }).collect();
+    let h_beta_vi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&(beta_v * p.vi[*i].eval_at(s))) }).collect();
+    let h_beta_wi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&(beta_w * p.wi[*i].eval_at(s))) }).collect();
+    let h_beta_yi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&(beta_v * p.yi[*i].eval_at(s))) }).collect();
 
     // Verification keys
     let h_one = E1(&f.elem(&1u8));  

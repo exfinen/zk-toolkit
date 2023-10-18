@@ -270,7 +270,7 @@ impl Polynomial {
   #[allow(non_snake_case)]
   pub fn eval_with_g1_hidings(
     &self,
-    g1_powers: &Vec<G1Point>,
+    g1_powers: &[G1Point],
   ) -> G1Point {
     let mut sum = G1Point::zero();
     for i in 0..self.coeffs.len() {
@@ -283,7 +283,7 @@ impl Polynomial {
   #[allow(non_snake_case)]
   pub fn eval_with_g2_hidings(
     &self,
-    g2_powers: &Vec<G2Point>
+    g2_powers: &[G2Point]
   ) -> G2Point {
     let mut sum = G2Point::zero();
     for i in 0..self.coeffs.len() {

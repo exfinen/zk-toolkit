@@ -136,6 +136,20 @@ impl SparseVec {
     s += "]";
     s
   }
+
+  // returns a vector of range [from..to)
+  pub fn slice(&self, from: &PrimeFieldElem, to: &PrimeFieldElem) -> Self {
+    let size = &self.f.elem(&(to - from));
+    let mut new_sv = SparseVec::new(&self.f, size);
+
+    let mut i = from.clone();
+    while &i < to {
+      new_sv.set(&(&i - from), &self[&i]);
+      i.inc();    
+    } 
+    new_sv
+  }
+
 }
 
 impl PartialEq for SparseVec {
@@ -220,6 +234,27 @@ mod tests {
   fn test_from_empty_list() {
     std::panic::set_hook(Box::new(|_| {}));  // suppress stack trace
     let _ = SparseVec::from(&vec![]);
+  }
+
+  #[test]
+  fn test_slice() {
+    let f = &PrimeField::new(&3911u16);
+    let zero = &f.elem(&0u8);
+    let one = &f.elem(&1u8);
+    let two = &f.elem(&2u8);
+    let three = &f.elem(&3u8);
+    let elems = vec![
+      zero.clone(),
+      one.clone(),
+      two.clone(),
+      three.clone(),
+    ];
+    let sv = SparseVec::from(&elems);
+    let sv2 = sv.slice(one, three);
+
+    assert_eq!(&sv2.size, two);
+    assert_eq!(&sv2[&zero], one);
+    assert_eq!(&sv2[&one], two);
   }
 
   #[test]
