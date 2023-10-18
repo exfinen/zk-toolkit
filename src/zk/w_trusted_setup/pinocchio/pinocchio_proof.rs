@@ -8,6 +8,6 @@ pub struct PinocchioProof {
   pub beta_w: G1Point,
   pub beta_y: G1Point,
   pub h: G1Point,
-  pub h_alpha: G1Point,
+  pub alpha_h: G1Point,
 }
 

@@ -14,6 +14,7 @@ use crate::{
     qap::QAP,
     polynomial::{Polynomial, DivResult},
     pinocchio_proof::PinocchioProof,
+    pinocchio_verifier::PinocchioVerifier,
     r1cs::R1CS,
     r1cs_tmpl::R1CSTmpl,
     term::Term,
@@ -93,22 +94,23 @@ impl PinocchioProver {
       sum
     };
 
-    let v = calculate(&crs.h_vi_mid);
-    let beta_v = calculate(&crs.h_beta_vi_mid);
+    let v = calculate(&crs.ek.vi_mid);
+    let beta_v = calculate(&crs.ek.beta_vi_mid);
 
-    let w = calculate(&crs.h_wi_mid);
-    let beta_w = calculate(&crs.h_beta_wi_mid);
+    let w = calculate(&crs.ek.wi_mid);
+    let beta_w = calculate(&crs.ek.beta_wi_mid);
 
-    let y = calculate(&crs.h_yi_mid);
-    let beta_y = calculate(&crs.h_beta_yi_mid);
+    let y = calculate(&crs.ek.yi_mid);
+    let beta_y = calculate(&crs.ek.beta_yi_mid);
 
     let h = match self.p.divide_by(&self.t) {
       DivResult::Quotient(h) => h,
       DivResult::QuotientRemainder(_) => panic!("p must be divisible by t"),
     };
 
-    let h_hiding = h.eval_with_g1_hidings(&crs.h_si);
-    let h_alpha = h.eval_with_g1_hidings(&crs.h_alpha_si);
+    println!("h: {:?}", &h);
+    let h_hiding = h.eval_with_g1_hidings(&crs.ek.si);
+    let alpha_h = h.eval_with_g1_hidings(&crs.ek.alpha_si);
 
     PinocchioProof {
       v,
@@ -118,7 +120,7 @@ impl PinocchioProver {
       beta_w,
       beta_y,
       h: h_hiding,
-      h_alpha,
+      alpha_h,
     }
   }
 }
@@ -128,7 +130,7 @@ mod tests {
   use super::*;
 
   #[test]
-  fn test1() {
+  fn test_generate_proof_and_verify() {
     let f = &PrimeField::new(&3911u16);
 
     let expr = "(x * x * x) + x + 5 == 35";
@@ -155,10 +157,13 @@ mod tests {
       ])
     };
     let prover = &PinocchioProver::new(f, expr, &witness);
-
+    let verifier = &PinocchioVerifier::new();
     let crs = CRS::new(f, prover);
 
-    let _proof = prover.prove(&crs);
+    let proof = prover.prove(&crs);
+    let result = verifier.verify(&proof, &crs);
+
+    assert!(result == true);
   }
 }
 

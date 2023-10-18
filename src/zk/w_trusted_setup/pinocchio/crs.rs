@@ -1,6 +1,7 @@
 use crate::{
   building_block::{
     curves::bls12_381::g1_point::G1Point,
+    curves::bls12_381::g2_point::G2Point,
     field::{
       prime_field::PrimeField,
       prime_field_elem::PrimeFieldElem,
@@ -9,41 +10,45 @@ use crate::{
   zk::w_trusted_setup::pinocchio::pinocchio_prover::PinocchioProver,
 };
 
-#[allow(dead_code)]
-pub struct CRS {
-  // Evaluation keys
-  pub h_si: Vec<G1Point>,
-  pub h_alpha_si: Vec<G1Point>,
-  pub h_vi_mid: Vec<G1Point>,
-  pub h_wi_mid: Vec<G1Point>,
-  pub h_yi_mid: Vec<G1Point>,
-  pub h_beta_vi_mid: Vec<G1Point>,
-  pub h_beta_wi_mid: Vec<G1Point>,
-  pub h_beta_yi_mid: Vec<G1Point>,
+pub struct EvaluationKeys {
+  pub si: Vec<G1Point>,
+  pub alpha_si: Vec<G1Point>,
+  pub vi_mid: Vec<G1Point>,
+  pub wi_mid: Vec<G1Point>,
+  pub yi_mid: Vec<G1Point>,
+  pub beta_vi_mid: Vec<G1Point>,
+  pub beta_wi_mid: Vec<G1Point>,
+  pub beta_yi_mid: Vec<G1Point>,
+}
 
-  // Verification keys
-  h_one: G1Point,
-  h_alpha: G1Point,
-  h_gamma: G1Point,
-  h_beta_v_gamma: G1Point,
-  h_beta_w_gamma: G1Point,
-  h_beta_y_gamma: G1Point,
-  h_t: G1Point,
-  h_v0: G1Point,
-  h_w0: G1Point,
-  h_y0: G1Point,
-  h_vi_io: Vec<G1Point>,
-  h_wi_io: Vec<G1Point>,
-  h_yi_io: Vec<G1Point>,
+pub struct VerificationKeys {
+  pub one: G2Point,
+  pub e_alpha: G2Point,
+  pub e_gamma: G2Point,
+  pub beta_v_gamma: G2Point,
+  pub beta_w_gamma: G2Point,
+  pub beta_y_gamma: G2Point,
+  pub t: G1Point,
+  pub v0: G1Point,
+  pub w0: G1Point,
+  pub y0: G1Point,
+  pub vi_io: Vec<G1Point>,
+  pub wi_io: Vec<G1Point>,
+  pub yi_io: Vec<G1Point>,
+}
+
+pub struct CRS {
+  pub ek: EvaluationKeys,
+  pub vk: VerificationKeys,
 }
 
 impl CRS {
   #[allow(non_snake_case)]
   pub fn new(f: &PrimeField, p: &PinocchioProver) -> Self {
     let g1 = &G1Point::g();
-    //let g2 = &G2Point::g();
+    let g2 = &G2Point::g();
     let E1 = |n: &PrimeFieldElem| -> G1Point { g1 * n };
-    //let E2 = |n: &PrimeFieldElem| -> G2Point { g2 * n };
+    let E2 = |n: &PrimeFieldElem| -> G2Point { g2 * n };
 
     let s = &f.rand_elem(true);
     let alpha = &f.rand_elem(true);
@@ -53,69 +58,73 @@ impl CRS {
     let gamma = &f.rand_elem(true);
 
     let s_pows = &s.pow_seq(&p.max_degree);
+    println!("s_pows: {:?}", &s_pows);
     let mid: &Vec<usize> = &(*&p.mid_beg..*&p.num_constraints).collect();
     let io: &Vec<usize> = &(1usize..*&p.mid_beg).collect();
 
     // Evaluation keys
 
     // E(s^i), E(alpha * s^i)
-    let h_si: Vec<G1Point> = s_pows.iter().map(|pow| { E1(pow) }).collect();
-    let h_alpha_si: Vec<G1Point> = s_pows.iter().map(|pow| {
-      E1(&(alpha * pow))
+    let si: Vec<G1Point> = s_pows.iter().map(|pow| { E1(pow) }).collect();
+    let alpha_si: Vec<G1Point> = s_pows.iter().map(|pow| {
+      E1(pow) * alpha
     }).collect();
 
     // E(vi(s)), E(wi(x), E(yi(x))
-    let h_vi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&p.vi[*i].eval_at(s)) }).collect();
-    let h_wi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&p.wi[*i].eval_at(s)) }).collect();
-    let h_yi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&p.yi[*i].eval_at(s)) }).collect();
+    let vi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&p.vi[*i].eval_at(s)) }).collect();
+    let wi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&p.wi[*i].eval_at(s)) }).collect();
+    let yi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&p.yi[*i].eval_at(s)) }).collect();
 
     // E(beta_v * vi(s)), E(beta_w * wi(s)), E(beta_y * yi(s))
-    let h_beta_vi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&(beta_v * p.vi[*i].eval_at(s))) }).collect();
-    let h_beta_wi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&(beta_w * p.wi[*i].eval_at(s))) }).collect();
-    let h_beta_yi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&(beta_v * p.yi[*i].eval_at(s))) }).collect();
+    let beta_vi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&(beta_v * p.vi[*i].eval_at(s))) }).collect();
+    let beta_wi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&(beta_w * p.wi[*i].eval_at(s))) }).collect();
+    let beta_yi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&(beta_v * p.yi[*i].eval_at(s))) }).collect();
 
     // Verification keys
-    let h_one = E1(&f.elem(&1u8));  
-    let h_alpha = E1(alpha);
-    let h_gamma = E1(gamma);
-    let h_beta_v_gamma = E1(&(beta_v * gamma)); 
-    let h_beta_w_gamma = E1(&(beta_w * gamma)); 
-    let h_beta_y_gamma = E1(&(beta_y * gamma)); 
+    let one = E2(&f.elem(&1u8));  
+    let e_alpha = E2(alpha);
+    let e_gamma = E2(gamma);
+    let beta_v_gamma = E2(&(beta_v * gamma)); 
+    let beta_w_gamma = E2(&(beta_w * gamma)); 
+    let beta_y_gamma = E2(&(beta_y * gamma)); 
 
-    let h_t = E1(&p.t.eval_at(s));
-    let h_v0 = E1(&p.vi[0].eval_at(s));
-    let h_w0 = E1(&p.wi[0].eval_at(s));
-    let h_y0 = E1(&p.yi[0].eval_at(s));
+    let t = E1(&p.t.eval_at(s));
+    let v0 = E1(&p.vi[0].eval_at(s));
+    let w0 = E1(&p.wi[0].eval_at(s));
+    let y0 = E1(&p.yi[0].eval_at(s));
 
-    let h_vi_io: Vec<G1Point> = io.iter().map(|i| { E1(&p.vi[*i].eval_at(s)) }).collect();
-    let h_wi_io: Vec<G1Point> = io.iter().map(|i| { E1(&p.wi[*i].eval_at(s)) }).collect();
-    let h_yi_io: Vec<G1Point> = io.iter().map(|i| { E1(&p.yi[*i].eval_at(s)) }).collect();
+    let vi_io: Vec<G1Point> = io.iter().map(|i| { E1(&p.vi[*i].eval_at(s)) }).collect();
+    let wi_io: Vec<G1Point> = io.iter().map(|i| { E1(&p.wi[*i].eval_at(s)) }).collect();
+    let yi_io: Vec<G1Point> = io.iter().map(|i| { E1(&p.yi[*i].eval_at(s)) }).collect();
 
-    CRS {
-      // Evaluation keys
-      h_si,
-      h_alpha_si,
-      h_vi_mid,
-      h_wi_mid,
-      h_yi_mid,
-      h_beta_vi_mid,
-      h_beta_wi_mid,
-      h_beta_yi_mid,
+    let ek = EvaluationKeys {
+      si,
+      alpha_si,
+      vi_mid,
+      wi_mid,
+      yi_mid,
+      beta_vi_mid,
+      beta_wi_mid,
+      beta_yi_mid,
+    };
 
-      // Verification keys
-      h_one,
-      h_alpha,
-      h_gamma,
-      h_beta_v_gamma,
-      h_beta_w_gamma,
-      h_beta_y_gamma,
-      h_t,
-      h_v0,
-      h_w0,
-      h_y0,
-      h_vi_io,
-      h_wi_io,
-      h_yi_io,
-    }
+    let vk = VerificationKeys {
+      one,
+      e_alpha,
+      e_gamma,
+      beta_v_gamma,
+      beta_w_gamma,
+      beta_y_gamma,
+      t,
+      v0,
+      w0,
+      y0,
+      vi_io,
+      wi_io,
+      yi_io,
+    };
+
+    CRS { ek, vk }
   }
 }
+
