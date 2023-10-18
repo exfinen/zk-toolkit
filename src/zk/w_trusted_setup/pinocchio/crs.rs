@@ -75,17 +75,17 @@ impl CRS {
     let yi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&p.yi[*i].eval_at(s)) }).collect();
 
     // E(beta_v * vi(s)), E(beta_w * wi(s)), E(beta_y * yi(s))
-    let beta_vi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&(beta_v * p.vi[*i].eval_at(s))) }).collect();
-    let beta_wi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&(beta_w * p.wi[*i].eval_at(s))) }).collect();
-    let beta_yi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&(beta_v * p.yi[*i].eval_at(s))) }).collect();
+    let beta_vi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&p.vi[*i].eval_at(s)) * beta_v }).collect();
+    let beta_wi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&p.wi[*i].eval_at(s)) * beta_w }).collect();
+    let beta_yi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&p.yi[*i].eval_at(s)) * beta_y }).collect();
 
     // Verification keys
     let one = E2(&f.elem(&1u8));  
     let e_alpha = E2(alpha);
     let e_gamma = E2(gamma);
-    let beta_v_gamma = E2(&(beta_v * gamma)); 
-    let beta_w_gamma = E2(&(beta_w * gamma)); 
-    let beta_y_gamma = E2(&(beta_y * gamma)); 
+    let beta_v_gamma = E2(gamma) * beta_v; 
+    let beta_w_gamma = E2(gamma) * beta_w; 
+    let beta_y_gamma = E2(gamma) * beta_y; 
 
     let t = E1(&p.t.eval_at(s));
     let v0 = E1(&p.vi[0].eval_at(s));
