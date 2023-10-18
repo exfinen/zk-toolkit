@@ -138,7 +138,7 @@ mod tests {
     let eq = EquationParser::parse(f, input).unwrap();
 
     let gates = &Gate::build(f, &eq);
-    let tmpl = &R1CSTmpl::from_gates(f, gates);
+    let tmpl = &R1CSTmpl::new(f, gates);
 
     let witness = HashMap::<Term, PrimeFieldElem>::from([
       (Term::One, f.elem(&1u8)),

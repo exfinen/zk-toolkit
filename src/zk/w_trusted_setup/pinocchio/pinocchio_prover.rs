@@ -47,7 +47,7 @@ impl PinocchioProver {
     let eq = EquationParser::parse(f, expr).unwrap();
 
     let gates = &Gate::build(f, &eq);
-    let tmpl = &R1CSTmpl::from_gates(f, gates);
+    let tmpl = &R1CSTmpl::new(f, gates);
 
     let r1cs = R1CS::from_tmpl(f, tmpl, &witness).unwrap();
     r1cs.validate().unwrap();
