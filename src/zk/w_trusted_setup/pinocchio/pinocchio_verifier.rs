@@ -31,12 +31,17 @@ impl PinocchioVerifier {
       return false;
     }
 
-    // e(E(βv_mid(s)) =? e(v_mid(s),E(βvγ)) 
-    
-    // e(E(βw_mid(s)) =? e(w_mid(s),E(βwγ)) 
+    // e(E(βv v_mid(s), E(γ)) =? e(v_mid(s),E(βvγ)) 
+   
+    // e(E(βw w_mid(s)), E(γ)) =? e(w_mid(s),E(βwγ)) 
  
-    // e(E(βy_mid(s)) =? e(y_mid(s),E(βyγ))
+    // e(E(βy y_mid(s)), E(γ)) =? e(y_mid(s),E(βyγ))
 
+    // v_e = E(v_0(s) + E(v_i/o(s)) + E(v_mid(s))
+    // w_e = E(w_0(s) + E(w_i/o(s)) + E(w_mid(s))
+    // y_e = E(y_0(s) + E(y_i/o(s)) + E(y_mid(s))
+    // e(v_e, w_e)/e(y_e, E(1)) ?= e(E(h(s)), E(t(s)))
+    
     true
   }
 }
