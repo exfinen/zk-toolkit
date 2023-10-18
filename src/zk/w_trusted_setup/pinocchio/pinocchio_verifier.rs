@@ -32,9 +32,10 @@ impl PinocchioVerifier {
     }
 
     // e(E(βv_mid(s)) =? e(v_mid(s),E(βvγ)) 
+    
     // e(E(βw_mid(s)) =? e(w_mid(s),E(βwγ)) 
+ 
     // e(E(βy_mid(s)) =? e(y_mid(s),E(βyγ))
-
 
     true
   }

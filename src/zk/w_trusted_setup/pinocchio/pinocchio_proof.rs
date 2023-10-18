@@ -1,12 +1,12 @@
 use crate::building_block::curves::bls12_381::g1_point::G1Point;
 
 pub struct PinocchioProof {
-  pub v: G1Point,
-  pub w: G1Point,
-  pub y: G1Point,
-  pub beta_v: G1Point,
-  pub beta_w: G1Point,
-  pub beta_y: G1Point,
+  pub v_mid: G1Point,
+  pub w_mid: G1Point,
+  pub y_mid: G1Point,
+  pub beta_v_mid: G1Point,
+  pub beta_w_mid: G1Point,
+  pub beta_y_mid: G1Point,
   pub h: G1Point,
   pub alpha_h: G1Point,
 }

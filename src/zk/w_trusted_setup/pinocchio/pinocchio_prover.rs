@@ -113,12 +113,12 @@ impl PinocchioProver {
     let alpha_h = h.eval_with_g1_hidings(&crs.ek.alpha_si);
 
     PinocchioProof {
-      v,
-      w,
-      y,
-      beta_v,
-      beta_w,
-      beta_y,
+      v_mid,
+      w_mid,
+      y_mid,
+      beta_v_mid,
+      beta_w_mid,
+      beta_y_mid,
       h: h_hiding,
       alpha_h,
     }
