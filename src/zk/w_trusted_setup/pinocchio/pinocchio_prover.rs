@@ -14,7 +14,6 @@ use crate::{
     qap::QAP,
     polynomial::{Polynomial, DivResult},
     pinocchio_proof::PinocchioProof,
-    pinocchio_verifier::PinocchioVerifier,
     r1cs::R1CS,
     r1cs_tmpl::R1CSTmpl,
     term::Term,
@@ -94,21 +93,20 @@ impl PinocchioProver {
       sum
     };
 
-    let v = calculate(&crs.ek.vi_mid);
-    let beta_v = calculate(&crs.ek.beta_vi_mid);
+    let v_mid = calculate(&crs.ek.vi_mid);
+    let beta_v_mid = calculate(&crs.ek.beta_vi_mid);
 
-    let w = calculate(&crs.ek.wi_mid);
-    let beta_w = calculate(&crs.ek.beta_wi_mid);
+    let w_mid = calculate(&crs.ek.wi_mid);
+    let beta_w_mid = calculate(&crs.ek.beta_wi_mid);
 
-    let y = calculate(&crs.ek.yi_mid);
-    let beta_y = calculate(&crs.ek.beta_yi_mid);
+    let y_mid = calculate(&crs.ek.yi_mid);
+    let beta_y_mid = calculate(&crs.ek.beta_yi_mid);
 
     let h = match self.p.divide_by(&self.t) {
       DivResult::Quotient(h) => h,
       DivResult::QuotientRemainder(_) => panic!("p must be divisible by t"),
     };
 
-    println!("h: {:?}", &h);
     let h_hiding = h.eval_with_g1_hidings(&crs.ek.si);
     let alpha_h = h.eval_with_g1_hidings(&crs.ek.alpha_si);
 
@@ -128,6 +126,7 @@ impl PinocchioProver {
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crate::zk::w_trusted_setup::pinocchio::pinocchio_verifier::PinocchioVerifier;
 
   #[test]
   fn test_generate_proof_and_verify() {
@@ -166,14 +165,4 @@ mod tests {
     assert!(result == true);
   }
 }
-
-
-
-
-
-
-
-
-
-
 

@@ -58,7 +58,6 @@ impl CRS {
     let gamma = &f.rand_elem(true);
 
     let s_pows = &s.pow_seq(&p.max_degree);
-    println!("s_pows: {:?}", &s_pows);
     let mid: &Vec<usize> = &(*&p.mid_beg..*&p.num_constraints).collect();
     let io: &Vec<usize> = &(1usize..*&p.mid_beg).collect();
 

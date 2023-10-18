@@ -272,7 +272,6 @@ impl Polynomial {
     &self,
     g1_powers: &[G1Point],
   ) -> G1Point {
-    println!("coeffs: {:?}", self.coeffs);
     let mut sum = G1Point::zero();
     for i in 0..self.coeffs.len() {
       sum = sum + &g1_powers[i] * &self.coeffs[i];
