@@ -42,14 +42,14 @@ impl PinocchioProver {
   pub fn new(
     f: &PrimeField,
     expr: &str,
-    witness: &HashMap<Term, PrimeFieldElem>,
+    witness_map: &HashMap<Term, PrimeFieldElem>,
   ) -> Self {
     let eq = EquationParser::parse(f, expr).unwrap();
 
     let gates = &Gate::build(f, &eq);
     let tmpl = &R1CSTmpl::new(f, gates);
 
-    let r1cs = R1CS::from_tmpl(f, tmpl, &witness).unwrap();
+    let r1cs = R1CS::from_tmpl(f, tmpl, &witness_map).unwrap();
     r1cs.validate().unwrap();
 
     let qap = QAP::build(f, &r1cs);
@@ -143,7 +143,7 @@ mod tests {
       t4 = t2(27) + t2(8) = 35
       out = t4
     */
-    let witness = {
+    let witness_map = {
       use crate::zk::w_trusted_setup::pinocchio::term::Term::*;
       HashMap::<Term, PrimeFieldElem>::from([
         (Term::One, f.elem(&1u8)),
@@ -155,12 +155,16 @@ mod tests {
         (Out, eq.rhs),
       ])
     };
-    let prover = &PinocchioProver::new(f, expr, &witness);
+    let prover = &PinocchioProver::new(f, expr, &witness_map);
     let verifier = &PinocchioVerifier::new();
     let crs = CRS::new(f, prover);
 
     let proof = prover.prove(&crs);
-    let result = verifier.verify(&proof, &crs);
+    let result = verifier.verify(
+      &proof,
+      &crs,
+      &prover.witness.io(),
+    );
 
     assert!(result == true);
   }

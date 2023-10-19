@@ -4,7 +4,7 @@ use crate::{
 };
 
 pub struct Witness {
-  sv: SparseVec,
+  sv: SparseVec,  // includes witness value for `1`
   mid_beg: PrimeFieldElem,
 }
 
@@ -17,7 +17,11 @@ impl Witness {
   }
 
   pub fn mid(&self) -> SparseVec {
-    let mid_sv = self.sv.slice(&self.mid_beg, &self.sv.size);
-    mid_sv
+    self.sv.slice(&self.mid_beg, &self.sv.size)
+  }
+
+  pub fn io(&self) -> SparseVec {
+    let f = &self.mid_beg.f;
+    self.sv.slice(&f.elem(&1u8), &self.mid_beg)
   }
 }

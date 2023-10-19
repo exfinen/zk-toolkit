@@ -28,12 +28,12 @@ pub struct VerificationKeys {
   pub beta_v_gamma: G2Point,
   pub beta_w_gamma: G2Point,
   pub beta_y_gamma: G2Point,
-  pub t: G1Point,
-  pub v0: G1Point,
-  pub w0: G1Point,
-  pub y0: G1Point,
+  pub t: G2Point,
+  pub v_0: G1Point,
+  pub w_0: G2Point,
+  pub y_0: G1Point,
   pub vi_io: Vec<G1Point>,
-  pub wi_io: Vec<G1Point>,
+  pub wi_io: Vec<G2Point>,
   pub yi_io: Vec<G1Point>,
 }
 
@@ -87,13 +87,13 @@ impl CRS {
     let beta_w_gamma = E2(gamma) * beta_w; 
     let beta_y_gamma = E2(gamma) * beta_y; 
 
-    let t = E1(&p.t.eval_at(s));
-    let v0 = E1(&p.vi[0].eval_at(s));
-    let w0 = E1(&p.wi[0].eval_at(s));
-    let y0 = E1(&p.yi[0].eval_at(s));
+    let t = E2(&p.t.eval_at(s));
+    let v_0 = E1(&p.vi[0].eval_at(s));
+    let w_0 = E2(&p.wi[0].eval_at(s));
+    let y_0 = E1(&p.yi[0].eval_at(s));
 
     let vi_io: Vec<G1Point> = io.iter().map(|i| { E1(&p.vi[*i].eval_at(s)) }).collect();
-    let wi_io: Vec<G1Point> = io.iter().map(|i| { E1(&p.wi[*i].eval_at(s)) }).collect();
+    let wi_io: Vec<G2Point> = io.iter().map(|i| { E2(&p.wi[*i].eval_at(s)) }).collect();
     let yi_io: Vec<G1Point> = io.iter().map(|i| { E1(&p.yi[*i].eval_at(s)) }).collect();
 
     let ek = EvaluationKeys {
@@ -115,9 +115,9 @@ impl CRS {
       beta_w_gamma,
       beta_y_gamma,
       t,
-      v0,
-      w0,
-      y0,
+      v_0,
+      w_0,
+      y_0,
       vi_io,
       wi_io,
       yi_io,
