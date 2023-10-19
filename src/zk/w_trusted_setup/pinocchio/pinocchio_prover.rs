@@ -1,6 +1,9 @@
 use crate::{
   building_block::{
-    curves::bls12_381::g1_point::G1Point,
+    curves::bls12_381::{
+      g1_point::G1Point,
+      g2_point::G2Point,
+    },
     field::{
       prime_field::PrimeField,
       prime_field_elem::PrimeFieldElem,
@@ -85,22 +88,31 @@ impl PinocchioProver {
   pub fn prove(&self, crs: &CRS) -> PinocchioProof {
     let witness_mid = &self.witness.mid();
 
-    let calculate = |points: &Vec<G1Point>| {
+    let calc_e1 = |points: &Vec<G1Point>| {
       let mut sum = G1Point::zero();
       for i in 0..points.len() {
         sum = sum + &(&points[i] * &witness_mid[&self.f.elem(&i)]);
       }
       sum
     };
+    let calc_e2 = |points: &Vec<G2Point>| {
+      let mut sum = G2Point::zero();
+      for i in 0..points.len() {
+        sum = sum + &(&points[i] * &witness_mid[&self.f.elem(&i)]);
+      }
+      sum
+    };
 
-    let v_mid = calculate(&crs.ek.vi_mid);
-    let beta_v_mid = calculate(&crs.ek.beta_vi_mid);
+    let v_mid = calc_e1(&crs.ek.vi_mid);
+    let beta_v_mid = calc_e1(&crs.ek.beta_vi_mid);
 
-    let w_mid = calculate(&crs.ek.wi_mid);
-    let beta_w_mid = calculate(&crs.ek.beta_wi_mid);
+    let w_mid_e1 = calc_e1(&crs.ek.wi_mid);
+    let beta_w_mid_e1 = calc_e1(&crs.ek.beta_wi_mid);
 
-    let y_mid = calculate(&crs.ek.yi_mid);
-    let beta_y_mid = calculate(&crs.ek.beta_yi_mid);
+    let w_mid_e2 = calc_e2(&crs.vk.wi_mid);
+
+    let y_mid = calc_e1(&crs.ek.yi_mid);
+    let beta_y_mid = calc_e1(&crs.ek.beta_yi_mid);
 
     let h = match self.p.divide_by(&self.t) {
       DivResult::Quotient(h) => h,
@@ -112,10 +124,11 @@ impl PinocchioProver {
 
     PinocchioProof {
       v_mid,
-      w_mid,
+      w_mid_e1,
+      w_mid_e2,
       y_mid,
       beta_v_mid,
-      beta_w_mid,
+      beta_w_mid_e1,
       beta_y_mid,
       h: h_hiding,
       alpha_h,

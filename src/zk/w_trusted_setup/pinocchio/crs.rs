@@ -35,6 +35,7 @@ pub struct VerificationKeys {
   pub vi_io: Vec<G1Point>,
   pub wi_io: Vec<G2Point>,
   pub yi_io: Vec<G1Point>,
+  pub wi_mid: Vec<G2Point>,
 }
 
 pub struct CRS {
@@ -71,7 +72,8 @@ impl CRS {
 
     // E(vi(s)), E(wi(x), E(yi(x))
     let vi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&p.vi[*i].eval_at(s)) }).collect();
-    let wi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&p.wi[*i].eval_at(s)) }).collect();
+    let wi_mid_e1: Vec<G1Point> = mid.iter().map(|i| { E1(&p.wi[*i].eval_at(s)) }).collect();
+    let wi_mid_e2: Vec<G2Point> = mid.iter().map(|i| { E2(&p.wi[*i].eval_at(s)) }).collect();
     let yi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&p.yi[*i].eval_at(s)) }).collect();
 
     // E(beta_v * vi(s)), E(beta_w * wi(s)), E(beta_y * yi(s))
@@ -88,9 +90,10 @@ impl CRS {
     let beta_y_gamma = E2(gamma) * beta_y; 
 
     let t = E2(&p.t.eval_at(s));
-    let v_0 = E1(&p.vi[0].eval_at(s));
-    let w_0 = E2(&p.wi[0].eval_at(s));
-    let y_0 = E1(&p.yi[0].eval_at(s));
+    let const_witness = &p.witness.const_witness();
+    let v_0 = E1(&p.vi[0].eval_at(s)) * const_witness;
+    let w_0 = E2(&p.wi[0].eval_at(s)) * const_witness;
+    let y_0 = E1(&p.yi[0].eval_at(s)) * const_witness;
 
     let vi_io: Vec<G1Point> = io.iter().map(|i| { E1(&p.vi[*i].eval_at(s)) }).collect();
     let wi_io: Vec<G2Point> = io.iter().map(|i| { E2(&p.wi[*i].eval_at(s)) }).collect();
@@ -100,7 +103,7 @@ impl CRS {
       si,
       alpha_si,
       vi_mid,
-      wi_mid,
+      wi_mid: wi_mid_e1,
       yi_mid,
       beta_vi_mid,
       beta_wi_mid,
@@ -121,6 +124,7 @@ impl CRS {
       vi_io,
       wi_io,
       yi_io,
+      wi_mid: wi_mid_e2,
     };
 
     CRS { ek, vk }

@@ -1,12 +1,5 @@
 use crate::{
-  building_block::{
-    curves::bls12_381::{
-      g1_point::G1Point,
-      g2_point::G2Point,
-      pairing::Pairing,
-    },
-    zero::Zero,
-  },
+  building_block::curves::bls12_381::pairing::Pairing,
   zk::w_trusted_setup::pinocchio::{
     crs::CRS,
     pinocchio_proof::PinocchioProof,
@@ -55,35 +48,32 @@ impl PinocchioVerifier {
     //   return false;
     // }
 
-    // v_e = E(v_0(s) + E(v_i/o(s)) + E(v_mid(s))
-    // w_e = E(w_0(s) + E(w_i/o(s)) + E(w_mid(s))
-    // y_e = E(y_0(s) + E(y_i/o(s)) + E(y_mid(s))
+    // v_e = E(v_0(s) + E(v_io(s)) + E(v_mid(s))
+    // w_e = E(w_0(s) + E(w_io(s)) + E(w_mid(s))
+    // y_e = E(y_0(s) + E(y_io(s)) + E(y_mid(s))
     // e(v_e, w_e)/e(y_e, E(1)) ?= e(E(h(s)), E(t(s)))
 
     let f = &public_io_inputs.f;
 
-    println!("pub input: {}", public_io_inputs.size);
-    println!("io: {}", crs.vk.vi_io.len());
-
-    let mut v_e = crs.vk.v_0.clone();
+    let mut v_e = &crs.vk.v_0 + &proof.v_mid;
     for i in 0..crs.vk.vi_io.len() {
       let w = &public_io_inputs[&f.elem(&i)];
-      let vi = &crs.vk.vi_io[i];
-      v_e = v_e + vi * w;
-    }
-    
-    let mut w_e = crs.vk.w_0.clone();
-    for i in 0..crs.vk.wi_io.len() {
-      let w = &public_io_inputs[&f.elem(&i)];
-      let wi = &crs.vk.wi_io[i];
-      w_e = w_e + wi * w;
+      let p = &crs.vk.vi_io[i];
+      v_e = v_e + p * w;
     }
 
-    let mut y_e = crs.vk.y_0.clone();
+    let mut w_e = &crs.vk.w_0 + &proof.w_mid_e2;
+    for i in 0..crs.vk.wi_io.len() {
+      let w = &public_io_inputs[&f.elem(&i)];
+      let p = &crs.vk.wi_io[i];
+      w_e = w_e + p * w;
+    }
+
+    let mut y_e = &crs.vk.y_0 + &proof.y_mid;
     for i in 0..crs.vk.yi_io.len() {
       let w = &public_io_inputs[&f.elem(&i)];
-      let yi = &crs.vk.yi_io[i];
-      y_e = y_e + yi * w;
+      let p = &crs.vk.yi_io[i];
+      y_e = y_e + p * w;
     }
 
     let lhs = e(&v_e, &w_e) - e(&y_e, &crs.vk.one);

@@ -16,12 +16,17 @@ impl Witness {
     }
   }
 
-  pub fn mid(&self) -> SparseVec {
-    self.sv.slice(&self.mid_beg, &self.sv.size)
+  pub fn const_witness(&self) -> PrimeFieldElem {
+    let f = &self.mid_beg.f;
+    self.sv[&f.elem(&0u8)].clone()
   }
 
   pub fn io(&self) -> SparseVec {
     let f = &self.mid_beg.f;
     self.sv.slice(&f.elem(&1u8), &self.mid_beg)
+  }
+
+  pub fn mid(&self) -> SparseVec {
+    self.sv.slice(&self.mid_beg, &self.sv.size)
   }
 }
