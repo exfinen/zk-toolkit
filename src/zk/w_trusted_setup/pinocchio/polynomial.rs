@@ -3,10 +3,7 @@ use crate::building_block::{
     prime_field::PrimeField,
     prime_field_elem::PrimeFieldElem,
   },
-  curves::bls12_381::{
-    g1_point::G1Point,
-    g2_point::G2Point,
-  },
+  curves::bls12_381::g1_point::G1Point,
   to_biguint::ToBigUint, zero::Zero,
 };
 use num_bigint::BigUint;
@@ -274,20 +271,7 @@ impl Polynomial {
   ) -> G1Point {
     let mut sum = G1Point::zero();
     for i in 0..self.coeffs.len() {
-      sum = sum + &g1_powers[i] * &self.coeffs[i];
-    }
-    sum
-  }
-
-  // TODO avoid duplicating code
-  #[allow(non_snake_case)]
-  pub fn eval_with_g2_hidings(
-    &self,
-    g2_powers: &[G2Point]
-  ) -> G2Point {
-    let mut sum = G2Point::zero();
-    for i in 0..self.coeffs.len() {
-      sum = sum + &g2_powers[i] * &self.coeffs[i];
+      sum = sum + (&g1_powers[i] * &self.coeffs[i]);
     }
     sum
   }
@@ -320,14 +304,21 @@ impl<'a> Add<&Polynomial> for &Polynomial {
   }
 }
 
-// TODO avoid duplicating code
-impl<'a> Mul<&Polynomial> for Polynomial {
-  type Output = Polynomial;
+macro_rules! impl_mul {
+  ($rhs: ty, $target: ty) => {
+    impl<'a> Mul<$rhs> for $target {
+      type Output = Polynomial;
 
-  fn mul(self, rhs: &Polynomial) -> Self::Output {
-    self.multiply_by(rhs)
-  }
+      fn mul(self, rhs: $rhs) -> Self::Output {
+        self.multiply_by(&rhs)
+      }
+    }
+  };
 }
+impl_mul!(Polynomial, Polynomial);
+impl_mul!(Polynomial, &Polynomial);
+impl_mul!(&Polynomial, Polynomial);
+impl_mul!(&Polynomial, &Polynomial);
 
 impl<'a> Mul<&PrimeFieldElem> for &Polynomial {
   type Output = Polynomial;
@@ -1217,7 +1208,7 @@ mod tests {
   }
 
   #[test]
-  fn test_eval_with_g1_hidings() {
+  fn test_eval_with_g1_hidings_1() {
     let f = &PrimeField::new(&3299u16);
     let s = f.elem(&3u8);
     let s0g = &G1Point::g();
@@ -1253,41 +1244,36 @@ mod tests {
     assert!(act == exp);
   }
 
-  // TODO share code with g1 couterpart
   #[test]
-  fn test_eval_with_g2_hidings() {
-    let f = &PrimeField::new(&3299u16);
+  fn test_eval_with_g1_hidings_2() {
+    let f = &G1Point::curve_group();
+
     let s = f.elem(&3u8);
-    let s0g = &G2Point::g();
-    let s1g = s0g * &s;
-    let s2g = s0g * &s.pow(&2u8);
-    let s3g = s0g * &s.pow(&3u8);
-    let pows = vec![
-      s0g.clone(),
-      s1g.clone(),
-      s2g.clone(),
-      s3g.clone(),
-    ];
-    let two = f.elem(&2u8);
-    let three = f.elem(&3u8);
-    let four = f.elem(&4u8);
-    let five = f.elem(&5u8);
 
-    let exp = 
-      s0g * &two
-      + &s1g * &three
-      + &s2g * &four
-      + &s3g * &five
-    ;
-    // 5x^3 + 4x^2 + 3x + 2
+    let e1549 = f.elem(&1549u16);
+    let e3361 = f.elem(&3361u16);
+    let e3607 = f.elem(&3607u16);
+    let e822 = f.elem(&822u16);
+    let e1990 = f.elem(&1990u16);
+    let e496 = f.elem(&496u16);
+    let e1698 = f.elem(&1698u16);
+    let e2362 = f.elem(&2362u16);
+    let e3670 = f.elem(&3670u16);
+
+    // 3670x^8 + 2362x^7 + 1698x^6 + 496x^5 + 1990x^4 + 822x^3 + 3607x^2 + 3361x + 1549
     let p = Polynomial::new(f, &vec![
-      two,
-      three,
-      four,
-      five,
+      e1549,
+      e3361,
+      e3607,
+      e822,
+      e1990,
+      e496,
+      e1698,
+      e2362,
+      e3670,
     ]);
-    let act = p.eval_with_g2_hidings(&pows);
+    println!("p(s) = {:?}", p.eval_at(&s));
+    assert!(p.eval_at(&s) == f.elem(&0u8));
 
-    assert!(act == exp);
   }
 }

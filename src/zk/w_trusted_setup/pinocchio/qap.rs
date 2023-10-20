@@ -112,7 +112,7 @@ impl QAP {
       let mut p = zero.clone();
       for i in 0..self.wi.len() {
         let w = &witness[&self.f.elem(&i)];
-        p = &p + &(&self.wi[i] * &w);
+        p = &p + &(&self.wi[i] * w);
       };
       p
     };
@@ -120,7 +120,7 @@ impl QAP {
       let mut p = zero.clone();
       for i in 0..self.yi.len() {
         let w = &witness[&self.f.elem(&i)];
-        p = &p + &(&self.yi[i] * &w);
+        p = &p + &(&self.yi[i] * w);
       };
       p
     };

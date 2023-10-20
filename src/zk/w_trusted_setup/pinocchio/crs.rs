@@ -22,6 +22,7 @@ pub struct EvaluationKeys {
 }
 
 pub struct VerificationKeys {
+  pub one_g1: G1Point,
   pub one: G2Point,
   pub e_alpha: G2Point,
   pub e_gamma: G2Point,
@@ -51,14 +52,14 @@ impl CRS {
     let E1 = |n: &PrimeFieldElem| -> G1Point { g1 * n };
     let E2 = |n: &PrimeFieldElem| -> G2Point { g2 * n };
 
-    let s = &f.rand_elem(true);
+    let s = &f.elem(&2u8); // &f.rand_elem(true);
     let alpha = &f.rand_elem(true);
     let beta_v = &f.rand_elem(true);
     let beta_w = &f.rand_elem(true);
     let beta_y = &f.rand_elem(true);
     let gamma = &f.rand_elem(true);
 
-    let s_pows = &s.pow_seq(&p.max_degree);
+    let s_pows = &s.pow_seq(&(&p.max_degree + 5));
     let mid: &Vec<usize> = &(*&p.mid_beg..*&p.num_constraints).collect();
     let io: &Vec<usize> = &(1usize..*&p.mid_beg).collect();
 
@@ -90,7 +91,7 @@ impl CRS {
     let beta_y_gamma = E2(gamma) * beta_y; 
 
     let t = E2(&p.t.eval_at(s));
-    let const_witness = &p.witness.const_witness();
+    let const_witness = &p.witness.one();
     let v_0 = E1(&p.vi[0].eval_at(s)) * const_witness;
     let w_0 = E2(&p.wi[0].eval_at(s)) * const_witness;
     let y_0 = E1(&p.yi[0].eval_at(s)) * const_witness;
@@ -112,6 +113,7 @@ impl CRS {
 
     let vk = VerificationKeys {
       one,
+      one_g1: E1(&f.elem(&1u8)),  
       e_alpha,
       e_gamma,
       beta_v_gamma,

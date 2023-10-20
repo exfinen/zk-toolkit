@@ -68,54 +68,7 @@ impl PinocchioProver {
     };
 
     let witness = Witness::new(&r1cs.witness.clone(), &tmpl.mid_beg);
-
     let num_constraints = tmpl.constraints.len();
-
-    //// EXPERIMENT ZONE
-    {
-      use crate::zk::w_trusted_setup::pinocchio::sparse_vec::SparseVec;
-
-      let p_div_t = &p.divide_by(&t);
-      let h = match &p_div_t {
-        DivResult::Quotient(h) => h,
-        DivResult::QuotientRemainder(_) => panic!("p must be divisible by t"),
-      };
-
-      let s = &f.elem(&11u8);
-
-      let eval = |ps: &[Polynomial], ws: &SparseVec| -> PrimeFieldElem {
-        let mut sum = f.elem(&0u8);
-        for i in 0..ps.len() {
-          let p = ps[i].eval_at(s);
-          let w = &ws[&f.elem(&i)];
-          sum = sum + p * w;
-        }
-        sum
-      };
-
-      let v_0 = &qap.vi[0].eval_at(s) * witness.const_witness();
-      let w_0 = &qap.wi[0].eval_at(s) * witness.const_witness();
-      let y_0 = &qap.yi[0].eval_at(s) * witness.const_witness();
-
-      let mid_beg: usize = (&tmpl.mid_beg.e).try_into().unwrap();
-      let v_io = eval(&qap.vi[1..mid_beg], &witness.io());
-      let w_io = eval(&qap.wi[1..mid_beg], &witness.io());
-      let y_io = eval(&qap.yi[1..mid_beg], &witness.io());
-
-      let v_mid = eval(&qap.vi[mid_beg..], &witness.mid());
-      let w_mid = eval(&qap.vi[mid_beg..], &witness.mid());
-      let y_mid = eval(&qap.vi[mid_beg..], &witness.mid());
-
-      let v = v_0 + v_io + v_mid;
-      let w = w_0 + w_io + w_mid;
-      let y = y_0 + y_io + y_mid;
-
-      let lhs = v * w - y; 
-      let rhs = &h.eval_at(s) * &t.eval_at(s);
-
-      assert!(lhs == rhs);
-    }
-    //// EXPERIMENT ZONE
 
     PinocchioProver {
       f: f.clone(),
@@ -165,6 +118,9 @@ impl PinocchioProver {
       DivResult::QuotientRemainder(_) => panic!("p must be divisible by t"),
     };
 
+    let ht_poly = &h * &self.t;
+    let ht = ht_poly.eval_with_g1_hidings(&crs.ek.si);
+
     let h_hiding = h.eval_with_g1_hidings(&crs.ek.si);
     let alpha_h = h.eval_with_g1_hidings(&crs.ek.alpha_si);
 
@@ -178,6 +134,7 @@ impl PinocchioProver {
       beta_y_mid,
       h: h_hiding,
       alpha_h,
+      ht,
     }
   }
 }
@@ -189,7 +146,7 @@ mod tests {
 
   #[test]
   fn test_generate_proof_and_verify() {
-    let f = &PrimeField::new(&3911u16);
+    let f = &G1Point::curve_group();
 
     let expr = "(x * x * x) + x + 5 == 35";
     let eq = EquationParser::parse(f, expr).unwrap();
@@ -225,7 +182,7 @@ mod tests {
       &prover.witness.io(),
     );
 
-    assert!(result == true);
+    assert!(result);
   }
 }
 

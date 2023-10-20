@@ -63,17 +63,6 @@ impl R1CS {
       let b = &(&constraint.b * &self.witness).sum();
       let c = &(&constraint.c * &self.witness).sum();
 
-      println!("r1cs: ({:?}*{:?})={:?}) * ({:?}*{:?}={:?}) = ({:?}*{:?}={:?})",
-        &constraint.a,
-        &self.witness,
-        &a,
-        &constraint.b,
-        &self.witness,
-        &b,
-        &constraint.c,
-        &self.witness,
-        &c,
-      );
       if &(a * b) != c {
         return Err(format!("Constraint a ({:?}) * b ({:?}) = c ({:?}) doesn't hold", a, b, c));
       }

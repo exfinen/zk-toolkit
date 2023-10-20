@@ -16,7 +16,7 @@ impl Witness {
     }
   }
 
-  pub fn const_witness(&self) -> PrimeFieldElem {
+  pub fn one(&self) -> PrimeFieldElem {
     let f = &self.mid_beg.f;
     self.sv[&f.elem(&0u8)].clone()
   }

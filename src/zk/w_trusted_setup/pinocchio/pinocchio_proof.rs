@@ -13,5 +13,6 @@ pub struct PinocchioProof {
   pub beta_y_mid: G1Point,
   pub h: G1Point,
   pub alpha_h: G1Point,
+  pub ht: G1Point,
 }
 

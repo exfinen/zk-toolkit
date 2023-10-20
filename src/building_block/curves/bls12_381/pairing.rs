@@ -7,9 +7,10 @@ use crate::building_block::{
     rational_function::RationalFunction,
   },
   to_biguint::ToBigUint,
+  zero::Zero,
 };
 use num_bigint::BigUint;
-use num_traits::Zero;
+use num_traits::Zero as NumTraitsZero;
 
 pub struct Pairing {
   l_bits: Vec<bool>,
@@ -73,6 +74,10 @@ impl Pairing {
   pub fn weil(&self, p1: &G1Point, p2: &G2Point) -> Fq12 {
     println!("Started Weil pairing");
     println!("Running Miller loop G1-G2...");
+    if p1 == &G1Point::zero() || p2 == &G2Point::zero() {
+      return Fq12::from(&1u8 as &dyn ToBigUint);
+    }
+
     let num = self.calc_g1_g2(p1, p2);
     println!("Running Miller loop G2-G1...");
     let deno = self.calc_g2_g1(p2, p1);
@@ -82,7 +87,11 @@ impl Pairing {
   pub fn tate(&self, p1: &G1Point, p2: &G2Point) -> Fq12 {
     println!("Started Tate pairing");
     println!("Running Miller loop G1-G2...");
-    let intmed = self.calc_g1_g2(p1, p2);
+    if p1 == &G1Point::zero() || p2 == &G2Point::zero() {
+      return Fq12::from(&1u8 as &dyn ToBigUint);
+    }
+
+    let intmed = self.calc_g1_g2(&p1, &p2);
 
     // apply final exponentiation
     println!("Applying final exponentiation...");
