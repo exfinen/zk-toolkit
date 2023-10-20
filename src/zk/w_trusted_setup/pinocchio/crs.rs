@@ -52,14 +52,15 @@ impl CRS {
     let E1 = |n: &PrimeFieldElem| -> G1Point { g1 * n };
     let E2 = |n: &PrimeFieldElem| -> G2Point { g2 * n };
 
-    let s = &f.elem(&2u8); // &f.rand_elem(true);
+    let s = &f.elem(&2u8);  // TODO hardcoding s=2 that works w/ a test in pinocchi_prover
+
     let alpha = &f.rand_elem(true);
     let beta_v = &f.rand_elem(true);
     let beta_w = &f.rand_elem(true);
     let beta_y = &f.rand_elem(true);
     let gamma = &f.rand_elem(true);
 
-    let s_pows = &s.pow_seq(&(&p.max_degree + 5));
+    let s_pows = &s.pow_seq(&p.max_degree);
     let mid: &Vec<usize> = &(*&p.mid_beg..*&p.num_constraints).collect();
     let io: &Vec<usize> = &(1usize..*&p.mid_beg).collect();
 

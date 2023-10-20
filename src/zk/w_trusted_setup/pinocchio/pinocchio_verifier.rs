@@ -38,17 +38,17 @@ impl PinocchioVerifier {
     if e(&proof.beta_v_mid, &crs.vk.e_gamma) != e(&proof.v_mid, &crs.vk.beta_v_gamma) {
       return false;
     }
-   
+
     println!("--> Checking if e(E(βw w_mid(s)), E(γ)) =? e(w_mid(s),E(βwγ))..."); 
     if e(&proof.beta_w_mid_e1, &crs.vk.e_gamma) != e(&proof.w_mid_e1, &crs.vk.beta_w_gamma) {
       return false;
     }
- 
+
     println!("--> Checking if e(E(βy y_mid(s)), E(γ)) =? e(y_mid(s),E(βyγ))...");
     if e(&proof.beta_y_mid, &crs.vk.e_gamma) != e(&proof.y_mid, &crs.vk.beta_y_gamma) {
       return false;
     }
-
+ 
     println!("--> Checking if e(v_e, w_e)/e(y_e, E(1)) ?= e(E(h*t(s)), E(1))...");
     let f = &io_inputs.f;
 

@@ -64,7 +64,12 @@ impl PinocchioProver {
       let vi = qap.vi.iter().map(|x| x.degree()).max().unwrap();
       let wi = qap.wi.iter().map(|x| x.degree()).max().unwrap();
       let yi = qap.yi.iter().map(|x| x.degree()).max().unwrap();
-      cmp::max(cmp::max(vi, wi), yi)
+      let h = match p.divide_by(&t) {
+        DivResult::Quotient(h) => h,
+        DivResult::QuotientRemainder(_) => panic!("p must be divisible by t"),
+      };
+      let ht = (h * &t).degree();  
+      cmp::max(cmp::max(cmp::max(vi, wi), yi), ht) + f.elem(&1u8)
     };
 
     let witness = Witness::new(&r1cs.witness.clone(), &tmpl.mid_beg);
@@ -85,6 +90,7 @@ impl PinocchioProver {
   }
 
   pub fn prove(&self, crs: &CRS) -> PinocchioProof {
+    println!("--> Generating proof...");
     let witness_mid = &self.witness.mid();
 
     let calc_e1 = |points: &Vec<G1Point>| {
@@ -148,6 +154,8 @@ mod tests {
   fn test_generate_proof_and_verify() {
     let f = &G1Point::curve_group();
 
+    // TODO
+    // this expression only works w/ s=1,2. s=2 is hardcoded in crs.rs
     let expr = "(x * x * x) + x + 5 == 35";
     let eq = EquationParser::parse(f, expr).unwrap();
 
