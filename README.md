@@ -10,11 +10,11 @@ To implement cryptographic primitives in the simplest form without any optimizat
   - Miller's Algorithm
   - Weil/Tate Pairing
   - Key generation, sign and verify
-- Pinnocio zk-SNARKs
+- Pinnocio Verifiable Computation
   - Equation parser
   - R1CS
   - QAP
-  - ** remaining parts to be implemented using BLS12-381 pairing
+  - Proof Generation/Verification
 - Bulletproofs
 - Ed25519
   - Key generation, EdDSA sign/veriry
