@@ -5,16 +5,16 @@ Cryptographic primitive library built from scratch
 To implement cryptographic primitives in the simplest form without using any optimization
 
 ## What's implemented so far
-- BLS12-381 
-  - Extension fields
-  - Miller's Algorithm
-  - Weil/Tate Pairing
-  - Key generation, sign and verify
 - Pinnocio Verifiable Computation
   - Equation parser
   - R1CS
   - QAP
   - Proof Generation/Verification
+- BLS12-381 
+  - Extension fields
+  - Miller's Algorithm
+  - Weil/Tate Pairing
+  - Key generation, sign and verify
 - Bulletproofs
 - Ed25519
   - Key generation, EdDSA sign/veriry
