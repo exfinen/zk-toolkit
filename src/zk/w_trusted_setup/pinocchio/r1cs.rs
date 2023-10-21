@@ -25,6 +25,7 @@ pub struct R1CS {
 // b  = [b1, b2, ...]
 // ||
 // c  = [c1, c2, ...]
+#[derive(Debug)]
 pub struct ConstraintMatrices {
   pub a: SparseMatrix,
   pub b: SparseMatrix,
@@ -63,10 +64,12 @@ impl R1CS {
       let b = &(&constraint.b * &self.witness).sum();
       let c = &(&constraint.c * &self.witness).sum();
 
+      println!("r1cs: {:?} * {:?} = {:?}", &a, &b, &c);
       if &(a * b) != c {
         return Err(format!("Constraint a ({:?}) * b ({:?}) = c ({:?}) doesn't hold", a, b, c));
       }
     }
+    println!("");
     Ok(())
   }
 

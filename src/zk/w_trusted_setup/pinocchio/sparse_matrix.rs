@@ -12,6 +12,7 @@ use crate::zk::w_trusted_setup::pinocchio::{
 use std::{
   collections::HashMap,
   convert::From,
+  fmt,
   ops::Mul,
 };
 
@@ -303,6 +304,12 @@ impl Mul<&SparseMatrix> for &SparseMatrix {
       }
       res.normalize()
     }
+}
+
+impl fmt::Debug for SparseMatrix {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    write!(f, "{}", &self.pretty_print())
+  }
 }
 
 #[cfg(test)]

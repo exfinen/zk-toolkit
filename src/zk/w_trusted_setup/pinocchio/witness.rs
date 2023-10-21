@@ -30,3 +30,53 @@ impl Witness {
     self.sv.slice(&self.mid_beg, &self.sv.size)
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::building_block::curves::bls12_381::g1_point::G1Point;
+
+  #[test]
+  fn test_witness() {
+    let f = &G1Point::curve_group();
+
+    // [1,3,35,9,27,8,35]
+    let mut sv = SparseVec::new(f, &f.elem(&7u8));
+    sv[&f.elem(&0u8)] = f.elem(&1u8);
+    sv[&f.elem(&1u8)] = f.elem(&3u8);
+    sv[&f.elem(&2u8)] = f.elem(&35u8);
+    sv[&f.elem(&3u8)] = f.elem(&9u8);
+    sv[&f.elem(&4u8)] = f.elem(&27u8);
+    sv[&f.elem(&5u8)] = f.elem(&8u8);
+    sv[&f.elem(&6u8)] = f.elem(&35u8);
+
+    let w = Witness::new(&sv, &f.elem(&3u8));
+
+    assert!(w.one() == f.elem(&1u8));
+
+    let io = &w.io();
+    assert!(io.size == f.elem(&2u8));
+    assert!(io[&f.elem(&0u8)] == f.elem(&3u8));
+    assert!(io[&f.elem(&1u8)] == f.elem(&35u8));
+
+    let mid = &w.mid();
+    assert!(mid.size == f.elem(&4u8));
+    assert!(mid[&f.elem(&0u8)] == f.elem(&9u8));
+    assert!(mid[&f.elem(&1u8)] == f.elem(&27u8));
+    assert!(mid[&f.elem(&2u8)] == f.elem(&8u8));
+    assert!(mid[&f.elem(&3u8)] == f.elem(&35u8));
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+

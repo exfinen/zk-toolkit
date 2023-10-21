@@ -14,7 +14,7 @@ To implement cryptographic primitives in the simplest form without any optimizat
   - Equation parser
   - R1CS
   - QAP
-  - Proof Generation/Verification (works w/ only limited # of s's)
+  - Proof Generation/Verification
 - Bulletproofs
 - Ed25519
   - Key generation, EdDSA sign/veriry

@@ -42,10 +42,60 @@ pub struct PinocchioProver {
 }
 
 impl PinocchioProver {
+  fn print_debug_info(
+    f: &PrimeField,
+    gates: &Vec<Gate>,
+    r1cs: &R1CS,
+    qap: &QAP,
+    s: &PrimeFieldElem,
+  ) {
+    println!("s = {:?}\n", s);
+    println!("witness {:?}\n", &r1cs.witness);
+
+    {
+      for (i, gate) in gates.iter().enumerate() {
+        println!("{}: {:?}", i+1 , gate);
+      }
+      println!("");
+    }
+
+    let num_witness: usize = (&r1cs.witness.size.e).try_into().unwrap();
+
+    let mut v = f.elem(&0u8);
+    {
+      for i in 0..num_witness {
+        let vi = &qap.vi[i].eval_at(s);
+        println!("vi[{:?}] = {:?}", i, vi);
+        v = &v + vi * &r1cs.witness[&f.elem(&i)];
+      }
+      println!("");
+    }
+    let mut w = f.elem(&0u8);
+    {
+      for i in 0..num_witness {
+        let wi = &qap.wi[i].eval_at(s);
+        println!("wi[{:?}] = {:?}", i, wi);
+        w = &w + wi * &r1cs.witness[&f.elem(&i)];
+      }
+      println!("");
+    }
+    let mut y = f.elem(&0u8);
+    {
+      for i in 0..num_witness {
+        let yi = &qap.yi[i].eval_at(s);
+        println!("yi[{:?}] = {:?}", i, yi);
+        y = &y + yi * &r1cs.witness[&f.elem(&i)];
+      }
+      println!("");
+    }
+    println!("{:?} * {:?} = {:?}\n", v, w, y);
+  }
+ 
   pub fn new(
     f: &PrimeField,
     expr: &str,
     witness_map: &HashMap<Term, PrimeFieldElem>,
+    s: &PrimeFieldElem,
   ) -> Self {
     let eq = EquationParser::parse(f, expr).unwrap();
 
@@ -74,6 +124,8 @@ impl PinocchioProver {
 
     let witness = Witness::new(&r1cs.witness.clone(), &tmpl.mid_beg);
     let num_constraints = tmpl.constraints.len();
+
+    Self::print_debug_info(f, gates, &r1cs, &qap, s);
 
     PinocchioProver {
       f: f.clone(),
@@ -154,19 +206,10 @@ mod tests {
   fn test_generate_proof_and_verify() {
     let f = &G1Point::curve_group();
 
-    // TODO
-    // this expression only works w/ s=1,2. s=2 is hardcoded in crs.rs
     let expr = "(x * x * x) + x + 5 == 35";
+    println!("Expr: {}\n", expr);
     let eq = EquationParser::parse(f, expr).unwrap();
 
-    /*
-      x = 3
-      t1 = x(3) * x(3) = 9
-      t2 = t1(9) * x(3) = 27
-      t3 = x(3) + 5 = 8
-      t4 = t2(27) + t2(8) = 35
-      out = t4
-    */
     let witness_map = {
       use crate::zk::w_trusted_setup::pinocchio::term::Term::*;
       HashMap::<Term, PrimeFieldElem>::from([
@@ -179,9 +222,10 @@ mod tests {
         (Out, eq.rhs),
       ])
     };
-    let prover = &PinocchioProver::new(f, expr, &witness_map);
+    let s = &f.rand_elem(true);
+    let prover = &PinocchioProver::new(f, expr, &witness_map, s);
     let verifier = &PinocchioVerifier::new();
-    let crs = CRS::new(f, prover);
+    let crs = CRS::new(f, prover, s);
 
     let proof = prover.prove(&crs);
     let result = verifier.verify(

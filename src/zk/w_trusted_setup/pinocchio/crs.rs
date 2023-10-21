@@ -22,7 +22,6 @@ pub struct EvaluationKeys {
 }
 
 pub struct VerificationKeys {
-  pub one_g1: G1Point,
   pub one: G2Point,
   pub e_alpha: G2Point,
   pub e_gamma: G2Point,
@@ -46,13 +45,16 @@ pub struct CRS {
 
 impl CRS {
   #[allow(non_snake_case)]
-  pub fn new(f: &PrimeField, p: &PinocchioProver) -> Self {
+  pub fn new(
+    f: &PrimeField,
+    p: &PinocchioProver,
+    s: &PrimeFieldElem,
+  ) -> Self {
+    println!("--> Building CRS...");
     let g1 = &G1Point::g();
     let g2 = &G2Point::g();
     let E1 = |n: &PrimeFieldElem| -> G1Point { g1 * n };
     let E2 = |n: &PrimeFieldElem| -> G2Point { g2 * n };
-
-    let s = &f.elem(&2u8);  // TODO hardcoding s=2 that works w/ a test in pinocchi_prover
 
     let alpha = &f.rand_elem(true);
     let beta_v = &f.rand_elem(true);
@@ -61,10 +63,16 @@ impl CRS {
     let gamma = &f.rand_elem(true);
 
     let s_pows = &s.pow_seq(&p.max_degree);
-    let mid: &Vec<usize> = &(*&p.mid_beg..*&p.num_constraints).collect();
+    let mid: &Vec<usize> = {
+      let size: usize = p.witness.mid().size.e.try_into().unwrap();
+      let beg = *&p.mid_beg;
+      let end = beg + size;
+      &(beg..end).collect()
+    };
     let io: &Vec<usize> = &(1usize..*&p.mid_beg).collect();
 
     // Evaluation keys
+    println!("----> Computing evaluation keys...");
 
     // E(s^i), E(alpha * s^i)
     let si: Vec<G1Point> = s_pows.iter().map(|pow| { E1(pow) }).collect();
@@ -72,18 +80,18 @@ impl CRS {
       E1(pow) * alpha
     }).collect();
 
-    // E(vi(s)), E(wi(x), E(yi(x))
     let vi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&p.vi[*i].eval_at(s)) }).collect();
     let wi_mid_e1: Vec<G1Point> = mid.iter().map(|i| { E1(&p.wi[*i].eval_at(s)) }).collect();
     let wi_mid_e2: Vec<G2Point> = mid.iter().map(|i| { E2(&p.wi[*i].eval_at(s)) }).collect();
     let yi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&p.yi[*i].eval_at(s)) }).collect();
 
-    // E(beta_v * vi(s)), E(beta_w * wi(s)), E(beta_y * yi(s))
     let beta_vi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&p.vi[*i].eval_at(s)) * beta_v }).collect();
     let beta_wi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&p.wi[*i].eval_at(s)) * beta_w }).collect();
     let beta_yi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&p.yi[*i].eval_at(s)) * beta_y }).collect();
 
     // Verification keys
+    println!("----> Computing verification keys...");
+
     let one = E2(&f.elem(&1u8));  
     let e_alpha = E2(alpha);
     let e_gamma = E2(gamma);
@@ -114,7 +122,6 @@ impl CRS {
 
     let vk = VerificationKeys {
       one,
-      one_g1: E1(&f.elem(&1u8)),  
       e_alpha,
       e_gamma,
       beta_v_gamma,
@@ -130,7 +137,10 @@ impl CRS {
       wi_mid: wi_mid_e2,
     };
 
-    CRS { ek, vk }
+    CRS {
+      ek,
+      vk,
+    }
   }
 }
 

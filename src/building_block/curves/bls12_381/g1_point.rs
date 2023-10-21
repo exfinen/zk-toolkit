@@ -128,7 +128,6 @@ impl fmt::Debug for G1Point {
   }
 }
 
-
 impl Zero<G1Point> for G1Point {
   fn zero() -> G1Point {
     G1Point::AtInfinity

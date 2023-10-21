@@ -161,22 +161,27 @@ impl QAP {
        at x=4, 2 * 2 (w[2] * a2)
     */
 
-    //       w1 w2 w3 <- witness values
+    //       w1 w2 w3 <- witness e.g. w=(x,y,z,w1,...)
     //  x=1 | 0  0  1 |
     //  x=2 | 3  0  0 |
     //  x=3 | 0  0  0 |
     //  x=4 | 0  2  0 |
+    //   ^
+    //   +-- constraints
     let constraints = r1cs.to_constraint_matrices();
 
-    //   x=1 2 3 4 
+    //   x=1 2 3 4  <- constraints
     // w1 [0 3 0 0]
     // w2 [0 0 0 2]
     // w3 [1 0 0 0]
     //  ^
-    //  +-- witness e.g. w=(x,y,z,w1,...)
+    //  +-- witness
     let constraints_v_t = constraints.a.transpose();
     let constraints_w_t = constraints.b.transpose();
     let constraints_y_t = constraints.c.transpose();
+    println!("- const v_t\n{:?}", &constraints_v_t);
+    println!("- const w_t\n{:?}", &constraints_w_t);
+    println!("- const y_t\n{:?}", &constraints_y_t);
 
     // build polynomials for each wirness variable
     // e.g. vi[0] is a polynomial for the first witness variable
@@ -185,17 +190,17 @@ impl QAP {
     let mut wi = vec![];
     let mut yi = vec![];
 
-    let mut y = f.elem(&0u8);
+    let mut i = f.elem(&0u8);
 
     let num_witness_values = &r1cs.witness.size;
 
-    while &y < num_witness_values {
+    while &i < num_witness_values {
       // extract a constraint row
       //   x = 1 2 3 4 
       // wi = [0 3 0 0]
-      let v_row = constraints_v_t.get_row(&y);
-      let w_row = constraints_w_t.get_row(&y);
-      let y_row = constraints_y_t.get_row(&y);
+      let v_row = constraints_v_t.get_row(&i);
+      let w_row = constraints_w_t.get_row(&i);
+      let y_row = constraints_y_t.get_row(&i);
 
       // convert a constraint row to a polynomial
       let v_poly = QAP::build_polynomial(f, &v_row);
@@ -206,7 +211,7 @@ impl QAP {
       wi.push(w_poly);
       yi.push(y_poly);
 
-      y.inc();
+      i.inc();
     }
 
     let num_constraints = constraints.a.height.e.clone();
