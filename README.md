@@ -12,10 +12,12 @@ To implement cryptographic primitives in the simplest form without using any opt
   - Proof Generation/Verification
 - BLS12-381 
   - Extension fields
-  - Miller's Algorithm
-  - Weil/Tate Pairing
+  - Miller's algorithm
+  - Weil/Tate pairing
   - Key generation, sign and verify
 - Bulletproofs
+  - Range proof
+  - Inner product argument
 - Ed25519
   - Key generation, EdDSA sign/veriry
 - Weierstrass curve
