@@ -1,8 +1,8 @@
 # zk-toolkit
-Cryptographic primitives library built from scratch
+Cryptographic primitive library built from scratch
 
 ## Goal
-To implement cryptographic primitives in the simplest form without any optimization
+To implement cryptographic primitives in the simplest form without using any optimization
 
 ## What's implemented so far
 - BLS12-381 
