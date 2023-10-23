@@ -176,9 +176,6 @@ impl PinocchioProver {
       DivResult::QuotientRemainder(_) => panic!("p must be divisible by t"),
     };
 
-    let ht_poly = &h * &self.t;
-    let ht = ht_poly.eval_with_g1_hidings(&crs.ek.si);
-
     let h_hiding = h.eval_with_g1_hidings(&crs.ek.si);
     let alpha_h = h.eval_with_g1_hidings(&crs.ek.alpha_si);
 
@@ -192,7 +189,6 @@ impl PinocchioProver {
       beta_y_mid,
       h: h_hiding,
       alpha_h,
-      ht,
     }
   }
 }
