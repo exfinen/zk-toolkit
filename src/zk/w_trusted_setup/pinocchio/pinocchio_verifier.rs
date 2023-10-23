@@ -74,7 +74,7 @@ impl PinocchioVerifier {
     }
 
     let lhs = e(&v_e, &w_e) * e(&y_e, &crs.vk.one).inv();
-    let rhs = e(&proof.ht, &crs.vk.one);
+    let rhs = e(&proof.h, &crs.vk.t);
 
     lhs == rhs
   }
