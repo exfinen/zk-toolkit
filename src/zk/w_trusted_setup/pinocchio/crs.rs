@@ -23,17 +23,20 @@ pub struct EvaluationKeys {
 
 pub struct VerificationKeys {
   pub one: G2Point,
+  pub one_e1: G1Point,
   pub e_alpha: G2Point,
   pub e_gamma: G2Point,
   pub beta_v_gamma: G2Point,
   pub beta_w_gamma: G2Point,
   pub beta_y_gamma: G2Point,
   pub t: G2Point,
-  pub v_0: G1Point,
-  pub w_0: G2Point,
-  pub y_0: G1Point,
+  pub t_e1: G1Point,
+  // pub v_0: G1Point,
+  // pub w_0: G2Point,
+  // pub y_0: G1Point,
   pub vi_io: Vec<G1Point>,
   pub wi_io: Vec<G2Point>,
+  pub wi_io_e1: Vec<G1Point>,
   pub yi_io: Vec<G1Point>,
   pub wi_mid: Vec<G2Point>,
 }
@@ -63,13 +66,19 @@ impl CRS {
     let gamma = &f.rand_elem(true);
 
     let s_pows = &s.pow_seq(&p.max_degree);
+    let mid_beg: usize = (&p.witness.mid_beg.e).try_into().unwrap();
+
     let mid: &Vec<usize> = {
-      let size: usize = p.witness.mid().size.e.try_into().unwrap();
-      let beg = *&p.mid_beg;
-      let end = beg + size;
-      &(beg..end).collect()
+      let end: usize = (&p.witness.end.e).try_into().unwrap();
+      let mid: Vec<usize> = (mid_beg..=end).collect();
+      // prepend witness 1 to include it in mid
+      // TODO change witness order from "1, io, mid" to "io, 1, mid"
+      &vec![vec![0usize], mid].concat()
     };
-    let io: &Vec<usize> = &(1usize..*&p.mid_beg).collect();
+    println!("mid is {:?}", &mid);
+    let io: &Vec<usize> = &(1usize..mid_beg).collect();
+    println!("io is {:?}", &io);
+    println!("p.vi size is {:?}", &p.vi.len());
 
     // Evaluation keys
     println!("----> Computing evaluation keys...");
@@ -80,6 +89,7 @@ impl CRS {
       E1(pow) * alpha
     }).collect();
 
+    // mid contains witness 1 as well
     let vi_mid: Vec<G1Point> = mid.iter().map(|i| { E1(&p.vi[*i].eval_at(s)) }).collect();
     let wi_mid_e1: Vec<G1Point> = mid.iter().map(|i| { E1(&p.wi[*i].eval_at(s)) }).collect();
     let wi_mid_e2: Vec<G2Point> = mid.iter().map(|i| { E2(&p.wi[*i].eval_at(s)) }).collect();
@@ -93,6 +103,7 @@ impl CRS {
     println!("----> Computing verification keys...");
 
     let one = E2(&f.elem(&1u8));  
+    let one_e1 = E1(&f.elem(&1u8));
     let e_alpha = E2(alpha);
     let e_gamma = E2(gamma);
     let beta_v_gamma = E2(gamma) * beta_v; 
@@ -100,13 +111,14 @@ impl CRS {
     let beta_y_gamma = E2(gamma) * beta_y; 
 
     let t = E2(&p.t.eval_at(s));
-    let const_witness = &p.witness.one();
-    let v_0 = E1(&p.vi[0].eval_at(s)) * const_witness;
-    let w_0 = E2(&p.wi[0].eval_at(s)) * const_witness;
-    let y_0 = E1(&p.yi[0].eval_at(s)) * const_witness;
+    let t_e1 = E1(&p.t.eval_at(s));
+    // let v_0 = E1(&p.vi[0].eval_at(s));
+    // let w_0 = E2(&p.wi[0].eval_at(s));
+    // let y_0 = E1(&p.yi[0].eval_at(s));
 
     let vi_io: Vec<G1Point> = io.iter().map(|i| { E1(&p.vi[*i].eval_at(s)) }).collect();
     let wi_io: Vec<G2Point> = io.iter().map(|i| { E2(&p.wi[*i].eval_at(s)) }).collect();
+    let wi_io_e1: Vec<G1Point> = io.iter().map(|i| { E1(&p.wi[*i].eval_at(s)) }).collect();
     let yi_io: Vec<G1Point> = io.iter().map(|i| { E1(&p.yi[*i].eval_at(s)) }).collect();
 
     let ek = EvaluationKeys {
@@ -122,17 +134,20 @@ impl CRS {
 
     let vk = VerificationKeys {
       one,
+      one_e1,
       e_alpha,
       e_gamma,
       beta_v_gamma,
       beta_w_gamma,
       beta_y_gamma,
       t,
-      v_0,
-      w_0,
-      y_0,
+      t_e1,
+      // v_0,
+      // w_0,
+      // y_0,
       vi_io,
       wi_io,
+      wi_io_e1,
       yi_io,
       wi_mid: wi_mid_e2,
     };

@@ -5,7 +5,8 @@ use crate::{
 
 pub struct Witness {
   sv: SparseVec,  // includes witness value for `1`
-  mid_beg: PrimeFieldElem,
+  pub mid_beg: PrimeFieldElem,
+  pub end: PrimeFieldElem,
 }
 
 impl Witness {
@@ -13,13 +14,14 @@ impl Witness {
     Witness {
       sv: sv.clone(),
       mid_beg: mid_beg.clone(),
+      end: &sv.size - sv.f.elem(&1u8),
     }
   }
 
-  pub fn one(&self) -> PrimeFieldElem {
-    let f = &self.mid_beg.f;
-    self.sv[&f.elem(&0u8)].clone()
-  }
+  // pub fn one(&self) -> PrimeFieldElem {
+  //   let f = &self.mid_beg.f;
+  //   self.sv[&f.elem(&0u8)].clone()
+  // }
 
   pub fn io(&self) -> SparseVec {
     let f = &self.mid_beg.f;
@@ -27,7 +29,15 @@ impl Witness {
   }
 
   pub fn mid(&self) -> SparseVec {
-    self.sv.slice(&self.mid_beg, &self.sv.size)
+    let f = &self.sv.f;
+    let mid = &self.sv.slice(&self.mid_beg, &self.sv.size);
+    let one = {
+      let mut sv = SparseVec::new(f, &f.elem(&1u8));
+      sv[&f.elem(&0u8)] = self.sv[&f.elem(&0u8)].clone();
+      sv
+    };
+    // return witness 1 and the mid
+    one.concat(mid)
   }
 }
 
@@ -52,7 +62,7 @@ mod tests {
 
     let w = Witness::new(&sv, &f.elem(&3u8));
 
-    assert!(w.one() == f.elem(&1u8));
+    //assert!(w.one() == f.elem(&1u8));
 
     let io = &w.io();
     assert!(io.size == f.elem(&2u8));

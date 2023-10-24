@@ -31,7 +31,6 @@ use std::{
 pub struct PinocchioProver {
   pub f: PrimeField,
   pub max_degree: usize,  // TODO use PrimeFieldElem or BigUint
-  pub mid_beg: usize,
   pub num_constraints: usize,
   pub witness: Witness,
   pub p: Polynomial,
@@ -130,7 +129,6 @@ impl PinocchioProver {
     PinocchioProver {
       f: f.clone(),
       max_degree: (&max_degree.e).try_into().unwrap(),
-      mid_beg: (&tmpl.mid_beg.e).try_into().unwrap(),
       num_constraints,
       witness,
       p,

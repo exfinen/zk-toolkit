@@ -150,6 +150,33 @@ impl SparseVec {
     new_sv
   }
 
+  pub fn concat(&self, other: &SparseVec) -> SparseVec {
+    let f = &self.f;
+    let size = &self.size + &other.size;
+    println!("size {:?}", &size);
+    let mut sv = SparseVec::new(f, &size);
+
+    let mut i = f.elem(&0u8); 
+    // copy self to new sv
+    {
+      let mut j = f.elem(&0u8); 
+      while &j < &self.size {
+        sv[&i] = self[&j].clone();
+        j.inc();
+        i.inc();
+      }
+    }
+    // copy other to new sv
+    {
+      let mut j = f.elem(&0u8); 
+      while &j < &other.size {
+        sv[&i] = other[&j].clone();
+        j.inc();
+        i.inc();
+      }
+    }
+    sv
+  }
 }
 
 impl PartialEq for SparseVec {
@@ -528,5 +555,23 @@ mod tests {
     assert!(it.next().unwrap() == f.elem(&2u8));
     assert!(it.next().unwrap() == f.elem(&3u8));
     assert!(it.next() == None);
+  }
+
+  #[test]
+  fn test_concat() {
+    let f = &PrimeField::new(&3911u16);
+    let mut sv1 = SparseVec::new(f, &2u8);
+    sv1.set(&0u8, &f.elem(&1u8));
+    sv1.set(&1u8, &f.elem(&2u8));
+
+    let mut sv2 = SparseVec::new(f, &2u8);
+    sv2.set(&0u8, &f.elem(&3u8));
+    sv2.set(&1u8, &f.elem(&4u8));
+
+    let sv3 = sv1.concat(&sv2);
+    assert!(sv3.get(&0u8) == &f.elem(&1u8));
+    assert!(sv3.get(&1u8) == &f.elem(&2u8));
+    assert!(sv3.get(&2u8) == &f.elem(&3u8));
+    assert!(sv3.get(&3u8) == &f.elem(&4u8));
   }
 }
