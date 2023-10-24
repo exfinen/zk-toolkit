@@ -49,7 +49,7 @@ impl PinocchioVerifier {
     //   return false;
     // }
  
-    println!("----> Checking if e(v_e, w_e)/e(y_e, E(1)) ?= e(E(h*t(s)), E(1))...");
+    println!("----> Checking if e(v_e, w_e)/e(y_e, E(1)) ?= e(E(h(s)), E(t(s)))...");
     let f = &io_inputs.f;
 
     let mut v_e = &crs.vk.v_0 + &proof.v_mid;
