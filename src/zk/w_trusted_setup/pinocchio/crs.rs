@@ -112,9 +112,6 @@ impl CRS {
 
     let t = E2(&p.t.eval_at(s));
     let t_e1 = E1(&p.t.eval_at(s));
-    // let v_0 = E1(&p.vi[0].eval_at(s));
-    // let w_0 = E2(&p.wi[0].eval_at(s));
-    // let y_0 = E1(&p.yi[0].eval_at(s));
 
     let vi_io: Vec<G1Point> = io.iter().map(|i| { E1(&p.vi[*i].eval_at(s)) }).collect();
     let wi_io: Vec<G2Point> = io.iter().map(|i| { E2(&p.wi[*i].eval_at(s)) }).collect();
@@ -142,9 +139,6 @@ impl CRS {
       beta_y_gamma,
       t,
       t_e1,
-      // v_0,
-      // w_0,
-      // y_0,
       vi_io,
       wi_io,
       wi_io_e1,
