@@ -113,12 +113,7 @@ impl PinocchioProver {
       let vi = qap.vi.iter().map(|x| x.degree()).max().unwrap();
       let wi = qap.wi.iter().map(|x| x.degree()).max().unwrap();
       let yi = qap.yi.iter().map(|x| x.degree()).max().unwrap();
-      let h = match p.divide_by(&t) {
-        DivResult::Quotient(h) => h,
-        DivResult::QuotientRemainder(_) => panic!("p must be divisible by t"),
-      };
-      let ht = (h * &t).degree();  
-      cmp::max(cmp::max(cmp::max(vi, wi), yi), ht) + f.elem(&1u8)
+      cmp::max(cmp::max(vi, wi), yi) + f.elem(&1u8)
     };
 
     let witness = Witness::new(&r1cs.witness.clone(), &tmpl.mid_beg);
@@ -144,14 +139,14 @@ impl PinocchioProver {
     let witness_mid = &self.witness.mid();
 
     let calc_e1 = |points: &Vec<G1Point>| {
-      let mut sum = crs.vk.t_e1.clone(); // G1Point::zero();
+      let mut sum = G1Point::zero();
       for i in 0..points.len() {
         sum = sum + &(&points[i] * &witness_mid[&self.f.elem(&i)]);
       }
       sum
     };
     let calc_e2 = |points: &Vec<G2Point>| {
-      let mut sum = crs.vk.t.clone(); // G2Point::zero();
+      let mut sum = G2Point::zero();
       for i in 0..points.len() {
         sum = sum + &(&points[i] * &witness_mid[&self.f.elem(&i)]);
       }

@@ -52,6 +52,8 @@ impl PinocchioVerifier {
     println!("----> Checking if e(v_e, w_e)/e(y_e, E(1)) ?= e(E(h(s)), E(t(s)))...");
     let f = &witness_io.f;
 
+    println!("Verifier witness_io: {:?}", &witness_io);
+
     let mut v_e = proof.v_mid.clone();
     for i in 0..crs.vk.vi_io.len() {
       let w = &witness_io[&f.elem(&i)];
@@ -81,10 +83,10 @@ impl PinocchioVerifier {
     }
 
     // hz = h(s) + v(s) + w(s) + t(s) - 1
-    let hz = &proof.h + &v_e + &w_e_e1 + &crs.vk.t_e1 + &crs.vk.one_e1.inv();
+    //let hz = &proof.h + &v_e + &w_e_e1 + &crs.vk.t_e1 + &crs.vk.one_e1.inv();
 
     let lhs = e(&v_e, &w_e) * e(&y_e, &crs.vk.one).inv();
-    let rhs = e(&hz, &crs.vk.t);
+    let rhs = e(&proof.h, &crs.vk.t);
 
     lhs == rhs
   }
