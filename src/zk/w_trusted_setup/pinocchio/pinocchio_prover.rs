@@ -144,14 +144,14 @@ impl PinocchioProver {
     let witness_mid = &self.witness.mid();
 
     let calc_e1 = |points: &Vec<G1Point>| {
-      let mut sum = G1Point::zero();
+      let mut sum = crs.vk.t_e1.clone(); // G1Point::zero();
       for i in 0..points.len() {
         sum = sum + &(&points[i] * &witness_mid[&self.f.elem(&i)]);
       }
       sum
     };
     let calc_e2 = |points: &Vec<G2Point>| {
-      let mut sum = G2Point::zero();
+      let mut sum = crs.vk.t.clone(); // G2Point::zero();
       for i in 0..points.len() {
         sum = sum + &(&points[i] * &witness_mid[&self.f.elem(&i)]);
       }
