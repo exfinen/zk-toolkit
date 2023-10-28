@@ -177,6 +177,11 @@ impl SparseVec {
     }
     sv
   }
+
+  // this panics if the size is above usize maximum
+  pub fn size_in_usize(&self) -> usize {
+    (&self.size.e).try_into().unwrap()
+  }
 }
 
 impl PartialEq for SparseVec {

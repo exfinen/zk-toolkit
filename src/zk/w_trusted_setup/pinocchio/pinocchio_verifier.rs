@@ -29,54 +29,41 @@ impl PinocchioVerifier {
     println!("--> Verifying Pinnochio proof...");
     let e = |a, b| self.pairing.tate(a, b);
 
+    macro_rules! fail_if_ne { ($a:expr, $b:expr) => { if ($a != $b) { return false; } }}
+    let (p, vk) = (&proof, &crs.vk); 
+
     println!("----> Checking if e(E(αh(s)),E(1)) =? e(E(h(s)),E(α))...");
-    if e(&proof.alpha_h, &crs.vk.one_e2) != e(&proof.h, &crs.vk.e_alpha) {
-      return false;
-    }
+    fail_if_ne!(e(&p.alpha_h, &vk.one_e2), e(&p.h, &vk.e_alpha));
 
     println!("----> Checking if e(E(βv v_mid(s), E(γ)) =? e(v_mid(s),E(βvγ))..."); 
-    if e(&proof.beta_v_mid, &crs.vk.e_gamma) != e(&proof.v_mid, &crs.vk.beta_v_gamma) {
-      return false;
-    }
+    fail_if_ne!(e(&p.beta_v_mid, &vk.e_gamma), e(&p.v_mid, &vk.beta_v_gamma));
 
     println!("----> Checking if e(E(βw w_mid(s)), E(γ)) =? e(w_mid(s),E(βwγ))..."); 
-    if e(&proof.beta_w_mid_e1, &crs.vk.e_gamma) != e(&proof.w_mid_e1, &crs.vk.beta_w_gamma) {
-      return false;
-    }
+    fail_if_ne!(e(&p.beta_w_mid_e1, &vk.e_gamma), e(&p.w_mid_e1, &vk.beta_w_gamma));
 
     println!("----> Checking if e(E(βy y_mid(s)), E(γ)) =? e(y_mid(s),E(βyγ))...");
-    if e(&proof.beta_y_mid, &crs.vk.e_gamma) != e(&proof.y_mid, &crs.vk.beta_y_gamma) {
-      return false;
-    }
+    fail_if_ne!(e(&p.beta_y_mid, &vk.e_gamma), e(&p.y_mid, &vk.beta_y_gamma));
  
-    println!("----> Checking if e(v_e, w_e)/e(y_e, E(1)) ?= e(E(h(s)), E(t(s)))...");
     let f = &witness_io.f;
 
-    println!("Verifier witness_io: {:?}", &witness_io);
-
-    let mut v_e = proof.v_mid_zk.clone();
-    for i in 0..crs.vk.vi_io.len() {
-      let w = &witness_io[&f.elem(&i)];
-      let p = &crs.vk.vi_io[i];
-      v_e = v_e + p * w;
+    macro_rules! add_io_x_wit_to_mid {
+      ($io_polys:expr, $mid_zk:expr) => {{
+        let mut sum = $mid_zk.clone();
+        for i in 0..$io_polys.len() {
+          let w = &witness_io[&f.elem(&i)];
+          let p = &$io_polys[i];
+          sum = sum + p * w;
+        }
+        sum
+      }};
     }
+    let v_e = add_io_x_wit_to_mid!(vk.vi_io, p.v_mid_zk);
+    let w_e = add_io_x_wit_to_mid!(vk.wi_io, p.w_mid_e2);
+    let y_e = add_io_x_wit_to_mid!(vk.yi_io, p.y_mid_zk);
 
-    let mut w_e = proof.w_mid_e2.clone();
-    for i in 0..crs.vk.wi_io.len() {
-      let w = &witness_io[&f.elem(&i)];
-      let p = &crs.vk.wi_io[i];
-      w_e = w_e + p * w;
-    }
-
-    let mut y_e = proof.y_mid_zk.clone();
-    for i in 0..crs.vk.yi_io.len() {
-      let w = &witness_io[&f.elem(&i)];
-      let p = &crs.vk.yi_io[i];
-      y_e = y_e + p * w;
-    }
-
-    let lhs = e(&v_e, &w_e) * e(&y_e, &crs.vk.one_e2).inv();
-    let rhs = e(&proof.adj_h, &crs.vk.t_e2);
+    println!("----> Checking if e(v_e, w_e)/e(y_e, E(1)) ?= e(E(h(s)), E(t(s)))...");
+    let lhs = e(&v_e, &w_e) * e(&y_e, &vk.one_e2).inv();
+    let rhs = e(&p.adj_h, &vk.t_e2);
 
     lhs == rhs
   }

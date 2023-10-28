@@ -23,10 +23,7 @@ use crate::{
     witness::Witness,
   },
 };
-use std::{
-  collections::HashMap,
-  cmp,
-};
+use std::collections::HashMap;
 
 pub struct PinocchioProver {
   pub f: PrimeField,
@@ -121,21 +118,18 @@ impl PinocchioProver {
     let witness_mid = &self.witness.mid();
     let witness_io = &self.witness.io();
 
-    let calc_e1 = |points: &Vec<G1Point>| {
-      let mut sum = G1Point::zero();
-      for i in 0..points.len() {
-        sum = sum + &(&points[i] * &witness_mid[&self.f.elem(&i)]);
-      }
-      sum
-    };
-    let calc_e2 = |points: &Vec<G2Point>| {
-      let mut sum = G2Point::zero();
-      for i in 0..points.len() {
-        sum = sum + &(&points[i] * &witness_mid[&self.f.elem(&i)]);
-      }
-      sum
-    };
-  
+    macro_rules! calc {
+      ($point_type:ty, $points:ident) => {{
+        let mut sum = <$point_type>::zero();
+        for i in 0..$points.len() {
+          sum = sum + &$points[i] * &witness_mid[&self.f.elem(&i)];
+        }
+        sum
+      }};
+    }
+    let calc_e1 = |points: &Vec<G1Point>| calc!(G1Point, points);
+    let calc_e2 = |points: &Vec<G2Point>| calc!(G2Point, points);
+
     // making only v and y zero-knowledge, excluding w. 
     // the reason is that including w results in having t(s)^2 in the
     // adjusted h, and that seems to make adj_h * t != v * w - y

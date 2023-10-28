@@ -98,33 +98,16 @@ impl QAP {
 
   pub fn build_p(&self, witness: &SparseVec) -> Polynomial {
     let zero = &Polynomial::zero(&self.f);
+    let (mut v, mut w, mut y) =
+      (zero.clone(), zero.clone(), zero.clone());
 
-    // aggretate vi, wi, yi to build v, w and y
-    let v = {
-      let mut p = zero.clone();
-      for i in 0..self.vi.len() {
-        let w = &witness[&self.f.elem(&i)];
-        p = &p + &(&self.vi[i] * w);
-      };
-      p
+    for i in 0..witness.size_in_usize() {
+      let wit = &witness[&self.f.elem(&i)];
+      v = &v + &(&self.vi[i] * wit);
+      w = &w + &(&self.wi[i] * wit);
+      y = &y + &(&self.yi[i] * wit);
     };
-    let w = {
-      let mut p = zero.clone();
-      for i in 0..self.wi.len() {
-        let w = &witness[&self.f.elem(&i)];
-        p = &p + &(&self.wi[i] * w);
-      };
-      p
-    };
-    let y = {
-      let mut p = zero.clone();
-      for i in 0..self.yi.len() {
-        let w = &witness[&self.f.elem(&i)];
-        p = &p + &(&self.yi[i] * w);
-      };
-      p
-    };
-
+    
     (v * &w) - &y
   }
 
