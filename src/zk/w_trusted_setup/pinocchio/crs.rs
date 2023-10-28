@@ -22,18 +22,15 @@ pub struct EvaluationKeys {
 }
 
 pub struct VerificationKeys {
-  pub one: G2Point,
   pub one_e1: G1Point,
+  pub one_e2: G2Point,
   pub e_alpha: G2Point,
   pub e_gamma: G2Point,
   pub beta_v_gamma: G2Point,
   pub beta_w_gamma: G2Point,
   pub beta_y_gamma: G2Point,
-  pub t: G2Point,
   pub t_e1: G1Point,
-  // pub v_0: G1Point,
-  // pub w_0: G2Point,
-  // pub y_0: G1Point,
+  pub t_e2: G2Point,
   pub vi_io: Vec<G1Point>,
   pub wi_io: Vec<G2Point>,
   pub wi_io_e1: Vec<G1Point>,
@@ -71,8 +68,6 @@ impl CRS {
     let mid: &Vec<usize> = {
       let end: usize = (&p.witness.end.e).try_into().unwrap();
       let mid: Vec<usize> = (mid_beg..=end).collect();
-      // prepend witness 1 to include it in mid
-      // TODO change witness order from "1, io, mid" to "io, 1, mid"
       &vec![vec![0usize], mid].concat()
     };
     println!("mid is {:?}", &mid);
@@ -102,16 +97,16 @@ impl CRS {
     // Verification keys
     println!("----> Computing verification keys...");
 
-    let one = E2(&f.elem(&1u8));  
     let one_e1 = E1(&f.elem(&1u8));
+    let one_e2 = E2(&f.elem(&1u8));  
     let e_alpha = E2(alpha);
     let e_gamma = E2(gamma);
     let beta_v_gamma = E2(gamma) * beta_v; 
     let beta_w_gamma = E2(gamma) * beta_w; 
     let beta_y_gamma = E2(gamma) * beta_y; 
 
-    let t = E2(&p.t.eval_at(s));
     let t_e1 = E1(&p.t.eval_at(s));
+    let t_e2 = E2(&p.t.eval_at(s));
 
     let vi_io: Vec<G1Point> = io.iter().map(|i| { E1(&p.vi[*i].eval_at(s)) }).collect();
     let wi_io: Vec<G2Point> = io.iter().map(|i| { E2(&p.wi[*i].eval_at(s)) }).collect();
@@ -130,15 +125,15 @@ impl CRS {
     };
 
     let vk = VerificationKeys {
-      one,
       one_e1,
+      one_e2,
       e_alpha,
       e_gamma,
       beta_v_gamma,
       beta_w_gamma,
       beta_y_gamma,
-      t,
       t_e1,
+      t_e2,
       vi_io,
       wi_io,
       wi_io_e1,

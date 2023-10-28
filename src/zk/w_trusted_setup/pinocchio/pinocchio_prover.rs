@@ -137,6 +137,7 @@ impl PinocchioProver {
   pub fn prove(&self, crs: &CRS) -> PinocchioProof {
     println!("--> Generating proof...");
     let witness_mid = &self.witness.mid();
+    let witness_io = &self.witness.io();
 
     let calc_e1 = |points: &Vec<G1Point>| {
       let mut sum = G1Point::zero();
@@ -152,8 +153,31 @@ impl PinocchioProver {
       }
       sum
     };
+  
+    // making only v and y zero-knowledge, excluding w. 
+    // the reason is that including w results in having t(s)^2 in the
+    // adjusted h, and that seems to make adj_h * t != v * w - y
+    //
+    // without using delta factors, adj_h(s) * t(s) is:
+    // 
+    // adj_h * t(s)
+    // = (v(s) + t(s)) * (w(s) + t(s)) - (y(s) + t(s))
+    // = v(s) * w(s)        + v(s) * t(s) + w(s) * t(s) + t(s)^2 - y(s) - t(s)
+    // = v(s) * w(s) - y(s) + v(s) * t(s) + w(s) * t(s) + t(s)^2 - t(s)
+    // = h(s) * t(s)        + v(s) * t(s) + w(s) * t(s) + t(s)^2 - t(s)
+    // = t(s) * (h(s) + v(s) + w(s) + t(s) - 1)
+    // 
+    // so, adjusted h is h(s) + v(s) + w(s) + t(s) - 1.
+    // but the existence t(s) here seems to make the calculation fail.
+    //
+    // TODO fix this problem and make w zero-knowledge as well 
+
+    let f = &self.f;
+    let delta_v = &f.rand_elem(true); 
+    let delta_y = &f.rand_elem(true); 
 
     let v_mid = calc_e1(&crs.ek.vi_mid);
+    let v_mid_zk = calc_e1(&crs.ek.vi_mid) + &crs.vk.t_e1 * delta_v;
     let beta_v_mid = calc_e1(&crs.ek.beta_vi_mid);
 
     let w_mid_e1 = calc_e1(&crs.ek.wi_mid);
@@ -162,6 +186,7 @@ impl PinocchioProver {
     let w_mid_e2 = calc_e2(&crs.vk.wi_mid);
 
     let y_mid = calc_e1(&crs.ek.yi_mid);
+    let y_mid_zk = calc_e1(&crs.ek.yi_mid) + &crs.vk.t_e1 * delta_y;
     let beta_y_mid = calc_e1(&crs.ek.beta_yi_mid);
 
     let h = match self.p.divide_by(&self.t) {
@@ -170,17 +195,31 @@ impl PinocchioProver {
     };
 
     let h_hiding = h.eval_with_g1_hidings(&crs.ek.si);
+
+    let adj_h = {
+      let mut w_e_e1 = w_mid_e1.clone();
+      for i in 0..crs.vk.wi_io.len() {
+        let w = &witness_io[&f.elem(&i)];
+        let p = &crs.vk.wi_io_e1[i];
+        w_e_e1 = w_e_e1 + p * w;
+      }
+      &h_hiding + &w_e_e1 * delta_v + -&crs.vk.one_e1 * delta_y
+    };
+
     let alpha_h = h.eval_with_g1_hidings(&crs.ek.alpha_si);
 
     PinocchioProof {
       v_mid,
+      v_mid_zk,
       w_mid_e1,
       w_mid_e2,
       y_mid,
+      y_mid_zk,
       beta_v_mid,
       beta_w_mid_e1,
       beta_y_mid,
       h: h_hiding,
+      adj_h,
       alpha_h,
     }
   }
