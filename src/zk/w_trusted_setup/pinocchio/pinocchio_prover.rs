@@ -94,10 +94,8 @@ impl PinocchioProver {
     let p = qap.build_p(&r1cs.witness);
 
     let max_degree = {
-      let vi = qap.vi.iter().map(|x| x.degree()).max().unwrap();
-      let wi = qap.wi.iter().map(|x| x.degree()).max().unwrap();
-      let yi = qap.yi.iter().map(|x| x.degree()).max().unwrap();
-      cmp::max(cmp::max(vi, wi), yi) + f.elem(&1u8)
+      let xs = vec![&qap.vi[..], &qap.wi[..], &qap.yi[..]].concat();
+      xs.iter().map(|x| x.degree()).max().unwrap()
     };
 
     let witness = Witness::new(&r1cs.witness.clone(), &tmpl.mid_beg);
