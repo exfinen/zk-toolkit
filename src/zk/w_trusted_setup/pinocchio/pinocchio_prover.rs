@@ -51,41 +51,25 @@ impl PinocchioProver {
     println!("s = {:?}\n", s);
     println!("witness {:?}\n", &r1cs.witness);
 
-    {
-      for (i, gate) in gates.iter().enumerate() {
-        println!("{}: {:?}", i+1 , gate);
-      }
-      println!("");
+    for (i, gate) in gates.iter().enumerate() {
+      println!("{}: {:?}", i+1 , gate);
     }
+    println!("");
 
     let num_witness: usize = (&r1cs.witness.size.e).try_into().unwrap();
-
     let mut v = f.elem(&0u8);
-    {
-      for i in 0..num_witness {
-        let vi = &qap.vi[i].eval_at(s);
-        println!("vi[{:?}] = {:?}", i, vi);
-        v = &v + vi * &r1cs.witness[&f.elem(&i)];
-      }
-      println!("");
-    }
     let mut w = f.elem(&0u8);
-    {
-      for i in 0..num_witness {
-        let wi = &qap.wi[i].eval_at(s);
-        println!("wi[{:?}] = {:?}", i, wi);
-        w = &w + wi * &r1cs.witness[&f.elem(&i)];
-      }
-      println!("");
-    }
     let mut y = f.elem(&0u8);
-    {
-      for i in 0..num_witness {
-        let yi = &qap.yi[i].eval_at(s);
-        println!("yi[{:?}] = {:?}", i, yi);
-        y = &y + yi * &r1cs.witness[&f.elem(&i)];
-      }
-      println!("");
+    
+    for i in 0..num_witness {
+      let vi = &qap.vi[i].eval_at(s);
+      let wi = &qap.wi[i].eval_at(s);
+      let yi = &qap.yi[i].eval_at(s);
+
+      let i = &f.elem(&i);
+      v = &v + vi * &r1cs.witness[i];
+      w = &w + wi * &r1cs.witness[i];
+      y = &y + yi * &r1cs.witness[i];
     }
     println!("{:?} * {:?} = {:?}\n", v, w, y);
   }
