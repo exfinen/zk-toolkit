@@ -20,15 +20,17 @@ To implement cryptographic primitives in the simplest form without using any opt
   - Inner product argument
 - Ed25519
   - Key generation, EdDSA sign/veriry
-- Weierstrass curve
-  - Affine coordinate operations
-  - Jacobian coordinate operations
 - Secp256k1
   - Key generation, ECDSA sign/verify
 - SHA256 and SHA512 hashers
 - Generic HMAC
+- Weierstrass curve
+  - Affine coordinate operations
+  - Jacobian coordinate operations
+- Prime finite field
+  - Scalar and vector operations
 
 ## What's NOT implemented so far
-- Big number
+- Arbitrary-precision unsigned integer
 - Random number generator
 

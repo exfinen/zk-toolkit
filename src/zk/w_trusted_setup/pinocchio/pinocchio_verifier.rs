@@ -44,8 +44,6 @@ impl PinocchioVerifier {
     println!("----> Checking if e(E(βy y_mid(s)), E(γ)) =? e(y_mid(s),E(βyγ))...");
     fail_if_ne!(e(&p.beta_y_mid, &vk.e_gamma), e(&p.y_mid, &vk.beta_y_gamma));
  
-    let f = &witness_io.f;
-
     macro_rules! add_io_x_wit_to_mid {
       ($io_polys:expr, $mid_zk:expr) => {{
         let mut sum = $mid_zk.clone();
@@ -68,5 +66,4 @@ impl PinocchioVerifier {
     lhs == rhs
   }
 }
-
 
