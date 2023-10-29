@@ -70,10 +70,7 @@ impl CRS {
       let mid: Vec<usize> = (mid_beg..=end).collect();
       &vec![vec![0usize], mid].concat()
     };
-    println!("mid is {:?}", &mid);
     let io: &Vec<usize> = &(1usize..mid_beg).collect();
-    println!("io is {:?}", &io);
-    println!("p.vi size is {:?}", &p.vi.len());
 
     // Evaluation keys
     println!("----> Computing evaluation keys...");

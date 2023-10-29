@@ -148,38 +148,38 @@ impl PinocchioProver {
     //
     // TODO fix this problem and make w zero-knowledge as well 
 
-    let f = &self.f;
+    let (ek, vk, f) = (&crs.ek, &crs.vk, &self.f);
     let delta_v = &f.rand_elem(true); 
     let delta_y = &f.rand_elem(true); 
 
-    let v_mid = calc_e1(&crs.ek.vi_mid);
-    let v_mid_zk = calc_e1(&crs.ek.vi_mid) + &crs.vk.t_e1 * delta_v;
-    let beta_v_mid = calc_e1(&crs.ek.beta_vi_mid);
+    let v_mid = calc_e1(&ek.vi_mid);
+    let v_mid_zk = calc_e1(&ek.vi_mid) + &vk.t_e1 * delta_v;
+    let beta_v_mid = calc_e1(&ek.beta_vi_mid);
 
-    let w_mid_e1 = calc_e1(&crs.ek.wi_mid);
-    let beta_w_mid_e1 = calc_e1(&crs.ek.beta_wi_mid);
+    let w_mid_e1 = calc_e1(&ek.wi_mid);
+    let beta_w_mid_e1 = calc_e1(&ek.beta_wi_mid);
 
-    let w_mid_e2 = calc_e2(&crs.vk.wi_mid);
+    let w_mid_e2 = calc_e2(&vk.wi_mid);
 
-    let y_mid = calc_e1(&crs.ek.yi_mid);
-    let y_mid_zk = calc_e1(&crs.ek.yi_mid) + &crs.vk.t_e1 * delta_y;
-    let beta_y_mid = calc_e1(&crs.ek.beta_yi_mid);
+    let y_mid = calc_e1(&ek.yi_mid);
+    let y_mid_zk = calc_e1(&ek.yi_mid) + &vk.t_e1 * delta_y;
+    let beta_y_mid = calc_e1(&ek.beta_yi_mid);
 
     let h = match self.p.divide_by(&self.t) {
       DivResult::Quotient(h) => h,
       DivResult::QuotientRemainder(_) => panic!("p must be divisible by t"),
     };
 
-    let h_hiding = h.eval_with_g1_hidings(&crs.ek.si);
+    let h_hiding = h.eval_with_g1_hidings(&ek.si);
 
     let adj_h = {
       let mut w_e_e1 = w_mid_e1.clone();
-      for i in 0..crs.vk.wi_io.len() {
+      for i in 0..vk.wi_io.len() {
         let w = &witness_io[&i];
-        let p = &crs.vk.wi_io_e1[i];
+        let p = &vk.wi_io_e1[i];
         w_e_e1 = w_e_e1 + p * w;
       }
-      &h_hiding + &w_e_e1 * delta_v + -&crs.vk.one_e1 * delta_y
+      &h_hiding + &w_e_e1 * delta_v + -&vk.one_e1 * delta_y
     };
 
     let alpha_h = h.eval_with_g1_hidings(&crs.ek.alpha_si);
