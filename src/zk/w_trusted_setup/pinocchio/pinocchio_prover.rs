@@ -27,7 +27,7 @@ use std::collections::HashMap;
 
 pub struct PinocchioProver {
   pub f: PrimeField,
-  pub max_degree: usize,  // TODO use PrimeFieldElem or BigUint
+  pub max_degree: usize,
   pub num_constraints: usize,
   pub witness: Witness,
   pub p: Polynomial,
@@ -53,20 +53,18 @@ impl PinocchioProver {
     }
     println!("");
 
-    let num_witness: usize = (&r1cs.witness.size.e).try_into().unwrap();
     let mut v = f.elem(&0u8);
     let mut w = f.elem(&0u8);
     let mut y = f.elem(&0u8);
     
-    for i in 0..num_witness {
+    for i in 0..r1cs.witness.size_in_usize() {
       let vi = &qap.vi[i].eval_at(s);
       let wi = &qap.wi[i].eval_at(s);
       let yi = &qap.yi[i].eval_at(s);
 
-      let i = &f.elem(&i);
-      v = &v + vi * &r1cs.witness[i];
-      w = &w + wi * &r1cs.witness[i];
-      y = &y + yi * &r1cs.witness[i];
+      v = &v + vi * &r1cs.witness[&i];
+      w = &w + wi * &r1cs.witness[&i];
+      y = &y + yi * &r1cs.witness[&i];
     }
     println!("{:?} * {:?} = {:?}\n", v, w, y);
   }
@@ -90,10 +88,10 @@ impl PinocchioProver {
     let t = QAP::build_t(f, &tmpl.constraints.len());
     let p = qap.build_p(&r1cs.witness);
 
-    let max_degree = {
+    let max_degree: usize = {
       let xs = vec![&qap.vi[..], &qap.wi[..], &qap.yi[..]].concat();
       xs.iter().map(|x| x.degree()).max().unwrap()
-    };
+    }.e.try_into().unwrap();
 
     let witness = Witness::new(&r1cs.witness.clone(), &tmpl.mid_beg);
     let num_constraints = tmpl.constraints.len();
@@ -102,7 +100,7 @@ impl PinocchioProver {
 
     PinocchioProver {
       f: f.clone(),
-      max_degree: (&max_degree.e).try_into().unwrap(),
+      max_degree,
       num_constraints,
       witness,
       p,

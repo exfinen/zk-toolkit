@@ -50,7 +50,7 @@ impl PinocchioVerifier {
       ($io_polys:expr, $mid_zk:expr) => {{
         let mut sum = $mid_zk.clone();
         for i in 0..$io_polys.len() {
-          let w = &witness_io[&f.elem(&i)];
+          let w = &witness_io[&i];
           let p = &$io_polys[i];
           sum = sum + p * w;
         }
