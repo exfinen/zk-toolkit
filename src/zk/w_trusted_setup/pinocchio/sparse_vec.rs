@@ -210,8 +210,30 @@ impl Index<&PrimeFieldElem> for SparseVec {
   }
 }
 
+// this fails if index is above usize maximum
+impl Index<&usize> for SparseVec {
+  type Output = PrimeFieldElem;
+
+  fn index(&self, index: &usize) -> &Self::Output {
+    let index = self.size.f.elem(index);
+    &self.get(&index)
+  }
+}
+
 impl IndexMut<&PrimeFieldElem> for SparseVec {
   fn index_mut(&mut self, index: &PrimeFieldElem) -> &mut Self::Output {
+    if !self.elems.contains_key(index) {
+      self.elems.insert(index.clone(), self.f.elem(&0u8));
+    }
+    self.elems.get_mut(index).unwrap()
+  }
+}
+
+// this fails if index is above usize maximum
+impl IndexMut<&usize> for SparseVec {
+  fn index_mut(&mut self, index: &usize) -> &mut Self::Output {
+    let index = &self.size.f.elem(index);
+
     if !self.elems.contains_key(index) {
       self.elems.insert(index.clone(), self.f.elem(&0u8));
     }
@@ -285,8 +307,8 @@ mod tests {
     let sv2 = sv.slice(one, three);
 
     assert_eq!(&sv2.size, two);
-    assert_eq!(&sv2[&zero], one);
-    assert_eq!(&sv2[&one], two);
+    assert_eq!(&sv2[zero], one);
+    assert_eq!(&sv2[one], two);
   }
 
   #[test]
@@ -298,8 +320,8 @@ mod tests {
     let elems = vec![one.clone(), two.clone()];
     let vec = SparseVec::from(&elems);
     assert_eq!(&vec.size, two);
-    assert_eq!(&vec[&zero], one);
-    assert_eq!(&vec[&one], two);
+    assert_eq!(&vec[zero], one);
+    assert_eq!(&vec[one], two);
   }
 
   #[test]

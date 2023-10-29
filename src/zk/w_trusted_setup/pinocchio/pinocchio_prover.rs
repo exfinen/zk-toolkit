@@ -122,7 +122,7 @@ impl PinocchioProver {
       ($point_type:ty, $points:ident) => {{
         let mut sum = <$point_type>::zero();
         for i in 0..$points.len() {
-          sum = sum + &$points[i] * &witness_mid[&self.f.elem(&i)];
+          sum = sum + &$points[i] * &witness_mid[&i];
         }
         sum
       }};
@@ -175,7 +175,7 @@ impl PinocchioProver {
     let adj_h = {
       let mut w_e_e1 = w_mid_e1.clone();
       for i in 0..crs.vk.wi_io.len() {
-        let w = &witness_io[&f.elem(&i)];
+        let w = &witness_io[&i];
         let p = &crs.vk.wi_io_e1[i];
         w_e_e1 = w_e_e1 + p * w;
       }

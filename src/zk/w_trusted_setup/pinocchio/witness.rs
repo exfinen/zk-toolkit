@@ -18,11 +18,6 @@ impl Witness {
     }
   }
 
-  // pub fn one(&self) -> PrimeFieldElem {
-  //   let f = &self.mid_beg.f;
-  //   self.sv[&f.elem(&0u8)].clone()
-  // }
-
   pub fn io(&self) -> SparseVec {
     let f = &self.mid_beg.f;
     self.sv.slice(&f.elem(&1u8), &self.mid_beg)
@@ -33,7 +28,7 @@ impl Witness {
     let mid = &self.sv.slice(&self.mid_beg, &self.sv.size);
     let one = {
       let mut sv = SparseVec::new(f, &f.elem(&1u8));
-      sv[&f.elem(&0u8)] = self.sv[&f.elem(&0u8)].clone();
+      sv[&0] = self.sv[&0].clone();
       sv
     };
     // return witness 1 and the mid

@@ -102,7 +102,7 @@ impl QAP {
       (zero.clone(), zero.clone(), zero.clone());
 
     for i in 0..witness.size_in_usize() {
-      let wit = &witness[&self.f.elem(&i)];
+      let wit = &witness[&i];
       v = &v + &(&self.vi[i] * wit);
       w = &w + &(&self.wi[i] * wit);
       y = &y + &(&self.yi[i] * wit);
