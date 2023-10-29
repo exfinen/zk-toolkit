@@ -22,11 +22,11 @@ To implement cryptographic primitives in the simplest form without using any opt
   - Key generation, EdDSA sign/veriry
 - Secp256k1
   - Key generation, ECDSA sign/verify
-- SHA256 and SHA512 hashers
 - Weierstrass curve
   - Affine coordinate operations
   - Jacobian coordinate operations
 - Generic HMAC
+- SHA256 and SHA512 hashers
 - Prime finite field
   - Scalar and vector operations
 
