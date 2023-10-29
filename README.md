@@ -9,7 +9,7 @@ To implement cryptographic primitives in the simplest form without using any opt
   - Equation parser
   - R1CS
   - QAP
-  - Proof Generation/verification
+  - Proof generation and verification
 - BLS12-381 
   - Extension fields
   - Miller's algorithm
