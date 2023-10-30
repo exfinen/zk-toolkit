@@ -1245,7 +1245,7 @@ mod tests {
   }
 
   #[test]
-  fn test_eval_with_g1_hidings_2() {
+  fn test_eval_with_g1_order() {
     let f = &G1Point::curve_group();
 
     let s = f.elem(&3u8);
@@ -1272,8 +1272,7 @@ mod tests {
       e2362,
       e3670,
     ]);
-    println!("p(s) = {:?}", p.eval_at(&s));
-    assert!(p.eval_at(&s) == f.elem(&0u8));
+    assert!(p.eval_at(&s) == f.elem(&30830413u32));
 
   }
 }
