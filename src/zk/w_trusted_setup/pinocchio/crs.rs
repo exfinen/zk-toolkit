@@ -65,12 +65,11 @@ impl CRS {
     let s_pows = &s.pow_seq(&p.max_degree);
     let mid_beg: usize = (&p.witness.mid_beg.e).try_into().unwrap();
 
-    let mid: &Vec<usize> = {
+    let mid: Vec<usize> = {
       let end: usize = (&p.witness.end.e).try_into().unwrap();
-      let mid: Vec<usize> = (mid_beg..=end).collect();
-      &vec![vec![0usize], mid].concat()
+      (mid_beg..=end).collect()
     };
-    let io: &Vec<usize> = &(1usize..mid_beg).collect();
+    let io: &Vec<usize> = &(0usize..mid_beg).collect();
 
     // Evaluation keys
     println!("----> Computing evaluation keys...");

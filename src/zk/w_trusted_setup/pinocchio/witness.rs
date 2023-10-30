@@ -20,19 +20,11 @@ impl Witness {
 
   pub fn io(&self) -> SparseVec {
     let f = &self.mid_beg.f;
-    self.sv.slice(&f.elem(&1u8), &self.mid_beg)
+    self.sv.slice(&f.elem(&0u8), &self.mid_beg)
   }
 
   pub fn mid(&self) -> SparseVec {
-    let f = &self.sv.f;
-    let mid = &self.sv.slice(&self.mid_beg, &self.sv.size);
-    let one = {
-      let mut sv = SparseVec::new(f, &f.elem(&1u8));
-      sv[&0] = self.sv[&0].clone();
-      sv
-    };
-    // return witness 1 and the mid
-    one.concat(mid)
+    self.sv.slice(&self.mid_beg, &self.sv.size)
   }
 }
 
@@ -57,12 +49,11 @@ mod tests {
 
     let w = Witness::new(&sv, &f.elem(&3u8));
 
-    //assert!(w.one() == f.elem(&1u8));
-
     let io = &w.io();
-    assert!(io.size == f.elem(&2u8));
-    assert!(io[&f.elem(&0u8)] == f.elem(&3u8));
-    assert!(io[&f.elem(&1u8)] == f.elem(&35u8));
+    assert!(io.size == f.elem(&3u8));
+    assert!(io[&f.elem(&0u8)] == f.elem(&1u8));
+    assert!(io[&f.elem(&1u8)] == f.elem(&3u8));
+    assert!(io[&f.elem(&2u8)] == f.elem(&35u8));
 
     let mid = &w.mid();
     assert!(mid.size == f.elem(&4u8));
