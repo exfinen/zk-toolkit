@@ -30,13 +30,11 @@ pub struct PinocchioProver {
   pub max_degree: usize,
   pub num_constraints: usize,
   pub witness: Witness,
-  pub p: Polynomial,
   pub t: Polynomial,
+  pub p: Polynomial,
   pub vi: Vec<Polynomial>,
   pub wi: Vec<Polynomial>,
   pub yi: Vec<Polynomial>,
-  delta_v: PrimeFieldElem,
-  delta_y: PrimeFieldElem,
 }
 
 impl PinocchioProver {
@@ -46,11 +44,9 @@ impl PinocchioProver {
     r1cs: &R1CS,
     qap: &QAP,
     s: &PrimeFieldElem,
-    p: &Polynomial,
   ) {
     println!("s = {:?}\n", s);
     println!("witness {:?}\n", &r1cs.witness);
-    println!("p = {:?}\n", p);
 
     for (i, gate) in gates.iter().enumerate() {
       println!("{}: {:?}", i+1 , gate);
@@ -100,44 +96,24 @@ impl PinocchioProver {
     let witness = Witness::new(&r1cs.witness.clone(), &tmpl.mid_beg);
     let num_constraints = tmpl.constraints.len();
 
-    let delta_v = &f.rand_elem(true); 
-    let delta_y = &f.rand_elem(true); 
-
-    // randomizing v and y only. the reason for not randomizing w is explained below
-    //
-    // (v(x) + delta_v * t(x)) * w(x) - (y(x) + delta_y * t(x))
-    // = v(x) * w(x) + delta_v * t(x) * w(x) - y(x) - delta_y * t(x)
-    // = v(x) * w(x) - y(x) + delta_v * t(x) * w(x) - delta_y * t(x)
-    // = p(x)               + delta_v * t(x) * w(x) - delta_y * t(x)
-    let randomized_p = {
-      let mut w = Polynomial::zero(f);
-      for wi in &qap.wi {
-        w = &w + wi
-      }
-      &p + &(&(&t * &w) * delta_v) - &(&t * delta_y)
-    };
-
-    Self::print_debug_info(f, gates, &r1cs, &qap, s, &randomized_p);
+    Self::print_debug_info(f, gates, &r1cs, &qap, s);
 
     PinocchioProver {
       f: f.clone(),
       max_degree,
       num_constraints,
       witness,
-      p: randomized_p,
       t,
+      p,
       vi: qap.vi.clone(),
       wi: qap.wi.clone(),
       yi: qap.yi.clone(),
-      delta_v: delta_v.clone(),
-      delta_y: delta_y.clone(),
     }
   }
 
   pub fn prove(&self, crs: &CRS) -> PinocchioProof {
     println!("--> Generating proof...");
     let witness_mid = &self.witness.mid();
-    let witness_io = &self.witness.io();
 
     macro_rules! calc {
       ($point_type:ty, $points:ident) => {{
@@ -178,20 +154,38 @@ impl PinocchioProver {
     // = h(s) * t(s)        + t(s) * w(s) - t(s)
     // = t(s) * (h(s) + w(s) - 1)
 
-    let (ek, vk) = (&crs.ek, &crs.vk);
+    let (ek, vk, f) = (&crs.ek, &crs.vk, &self.f);
 
-    let v_mid = calc_e1(&ek.vi_mid) + &vk.t_e1 * &self.delta_v;
-    let beta_v_mid = calc_e1(&ek.beta_vi_mid) + &ek.t_beta_v * &self.delta_v;
+    let delta_v = &f.rand_elem(true); 
+    let delta_y = &f.rand_elem(true); 
+
+    // randomizing v and y only. the reason for not randomizing w is explained below
+    //
+    // (v(x) + delta_v * t(x)) * w(x) - (y(x) + delta_y * t(x))
+    // = v(x) * w(x) + delta_v * t(x) * w(x) - y(x) - delta_y * t(x)
+    // = v(x) * w(x) - y(x) + delta_v * t(x) * w(x) - delta_y * t(x)
+    // = p(x)               + delta_v * t(x) * w(x) - delta_y * t(x)
+    let randomized_p = {
+      let mut w = Polynomial::zero(f);
+      for wi in &self.wi {
+        w = &w + wi
+      }
+      let delta_y = Polynomial::new(f, &vec![delta_y.clone()]);
+      &self.p + &(&(&self.t * &w) * delta_v)  - &(&self.t * delta_y)
+    };
+
+    let v_mid = calc_e1(&ek.vi_mid) + &vk.t_e1 * delta_v;
+    let beta_v_mid = calc_e1(&ek.beta_vi_mid) + &ek.t_beta_v * delta_v;
 
     let w_mid_e1 = calc_e1(&ek.wi_mid);
     let beta_w_mid_e1 = calc_e1(&ek.beta_wi_mid);
 
     let w_mid_e2 = calc_e2(&vk.wi_mid);
 
-    let y_mid = calc_e1(&ek.yi_mid) + &vk.t_e1 * &self.delta_y;
-    let beta_y_mid = calc_e1(&ek.beta_yi_mid) + &ek.t_beta_y * &self.delta_y;
+    let y_mid = calc_e1(&ek.yi_mid) + &vk.t_e1 * delta_y;
+    let beta_y_mid = calc_e1(&ek.beta_yi_mid) + &ek.t_beta_y * delta_y;
 
-    let h = match self.p.divide_by(&self.t) {
+    let h = match randomized_p.divide_by(&self.t) {
       DivResult::Quotient(h) => h,
       DivResult::QuotientRemainder(_) => panic!("p must be divisible by t"),
     };
