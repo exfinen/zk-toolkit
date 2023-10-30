@@ -55,13 +55,13 @@ impl PinocchioVerifier {
         sum
       }};
     }
-    let v_e = add_io_x_wit_to_mid!(vk.vi_io, p.v_mid_zk);
+    let v_e = add_io_x_wit_to_mid!(vk.vi_io, p.v_mid);
     let w_e = add_io_x_wit_to_mid!(vk.wi_io, p.w_mid_e2);
-    let y_e = add_io_x_wit_to_mid!(vk.yi_io, p.y_mid_zk);
+    let y_e = add_io_x_wit_to_mid!(vk.yi_io, p.y_mid);
 
     println!("----> Checking if e(v_e, w_e)/e(y_e, E(1)) ?= e(E(h(s)), E(t(s)))...");
     let lhs = e(&v_e, &w_e) * e(&y_e, &vk.one_e2).inv();
-    let rhs = e(&p.adj_h, &vk.t_e2);
+    let rhs = e(&p.h, &vk.t_e2);
 
     lhs == rhs
   }

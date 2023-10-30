@@ -19,6 +19,8 @@ pub struct EvaluationKeys {
   pub beta_vi_mid: Vec<G1Point>,
   pub beta_wi_mid: Vec<G1Point>,
   pub beta_yi_mid: Vec<G1Point>,
+  pub t_beta_v: G1Point,
+  pub t_beta_y: G1Point,
 }
 
 pub struct VerificationKeys {
@@ -101,8 +103,11 @@ impl CRS {
     let beta_w_gamma = E2(gamma) * beta_w; 
     let beta_y_gamma = E2(gamma) * beta_y; 
 
-    let t_e1 = E1(&p.t.eval_at(s));
-    let t_e2 = E2(&p.t.eval_at(s));
+    let t_at_s = &p.t.eval_at(s);
+    let t_e1 = E1(t_at_s);
+    let t_e2 = E2(t_at_s);
+    let t_beta_v = E1(&(t_at_s * beta_v)); 
+    let t_beta_y = E1(&(t_at_s * beta_y)); 
 
     let vi_io: Vec<G1Point> = io.iter().map(|i| { E1(&p.vi[*i].eval_at(s)) }).collect();
     let wi_io: Vec<G2Point> = io.iter().map(|i| { E2(&p.wi[*i].eval_at(s)) }).collect();
@@ -118,6 +123,8 @@ impl CRS {
       beta_vi_mid,
       beta_wi_mid,
       beta_yi_mid,
+      t_beta_v,
+      t_beta_y,
     };
 
     let vk = VerificationKeys {

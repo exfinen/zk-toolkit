@@ -35,6 +35,8 @@ pub struct PinocchioProver {
   pub vi: Vec<Polynomial>,
   pub wi: Vec<Polynomial>,
   pub yi: Vec<Polynomial>,
+  delta_v: PrimeFieldElem,
+  delta_y: PrimeFieldElem,
 }
 
 impl PinocchioProver {
@@ -44,9 +46,11 @@ impl PinocchioProver {
     r1cs: &R1CS,
     qap: &QAP,
     s: &PrimeFieldElem,
+    p: &Polynomial,
   ) {
     println!("s = {:?}\n", s);
     println!("witness {:?}\n", &r1cs.witness);
+    println!("p = {:?}\n", p);
 
     for (i, gate) in gates.iter().enumerate() {
       println!("{}: {:?}", i+1 , gate);
@@ -96,18 +100,37 @@ impl PinocchioProver {
     let witness = Witness::new(&r1cs.witness.clone(), &tmpl.mid_beg);
     let num_constraints = tmpl.constraints.len();
 
-    Self::print_debug_info(f, gates, &r1cs, &qap, s);
+    let delta_v = &f.rand_elem(true); 
+    let delta_y = &f.rand_elem(true); 
+
+    // randomizing v and y only. the reason for not randomizing w is explained below
+    //
+    // (v(x) + delta_v * t(x)) * w(x) - (y(x) + delta_y * t(x))
+    // = v(x) * w(x) + delta_v * t(x) * w(x) - y(x) - delta_y * t(x)
+    // = v(x) * w(x) - y(x) + delta_v * t(x) * w(x) - delta_y * t(x)
+    // = p(x)               + delta_v * t(x) * w(x) - delta_y * t(x)
+    let randomized_p = {
+      let mut w = Polynomial::zero(f);
+      for wi in &qap.wi {
+        w = &w + wi
+      }
+      &p + &(&(&t * &w) * delta_v) - &(&t * delta_y)
+    };
+
+    Self::print_debug_info(f, gates, &r1cs, &qap, s, &randomized_p);
 
     PinocchioProver {
       f: f.clone(),
       max_degree,
       num_constraints,
       witness,
-      p,
+      p: randomized_p,
       t,
       vi: qap.vi.clone(),
       wi: qap.wi.clone(),
       yi: qap.yi.clone(),
+      delta_v: delta_v.clone(),
+      delta_y: delta_y.clone(),
     }
   }
 
@@ -145,23 +168,28 @@ impl PinocchioProver {
     // but the existence t(s) here seems to make the calculation fail.
     //
     // TODO fix this problem and make w zero-knowledge as well 
+    // 
+    // so instead, this code uses the following:
+    //
+    // adj_h * t(s)
+    // = (v(s) + t(s)) * w(s) - (y(s) + t(s))
+    // = v(s) * w(s) + t(s) * w(s) - y(s) - t(s)
+    // = v(s) * w(s) - y(s) + t(s) * w(s) - t(s)
+    // = h(s) * t(s)        + t(s) * w(s) - t(s)
+    // = t(s) * (h(s) + w(s) - 1)
 
-    let (ek, vk, f) = (&crs.ek, &crs.vk, &self.f);
-    let delta_v = &f.rand_elem(true); 
-    let delta_y = &f.rand_elem(true); 
+    let (ek, vk) = (&crs.ek, &crs.vk);
 
-    let v_mid = calc_e1(&ek.vi_mid);
-    let v_mid_zk = calc_e1(&ek.vi_mid) + &vk.t_e1 * delta_v;
-    let beta_v_mid = calc_e1(&ek.beta_vi_mid);
+    let v_mid = calc_e1(&ek.vi_mid) + &vk.t_e1 * &self.delta_v;
+    let beta_v_mid = calc_e1(&ek.beta_vi_mid) + &ek.t_beta_v * &self.delta_v;
 
     let w_mid_e1 = calc_e1(&ek.wi_mid);
     let beta_w_mid_e1 = calc_e1(&ek.beta_wi_mid);
 
     let w_mid_e2 = calc_e2(&vk.wi_mid);
 
-    let y_mid = calc_e1(&ek.yi_mid);
-    let y_mid_zk = calc_e1(&ek.yi_mid) + &vk.t_e1 * delta_y;
-    let beta_y_mid = calc_e1(&ek.beta_yi_mid);
+    let y_mid = calc_e1(&ek.yi_mid) + &vk.t_e1 * &self.delta_y;
+    let beta_y_mid = calc_e1(&ek.beta_yi_mid) + &ek.t_beta_y * &self.delta_y;
 
     let h = match self.p.divide_by(&self.t) {
       DivResult::Quotient(h) => h,
@@ -170,30 +198,27 @@ impl PinocchioProver {
 
     let h_hiding = h.eval_with_g1_hidings(&ek.si);
 
-    let adj_h = {
-      let mut w_e_e1 = w_mid_e1.clone();
-      for i in 0..vk.wi_io.len() {
-        let w = &witness_io[&i];
-        let p = &vk.wi_io_e1[i];
-        w_e_e1 = w_e_e1 + p * w;
-      }
-      &h_hiding + &w_e_e1 * delta_v + -&vk.one_e1 * delta_y
-    };
+    // let adj_h = {
+    //   let mut w_e_e1 = w_mid_e1.clone();
+    //   for i in 0..vk.wi_io.len() {
+    //     let w = &witness_io[&i];
+    //     let p = &vk.wi_io_e1[i];
+    //     w_e_e1 = w_e_e1 + p * w;
+    //   }
+    //   &h_hiding + &w_e_e1 * &self.delta_v + -&vk.one_e1 * &self.delta_y
+    // };
 
     let alpha_h = h.eval_with_g1_hidings(&crs.ek.alpha_si);
 
     PinocchioProof {
       v_mid,
-      v_mid_zk,
       w_mid_e1,
       w_mid_e2,
       y_mid,
-      y_mid_zk,
       beta_v_mid,
       beta_w_mid_e1,
       beta_y_mid,
       h: h_hiding,
-      adj_h,
       alpha_h,
     }
   }
