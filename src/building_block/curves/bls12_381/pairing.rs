@@ -7,7 +7,6 @@ use crate::building_block::{
     rational_function::RationalFunction,
   },
   to_biguint::ToBigUint,
-  zero::Zero,
 };
 use num_bigint::BigUint;
 use num_traits::Zero as NumTraitsZero;
