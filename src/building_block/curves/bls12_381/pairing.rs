@@ -74,9 +74,6 @@ impl Pairing {
   pub fn weil(&self, p1: &G1Point, p2: &G2Point) -> Fq12 {
     println!("Started Weil pairing");
     println!("Running Miller loop G1-G2...");
-    if p1 == &G1Point::zero() || p2 == &G2Point::zero() {
-      return Fq12::from(&1u8 as &dyn ToBigUint);
-    }
 
     let num = self.calc_g1_g2(p1, p2);
     println!("Running Miller loop G2-G1...");
@@ -87,9 +84,6 @@ impl Pairing {
   pub fn tate(&self, p1: &G1Point, p2: &G2Point) -> Fq12 {
     println!("Started Tate pairing");
     println!("Running Miller loop G1-G2...");
-    if p1 == &G1Point::zero() || p2 == &G2Point::zero() {
-      return Fq12::from(&1u8 as &dyn ToBigUint);
-    }
 
     let intmed = self.calc_g1_g2(&p1, &p2);
 
@@ -153,6 +147,25 @@ mod tests {
     assert!(errors == 0);
   }
 
+  fn test_plus_to_mul(pair: &dyn Fn(&Pairing, &G1Point, &G2Point) -> Fq12,
+  ) {
+    let pairing = &Pairing::new();
+    let one = &G2Point::g();
+
+    let p = &(G1Point::g() + G1Point::g());
+
+    let lhs = {
+      let p_plus_p = p + p;
+      pair(pairing, &p_plus_p, one)
+    };
+
+    let rhs = {
+      let a = &pair(pairing, &p, one); 
+      a * a
+    };
+    assert!(lhs == rhs);
+  }
+
   #[test]
   fn test_weil_pairing_with_generators() {
     test_with_generators(&Pairing::weil);
@@ -174,6 +187,11 @@ mod tests {
   }
 
   #[test]
+  fn test_tate_pairing_with_test_plus_to_mul() {
+    test_plus_to_mul(&Pairing::tate);
+  }
+
+  #[test]
   fn test_signature_verification() {
     let pairing = &Pairing::new();
     let g1 = &G1Point::g();
@@ -190,30 +208,4 @@ mod tests {
     assert!(lhs == rhs);
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
