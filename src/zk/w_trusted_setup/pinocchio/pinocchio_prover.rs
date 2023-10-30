@@ -170,7 +170,6 @@ impl PinocchioProver {
       for wi in &self.wi {
         w = &w + wi
       }
-      let delta_y = Polynomial::new(f, &vec![delta_y.clone()]);
       &self.p + &(&(&self.t * &w) * delta_v)  - &(&self.t * delta_y)
     };
 
