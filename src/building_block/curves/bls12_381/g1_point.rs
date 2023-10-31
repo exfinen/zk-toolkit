@@ -150,7 +150,6 @@ impl<'a> Mul<&'a PrivateKey> for &G1Point {
   }
 }
 
-
 type AffinePoint = G1Point;
 impl_affine_add!(G1Point);
 impl_scalar_mul_point!(Fq1, G1Point);

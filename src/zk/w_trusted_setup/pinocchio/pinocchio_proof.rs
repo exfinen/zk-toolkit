@@ -4,17 +4,17 @@ use crate::building_block::curves::bls12_381::{
 };
 
 pub struct PinocchioProof {
-  pub v_mid: G1Point,
-  pub v_mid_zk: G1Point,
-  pub w_mid_e1: G1Point,
-  pub w_mid_e2: G2Point,
-  pub y_mid: G1Point,
-  pub y_mid_zk: G1Point,
-  pub beta_v_mid: G1Point,
-  pub beta_w_mid_e1: G1Point,
-  pub beta_y_mid: G1Point,
-  pub h: G1Point,
-  pub adj_h: G1Point,
-  pub alpha_h: G1Point,
+  pub g_v_v_mid_s: G1Point,
+  pub g1_w_w_mid_s: G1Point,
+  pub g2_w_w_mid_s: G2Point,
+  pub g_y_y_mid_s: G1Point,
+
+  pub g_h_s: G2Point,
+
+  pub g_v_alpha_v_mid_s: G1Point,
+  pub g_w_alpha_w_mid_s: G1Point,
+  pub g_y_alpha_y_mid_s: G1Point,
+
+  pub g_beta_vwy_mid_s: G1Point,
 }
 

@@ -1,5 +1,12 @@
 use crate::{
-  building_block::curves::bls12_381::pairing::Pairing,
+  building_block::{
+    curves::bls12_381::{
+      g1_point::G1Point,
+      g2_point::G2Point,
+      pairing::Pairing,
+    },
+    zero::Zero,
+  },
   zk::w_trusted_setup::pinocchio::{
     crs::CRS,
     pinocchio_proof::PinocchioProof,
@@ -29,39 +36,51 @@ impl PinocchioVerifier {
     println!("--> Verifying Pinnochio proof...");
     let e = |a, b| self.pairing.tate(a, b);
 
-    macro_rules! fail_if_ne { ($a:expr, $b:expr) => { if ($a != $b) { return false; } }}
     let (p, vk) = (&proof, &crs.vk); 
 
-    println!("----> Checking if e(E(αh(s)),E(1)) =? e(E(h(s)),E(α))...");
-    fail_if_ne!(e(&p.alpha_h, &vk.one_e2), e(&p.h, &vk.e_alpha));
-
-    println!("----> Checking if e(E(βv v_mid(s), E(γ)) =? e(v_mid(s),E(βvγ))..."); 
-    fail_if_ne!(e(&p.beta_v_mid, &vk.e_gamma), e(&p.v_mid, &vk.beta_v_gamma));
-
-    println!("----> Checking if e(E(βw w_mid(s)), E(γ)) =? e(w_mid(s),E(βwγ))..."); 
-    fail_if_ne!(e(&p.beta_w_mid_e1, &vk.e_gamma), e(&p.w_mid_e1, &vk.beta_w_gamma));
-
-    println!("----> Checking if e(E(βy y_mid(s)), E(γ)) =? e(y_mid(s),E(βyγ))...");
-    fail_if_ne!(e(&p.beta_y_mid, &vk.e_gamma), e(&p.y_mid, &vk.beta_y_gamma));
- 
-    macro_rules! add_io_x_wit_to_mid {
-      ($io_polys:expr, $mid_zk:expr) => {{
-        let mut sum = $mid_zk.clone();
-        for i in 0..$io_polys.len() {
-          let w = &witness_io[&i];
-          let p = &$io_polys[i];
-          sum = sum + p * w;
-        }
-        sum
-      }};
+    // KC of v * w * y
+    let g_vwd_mid_s = &p.g_v_v_mid_s + &p.g1_w_w_mid_s + &p.g_y_y_mid_s;
+    {
+      let lhs = e(&p.g_beta_vwy_mid_s, &vk.g_gamma);
+      let rhs = e(&g_vwd_mid_s, &vk.g_beta_gamma);
+      if lhs != rhs { return false; }
     }
-    let v_e = add_io_x_wit_to_mid!(vk.vi_io, p.v_mid_zk);
-    let w_e = add_io_x_wit_to_mid!(vk.wi_io, p.w_mid_e2);
-    let y_e = add_io_x_wit_to_mid!(vk.yi_io, p.y_mid_zk);
 
-    println!("----> Checking if e(v_e, w_e)/e(y_e, E(1)) ?= e(E(h(s)), E(t(s)))...");
-    let lhs = e(&v_e, &w_e) * e(&y_e, &vk.one_e2).inv();
-    let rhs = e(&p.adj_h, &vk.t_e2);
+    // KC of v, w and y
+    {
+      let lhs = e(&p.g_v_alpha_v_mid_s, &vk.one_g2);
+      let rhs = e(&p.g_v_v_mid_s, &vk.g_alpha_v); 
+      if lhs != rhs { return false; }
+    }
+    {
+      let lhs = e(&p.g_w_alpha_w_mid_s, &vk.one_g2);
+      let rhs = e(&p.g1_w_w_mid_s, &vk.g2_alpha_w); 
+      if lhs != rhs { return false; }
+    }
+    {
+      let lhs = e(&p.g_y_alpha_y_mid_s, &vk.one_g2);
+      let rhs = e(&p.g_y_y_mid_s, &vk.g2_alpha_y); 
+      if lhs != rhs { return false; }
+    }
+     
+    // QAP divisibility check
+    let mut v_io: G1Point = G1Point::zero();
+    let mut w_io: G2Point = G2Point::zero();
+    let mut y_io: G1Point = G1Point::zero();
+
+    for i in 0..witness_io.size_in_usize() {
+      let w = &witness_io[&i];
+      v_io = v_io + &vk.g_v_v_k_io[i] * w;
+      w_io = w_io + &vk.g_w_w_k_io[i] * w;
+      y_io = y_io + &vk.g_y_y_k_io[i] * w;
+    }
+
+    let v_s = &v_io + &p.g_v_v_mid_s;
+    let w_s = &w_io + &p.g2_w_w_mid_s;
+    let y_s = &y_io + &p.g_y_y_mid_s;
+
+    let lhs = e(&v_s, &w_s) ;
+    let rhs = e(&vk.g_y_t, &p.g_h_s) * e(&y_s, &vk.one_g2);
 
     lhs == rhs
   }

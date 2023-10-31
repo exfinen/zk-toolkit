@@ -3,7 +3,10 @@ use crate::building_block::{
     prime_field::PrimeField,
     prime_field_elem::PrimeFieldElem,
   },
-  curves::bls12_381::g1_point::G1Point,
+  curves::bls12_381::{
+    g1_point::G1Point,
+    g2_point::G2Point,
+  },
   to_biguint::ToBigUint, zero::Zero,
 };
 use num_bigint::BigUint;
@@ -267,11 +270,23 @@ impl Polynomial {
   #[allow(non_snake_case)]
   pub fn eval_with_g1_hidings(
     &self,
-    g1_powers: &[G1Point],
+    powers: &[G1Point],
   ) -> G1Point {
     let mut sum = G1Point::zero();
     for i in 0..self.coeffs.len() {
-      sum = sum + (&g1_powers[i] * &self.coeffs[i]);
+      sum = sum + (&powers[i] * &self.coeffs[i]);
+    }
+    sum
+  }
+
+  #[allow(non_snake_case)]
+  pub fn eval_with_g2_hidings(
+    &self,
+    powers: &[G2Point],
+  ) -> G2Point {
+    let mut sum = G2Point::zero();
+    for i in 0..self.coeffs.len() {
+      sum = sum + (&powers[i] * &self.coeffs[i]);
     }
     sum
   }
