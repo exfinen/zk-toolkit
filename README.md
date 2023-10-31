@@ -5,7 +5,7 @@ Cryptographic primitive library built from scratch
 To implement cryptographic primitives in the simplest form without using any optimization
 
 ## What's implemented so far
-- Pinnochio zk-SNARK
+- Pinnochio verifiable computation (protocol 2)
   - Equation parser
   - R1CS
   - QAP
