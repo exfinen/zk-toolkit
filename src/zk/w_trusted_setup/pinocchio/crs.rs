@@ -31,7 +31,6 @@ pub struct VerificationKeys {
   pub vk_io: Vec<G1Point>,
   pub wk_io: Vec<G2Point>,
   pub yk_io: Vec<G1Point>,
-
   pub alpha_v_t: G1Point,
   pub alpha_y_t: G1Point,
   pub beta_t: G1Point,
