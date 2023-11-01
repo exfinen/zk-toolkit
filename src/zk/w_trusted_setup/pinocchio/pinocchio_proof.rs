@@ -5,7 +5,8 @@ use crate::building_block::curves::bls12_381::{
 
 pub struct PinocchioProof {
   pub v_mid_s: G1Point,
-  pub w_mid_s: G2Point,
+  pub g1_w_mid_s: G1Point,
+  pub g2_w_mid_s: G2Point,
   pub y_mid_s: G1Point,
 
   pub h_s: G2Point,

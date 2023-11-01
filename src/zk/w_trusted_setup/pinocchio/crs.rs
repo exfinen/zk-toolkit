@@ -9,7 +9,8 @@ use crate::{
 
 pub struct EvaluationKeys {
   pub vk_mid: Vec<G1Point>,
-  pub wk_mid: Vec<G2Point>,
+  pub g1_wk_mid: Vec<G1Point>,
+  pub g2_wk_mid: Vec<G2Point>,
   pub yk_mid: Vec<G1Point>,
   pub alpha_vk_mid: Vec<G1Point>,
   pub alpha_wk_mid: Vec<G1Point>,
@@ -33,6 +34,7 @@ pub struct VerificationKeys {
 
   pub alpha_v_t: G1Point,
   pub alpha_y_t: G1Point,
+  pub beta_t: G1Point,
 }
 
 pub struct CRS {
@@ -81,7 +83,8 @@ impl CRS {
     // compute evaluation keys
     println!("----> Computing evaluation keys...");
     let vk_mid: Vec<G1Point> = mid.iter().map(|i| { g1_v * &p.vi[*i].eval_at(s) }).collect();
-    let wk_mid: Vec<G2Point> = mid.iter().map(|i| { g2_w * &p.wi[*i].eval_at(s) }).collect();
+    let g1_wk_mid: Vec<G1Point> = mid.iter().map(|i| { g1_w * &p.wi[*i].eval_at(s) }).collect();
+    let g2_wk_mid: Vec<G2Point> = mid.iter().map(|i| { g2_w * &p.wi[*i].eval_at(s) }).collect();
     let yk_mid: Vec<G1Point> = mid.iter().map(|i| { g_y * &p.yi[*i].eval_at(s) }).collect();
 
     let alpha_vk_mid: Vec<G1Point> = mid.iter().map(|i| { g1_v * alpha_v * &p.vi[*i].eval_at(s) }).collect();
@@ -117,7 +120,8 @@ impl CRS {
 
     let ek = EvaluationKeys {
       vk_mid,
-      wk_mid,
+      g1_wk_mid,
+      g2_wk_mid,
       yk_mid,
       alpha_vk_mid,
       alpha_wk_mid,
@@ -128,6 +132,7 @@ impl CRS {
 
     let alpha_v_t: G1Point = &t * alpha_v;
     let alpha_y_t: G1Point = &t * alpha_y;
+    let beta_t = &t * beta;
 
     let vk = VerificationKeys {
       one_g1,
@@ -143,6 +148,7 @@ impl CRS {
       yk_io,
       alpha_v_t,
       alpha_y_t,
+      beta_t,
     };
 
     CRS {

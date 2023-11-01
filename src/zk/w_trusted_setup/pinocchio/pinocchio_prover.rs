@@ -96,18 +96,20 @@ impl PinocchioProver {
     let delta_y = &self.f.rand_elem(true);
 
     let mut v_mid_s = &vk.t * delta_v;  // randomize v
-    let mut w_mid_s = G2Point::zero();
+    let mut g1_w_mid_s = G1Point::zero();
+    let mut g2_w_mid_s = G2Point::zero();
     let mut y_mid_s = &vk.t * delta_y;  // randomize y
     let mut alpha_v_mid_s = &vk.alpha_v_t * delta_v;
     let mut alpha_w_mid_s = G1Point::zero();
     let mut alpha_y_mid_s = &vk.alpha_y_t * delta_y;
-    let mut beta_vwy_mid_s = G1Point::zero();
+    let mut beta_vwy_mid_s = &vk.beta_t * delta_v + &vk.beta_t * delta_y;
   
     for i in 0..witness_mid.size_in_usize() {
       let w = &witness_mid[&i];
 
       v_mid_s = &v_mid_s + &ek.vk_mid[i] * w;
-      w_mid_s = &w_mid_s + &ek.wk_mid[i] * w;
+      g1_w_mid_s = &g1_w_mid_s + &ek.g1_wk_mid[i] * w;
+      g2_w_mid_s = &g2_w_mid_s + &ek.g2_wk_mid[i] * w;
       y_mid_s = &y_mid_s + &ek.yk_mid[i] * w;
 
       alpha_v_mid_s = &alpha_v_mid_s + &ek.alpha_vk_mid[i] * w;
@@ -125,7 +127,7 @@ impl PinocchioProver {
       let h_s = h.eval_with_g2_hidings(&ek.si);
 
       let witness_io = &self.witness.io();
-      let mut w_s = w_mid_s.clone();
+      let mut w_s = g2_w_mid_s.clone();
 
       for i in 0..crs.vk.wk_io.len() {
         w_s = &w_s + &crs.vk.wk_io[i] * &witness_io[&i];
@@ -135,7 +137,8 @@ impl PinocchioProver {
 
     PinocchioProof {
       v_mid_s,
-      w_mid_s,
+      g1_w_mid_s,
+      g2_w_mid_s,
       y_mid_s,
       h_s: adj_h_s,
       alpha_v_mid_s,
