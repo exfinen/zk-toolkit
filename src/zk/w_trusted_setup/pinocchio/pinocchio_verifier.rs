@@ -1,3 +1,5 @@
+// Implementation of protocol 2 described on page 5 in https://eprint.iacr.org/2013/279.pdf
+
 use crate::{
   building_block::curves::bls12_381::{
     g1_point::G1Point,

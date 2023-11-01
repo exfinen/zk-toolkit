@@ -1,3 +1,5 @@
+// Implementation of protocol 2 described on page 5 in https://eprint.iacr.org/2013/279.pdf
+
 use crate::{
   building_block::{
     curves::bls12_381::{
@@ -94,6 +96,23 @@ impl PinocchioProver {
     let (ek, vk) = (&crs.ek, &crs.vk);
     let delta_v = &self.f.rand_elem(true);
     let delta_y = &self.f.rand_elem(true);
+
+    // adjust v(s) and y(s) for zero-knowledge, w(s) is left untouched
+    // due to current constraints in the pairing function implementation.
+    // This needs fixing. TODO: Address the issue with w(s) in the pairing
+    // function.
+    //
+    // to achieve zero-knowledge for v(s) and w(s), we add random multiples
+    // of t(s) to them. because of this randomization, h(s) is adjusted to
+    // h(s) + d_v * w(s) - d_y.
+    //
+    // randomizing v(s) and y(s) in v(s) * w(s) - y(s), we get:
+    // (v(s) + d_v * t(s)) * w - (y(s) + d_y * t(s)) 
+    //
+    // factoring out t(s), we get the adjusted h(s):
+    // = v(s) * w(s)        + d_v * t(s) * w(s) - y(s) - d_y * t(s)
+    // = v(s) * w(s) - y(s) + d_v * t(s) * w(s) - d_y * t(s)
+    // = t(s) * (h(s) + d_v * w(s) - d_y)
 
     let mut v_mid_s = &vk.t * delta_v;  // randomize v
     let mut g1_w_mid_s = G1Point::zero();
