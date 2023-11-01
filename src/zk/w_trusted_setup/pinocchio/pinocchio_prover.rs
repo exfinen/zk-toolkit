@@ -105,16 +105,16 @@ impl PinocchioProver {
     for i in 0..witness_mid.size_in_usize() {
       let w = &witness_mid[&i];
 
-      v_mid_s = &v_mid_s + &ek.g_v_v_k_mid[i] * w;
-      g1_w_mid_s = &g1_w_mid_s + &ek.g1_w_w_k_mid[i] * w;
-      g2_w_mid_s = &g2_w_mid_s + &ek.g2_w_w_k_mid[i] * w;
-      y_mid_s = &y_mid_s + &ek.g_y_y_k_mid[i] * w;
+      v_mid_s = &v_mid_s + &ek.vk_mid[i] * w;
+      g1_w_mid_s = &g1_w_mid_s + &ek.g1_wk_mid[i] * w;
+      g2_w_mid_s = &g2_w_mid_s + &ek.g2_wk_mid[i] * w;
+      y_mid_s = &y_mid_s + &ek.yk_mid[i] * w;
 
-      alpha_v_mid_s = &alpha_v_mid_s + &ek.g_v_alpha_v_k_mid[i] * w;
-      alpha_w_mid_s = &alpha_w_mid_s + &ek.g_w_alpha_w_k_mid[i] * w;
-      alpha_y_mid_s = &alpha_y_mid_s + &ek.g_y_alpha_y_k_mid[i] * w;
+      alpha_v_mid_s = &alpha_v_mid_s + &ek.alpha_vk_mid[i] * w;
+      alpha_w_mid_s = &alpha_w_mid_s + &ek.alpha_wk_mid[i] * w;
+      alpha_y_mid_s = &alpha_y_mid_s + &ek.alpha_yk_mid[i] * w;
 
-      beta_vwy_mid_s = &beta_vwy_mid_s + &ek.g_vwy_beta_vwy_k_mid[i] * w; 
+      beta_vwy_mid_s = &beta_vwy_mid_s + &ek.beta_vwy_k_mid[i] * w; 
     }
 
     let h_s = {

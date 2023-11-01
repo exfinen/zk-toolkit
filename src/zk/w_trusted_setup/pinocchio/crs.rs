@@ -8,30 +8,30 @@ use crate::{
 };
 
 pub struct EvaluationKeys {
-  pub g_v_v_k_mid: Vec<G1Point>,
-  pub g1_w_w_k_mid: Vec<G1Point>,
-  pub g2_w_w_k_mid: Vec<G2Point>,
-  pub g_y_y_k_mid: Vec<G1Point>,
-  pub g_v_alpha_v_k_mid: Vec<G1Point>,
-  pub g_w_alpha_w_k_mid: Vec<G1Point>,
-  pub g_y_alpha_y_k_mid: Vec<G1Point>,
-  pub g1_si: Vec<G1Point>,
+  pub vk_mid: Vec<G1Point>,
+  pub g1_wk_mid: Vec<G1Point>,
+  pub g2_wk_mid: Vec<G2Point>,
+  pub yk_mid: Vec<G1Point>,
+  pub alpha_vk_mid: Vec<G1Point>,
+  pub alpha_wk_mid: Vec<G1Point>,
+  pub alpha_yk_mid: Vec<G1Point>,
+  //pub g1_si: Vec<G1Point>,
   pub g2_si: Vec<G2Point>,
-  pub g_vwy_beta_vwy_k_mid: Vec<G1Point>,
+  pub beta_vwy_k_mid: Vec<G1Point>,
 }
 
 pub struct VerificationKeys {
   pub one_g1: G1Point,
   pub one_g2: G2Point,
-  pub g_alpha_v: G2Point,
-  pub g2_alpha_w: G2Point,
-  pub g2_alpha_y: G2Point,
-  pub g_gamma: G2Point,
-  pub g_beta_gamma: G2Point,
-  pub g_y_t: G1Point,
-  pub g_v_v_k_io: Vec<G1Point>,
-  pub g_w_w_k_io: Vec<G2Point>,
-  pub g_y_y_k_io: Vec<G1Point>,
+  pub alpha_v: G2Point,
+  pub alpha_w: G2Point,
+  pub alpha_y: G2Point,
+  pub gamma: G2Point,
+  pub beta_gamma: G2Point,
+  pub yt: G1Point,
+  pub vk_io: Vec<G1Point>,
+  pub wk_io: Vec<G2Point>,
+  pub yk_io: Vec<G1Point>,
 }
 
 pub struct CRS {
@@ -79,20 +79,20 @@ impl CRS {
 
     // compute evaluation keys
     println!("----> Computing evaluation keys...");
-    let g_v_v_k_mid: Vec<G1Point> = mid.iter().map(|i| { g1_v * &p.vi[*i].eval_at(s) }).collect();
-    let g1_w_w_k_mid: Vec<G1Point> = mid.iter().map(|i| { g1_w * &p.wi[*i].eval_at(s) }).collect();
-    let g2_w_w_k_mid: Vec<G2Point> = mid.iter().map(|i| { g2_w * &p.wi[*i].eval_at(s) }).collect();
-    let g_y_y_k_mid: Vec<G1Point> = mid.iter().map(|i| { g_y * &p.yi[*i].eval_at(s) }).collect();
+    let vk_mid: Vec<G1Point> = mid.iter().map(|i| { g1_v * &p.vi[*i].eval_at(s) }).collect();
+    let g1_wk_mid: Vec<G1Point> = mid.iter().map(|i| { g1_w * &p.wi[*i].eval_at(s) }).collect();
+    let g2_wk_mid: Vec<G2Point> = mid.iter().map(|i| { g2_w * &p.wi[*i].eval_at(s) }).collect();
+    let yk_mid: Vec<G1Point> = mid.iter().map(|i| { g_y * &p.yi[*i].eval_at(s) }).collect();
 
-    let g_v_alpha_v_k_mid: Vec<G1Point> = mid.iter().map(|i| { g1_v * alpha_v * &p.vi[*i].eval_at(s) }).collect();
-    let g_w_alpha_w_k_mid: Vec<G1Point> = mid.iter().map(|i| { g1_w * alpha_w * &p.wi[*i].eval_at(s) }).collect();
-    let g_y_alpha_y_k_mid: Vec<G1Point> = mid.iter().map(|i| { g_y * alpha_y * &p.yi[*i].eval_at(s) }).collect();
+    let alpha_vk_mid: Vec<G1Point> = mid.iter().map(|i| { g1_v * alpha_v * &p.vi[*i].eval_at(s) }).collect();
+    let alpha_wk_mid: Vec<G1Point> = mid.iter().map(|i| { g1_w * alpha_w * &p.wi[*i].eval_at(s) }).collect();
+    let alpha_yk_mid: Vec<G1Point> = mid.iter().map(|i| { g_y * alpha_y * &p.yi[*i].eval_at(s) }).collect();
 
     let s_pows = &s.pow_seq(&p.max_degree);
-    let g1_si: Vec<G1Point> = s_pows.iter().map(|pow| { g1 * pow }).collect();
+    //let g1_si: Vec<G1Point> = s_pows.iter().map(|pow| { g1 * pow }).collect();
     let g2_si: Vec<G2Point> = s_pows.iter().map(|pow| { g2 * pow }).collect();
 
-    let g_vwy_beta_vwy_k_mid: Vec<G1Point> = {
+    let beta_vwy_k_mid: Vec<G1Point> = {
       mid.iter().map(|i| {
         g1_v * beta * &p.vi[*i].eval_at(s)
         + g1_w * beta * &p.wi[*i].eval_at(s)
@@ -104,43 +104,43 @@ impl CRS {
     println!("----> Computing verification keys...");
     let one_g1 = g1 * f.elem(&1u8);
     let one_g2 = g2 * f.elem(&1u8);
-    let g_alpha_v = g2 * alpha_v;
-    let g2_alpha_w = g2 * alpha_w;
-    let g2_alpha_y = g2 * alpha_y;
-    let g_gamma = g2 * gamma;
-    let g_beta_gamma = g2 * beta * gamma;
+    let alpha_v = g2 * alpha_v;
+    let alpha_w = g2 * alpha_w;
+    let alpha_y = g2 * alpha_y;
+    let gamma_pt = g2 * gamma;
+    let beta_gamma = g2 * gamma * beta;
 
-    let g_y_t = g_y * p.t.eval_at(s);
+    let yt = g_y * p.t.eval_at(s);
 
-    let g_v_v_k_io: Vec<G1Point> = io.iter().map(|i| { g1_v * &p.vi[*i].eval_at(s) }).collect();
-    let g_w_w_k_io: Vec<G2Point> = io.iter().map(|i| { g2_w * &p.wi[*i].eval_at(s) }).collect();
-    let g_y_y_k_io: Vec<G1Point> = io.iter().map(|i| { g_y * &p.yi[*i].eval_at(s) }).collect();
+    let vk_io: Vec<G1Point> = io.iter().map(|i| { g1_v * &p.vi[*i].eval_at(s) }).collect();
+    let wk_io: Vec<G2Point> = io.iter().map(|i| { g2_w * &p.wi[*i].eval_at(s) }).collect();
+    let yk_io: Vec<G1Point> = io.iter().map(|i| { g_y * &p.yi[*i].eval_at(s) }).collect();
 
     let ek = EvaluationKeys {
-      g_v_v_k_mid,
-      g1_w_w_k_mid,
-      g2_w_w_k_mid,
-      g_y_y_k_mid,
-      g_v_alpha_v_k_mid,
-      g_w_alpha_w_k_mid,
-      g_y_alpha_y_k_mid,
-      g1_si,
+      vk_mid,
+      g1_wk_mid,
+      g2_wk_mid,
+      yk_mid,
+      alpha_vk_mid,
+      alpha_wk_mid,
+      alpha_yk_mid,
+      //g1_si,
       g2_si,
-      g_vwy_beta_vwy_k_mid,
+      beta_vwy_k_mid,
     };
 
     let vk = VerificationKeys {
       one_g1,
       one_g2,
-      g_alpha_v,
-      g2_alpha_w,
-      g2_alpha_y,
-      g_gamma,
-      g_beta_gamma,
-      g_y_t,
-      g_v_v_k_io,
-      g_w_w_k_io,
-      g_y_y_k_io,
+      alpha_v,
+      alpha_w,
+      alpha_y,
+      gamma: gamma_pt,
+      beta_gamma,
+      yt,
+      vk_io,
+      wk_io,
+      yk_io,
     };
 
     CRS {
