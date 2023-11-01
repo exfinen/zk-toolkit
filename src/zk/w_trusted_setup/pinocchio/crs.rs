@@ -61,7 +61,6 @@ impl CRS {
     // derive values from random values
     let r_y = &(r_v * r_w);
     let g1_v = &(g1 * r_v);
-    let g2_v = &(g2 * r_v);
     let g1_w = &(g1 * r_w);
     let g2_w = &(g2 * r_w);
     let g_y = &(g1 * r_y);
@@ -76,7 +75,7 @@ impl CRS {
       let io = (0..mid_beg).collect::<Vec<usize>>();
       (mid, io)
     };
-    let s = &f.elem(&42u8); // &f.rand_elem(true);
+    let s = &f.rand_elem(true);
 
     // compute evaluation keys
     println!("----> Computing evaluation keys...");

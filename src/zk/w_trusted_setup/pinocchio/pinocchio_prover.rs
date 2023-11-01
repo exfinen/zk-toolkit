@@ -93,31 +93,31 @@ impl PinocchioProver {
 
     let ek = &crs.ek;
 
-    let mut g_v_v_mid_s = G1Point::zero();
-    let mut g1_w_w_mid_s = G1Point::zero();
-    let mut g2_w_w_mid_s = G2Point::zero();
-    let mut g_y_y_mid_s = G1Point::zero();
-    let mut g_v_alpha_v_mid_s = G1Point::zero();
-    let mut g_w_alpha_w_mid_s = G1Point::zero();
-    let mut g_y_alpha_y_mid_s = G1Point::zero();
-    let mut g_beta_vwy_mid_s = G1Point::zero();
+    let mut v_mid_s = G1Point::zero();
+    let mut g1_w_mid_s = G1Point::zero();
+    let mut g2_w_mid_s = G2Point::zero();
+    let mut y_mid_s = G1Point::zero();
+    let mut alpha_v_mid_s = G1Point::zero();
+    let mut alpha_w_mid_s = G1Point::zero();
+    let mut alpha_y_mid_s = G1Point::zero();
+    let mut beta_vwy_mid_s = G1Point::zero();
   
     for i in 0..witness_mid.size_in_usize() {
       let w = &witness_mid[&i];
 
-      g_v_v_mid_s = &g_v_v_mid_s + &ek.g_v_v_k_mid[i] * w;
-      g1_w_w_mid_s = &g1_w_w_mid_s + &ek.g1_w_w_k_mid[i] * w;
-      g2_w_w_mid_s = &g2_w_w_mid_s + &ek.g2_w_w_k_mid[i] * w;
-      g_y_y_mid_s = &g_y_y_mid_s + &ek.g_y_y_k_mid[i] * w;
+      v_mid_s = &v_mid_s + &ek.g_v_v_k_mid[i] * w;
+      g1_w_mid_s = &g1_w_mid_s + &ek.g1_w_w_k_mid[i] * w;
+      g2_w_mid_s = &g2_w_mid_s + &ek.g2_w_w_k_mid[i] * w;
+      y_mid_s = &y_mid_s + &ek.g_y_y_k_mid[i] * w;
 
-      g_v_alpha_v_mid_s = &g_v_alpha_v_mid_s + &ek.g_v_alpha_v_k_mid[i] * w;
-      g_w_alpha_w_mid_s = &g_w_alpha_w_mid_s + &ek.g_w_alpha_w_k_mid[i] * w;
-      g_y_alpha_y_mid_s = &g_y_alpha_y_mid_s + &ek.g_y_alpha_y_k_mid[i] * w;
+      alpha_v_mid_s = &alpha_v_mid_s + &ek.g_v_alpha_v_k_mid[i] * w;
+      alpha_w_mid_s = &alpha_w_mid_s + &ek.g_w_alpha_w_k_mid[i] * w;
+      alpha_y_mid_s = &alpha_y_mid_s + &ek.g_y_alpha_y_k_mid[i] * w;
 
-      g_beta_vwy_mid_s = &g_beta_vwy_mid_s + &ek.g_vwy_beta_vwy_k_mid[i] * w; 
+      beta_vwy_mid_s = &beta_vwy_mid_s + &ek.g_vwy_beta_vwy_k_mid[i] * w; 
     }
 
-    let g_h_s = {
+    let h_s = {
       let h = match self.p.divide_by(&self.t) {
         DivResult::Quotient(q) => q,
         _ => panic!("p should be divisible by t"),
@@ -126,15 +126,15 @@ impl PinocchioProver {
     };
 
     PinocchioProof {
-      g_v_v_mid_s,
-      g1_w_w_mid_s,
-      g2_w_w_mid_s,
-      g_y_y_mid_s,
-      g_h_s,
-      g_v_alpha_v_mid_s,
-      g_w_alpha_w_mid_s,
-      g_y_alpha_y_mid_s,
-      g_beta_vwy_mid_s,
+      v_mid_s,
+      g1_w_mid_s,
+      g2_w_mid_s,
+      y_mid_s,
+      h_s,
+      alpha_v_mid_s,
+      alpha_w_mid_s,
+      alpha_y_mid_s,
+      beta_vwy_mid_s,
     }
   }
 }
