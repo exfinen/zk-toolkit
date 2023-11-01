@@ -122,7 +122,7 @@ impl PinocchioProver {
         DivResult::Quotient(q) => q,
         _ => panic!("p should be divisible by t"),
       };
-      h.eval_with_g2_hidings(&ek.g2_si)
+      h.eval_with_g2_hidings(&ek.si)
     };
 
     PinocchioProof {

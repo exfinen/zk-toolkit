@@ -15,8 +15,7 @@ pub struct EvaluationKeys {
   pub alpha_vk_mid: Vec<G1Point>,
   pub alpha_wk_mid: Vec<G1Point>,
   pub alpha_yk_mid: Vec<G1Point>,
-  //pub g1_si: Vec<G1Point>,
-  pub g2_si: Vec<G2Point>,
+  pub si: Vec<G2Point>,
   pub beta_vwy_k_mid: Vec<G1Point>,
 }
 
@@ -90,7 +89,7 @@ impl CRS {
 
     let s_pows = &s.pow_seq(&p.max_degree);
     //let g1_si: Vec<G1Point> = s_pows.iter().map(|pow| { g1 * pow }).collect();
-    let g2_si: Vec<G2Point> = s_pows.iter().map(|pow| { g2 * pow }).collect();
+    let si: Vec<G2Point> = s_pows.iter().map(|pow| { g2 * pow }).collect();
 
     let beta_vwy_k_mid: Vec<G1Point> = {
       mid.iter().map(|i| {
@@ -124,8 +123,7 @@ impl CRS {
       alpha_vk_mid,
       alpha_wk_mid,
       alpha_yk_mid,
-      //g1_si,
-      g2_si,
+      si,
       beta_vwy_k_mid,
     };
 
