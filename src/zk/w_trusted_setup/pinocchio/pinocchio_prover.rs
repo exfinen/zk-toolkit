@@ -91,17 +91,16 @@ impl PinocchioProver {
     println!("--> Generating proof...");
     let witness_mid = &self.witness.mid();
 
-    let ek = &crs.ek;
+    let (ek, vk) = (&crs.ek, &crs.vk);
     let delta_v = &self.f.rand_elem(true);
     let delta_y = &self.f.rand_elem(true);
-    let t = &crs.vk.t;
 
-    let mut v_mid_s = t * delta_v;  // randomize v
+    let mut v_mid_s = &vk.t * delta_v;  // randomize v
     let mut w_mid_s = G2Point::zero();
-    let mut y_mid_s = t * delta_y;  // randomize y
-    let mut alpha_v_mid_s = t * delta_v; // G1Point::zero();
+    let mut y_mid_s = &vk.t * delta_y;  // randomize y
+    let mut alpha_v_mid_s = &vk.alpha_v_t * delta_v;
     let mut alpha_w_mid_s = G1Point::zero();
-    let mut alpha_y_mid_s = G1Point::zero();
+    let mut alpha_y_mid_s = &vk.alpha_y_t * delta_y;
     let mut beta_vwy_mid_s = G1Point::zero();
   
     for i in 0..witness_mid.size_in_usize() {

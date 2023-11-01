@@ -22,7 +22,7 @@ pub struct VerificationKeys {
   pub one_g1: G1Point,
   pub one_g2: G2Point,
   pub alpha_v: G2Point,
-  pub alpha_w: G2Point,
+  pub alpha_w: G1Point,
   pub alpha_y: G2Point,
   pub gamma: G2Point,
   pub beta_gamma: G2Point,
@@ -30,6 +30,9 @@ pub struct VerificationKeys {
   pub vk_io: Vec<G1Point>,
   pub wk_io: Vec<G2Point>,
   pub yk_io: Vec<G1Point>,
+
+  pub alpha_v_t: G1Point,
+  pub alpha_y_t: G1Point,
 }
 
 pub struct CRS {
@@ -100,9 +103,9 @@ impl CRS {
     println!("----> Computing verification keys...");
     let one_g1 = g1 * f.elem(&1u8);
     let one_g2 = g2 * f.elem(&1u8);
-    let alpha_v = g2 * alpha_v;
-    let alpha_w = g2 * alpha_w;
-    let alpha_y = g2 * alpha_y;
+    let alpha_v_pt = g2 * alpha_v;
+    let alpha_w = g1 * alpha_w;
+    let alpha_y_pt = g2 * alpha_y;
     let gamma_pt = g2 * gamma;
     let beta_gamma = g2 * gamma * beta;
 
@@ -123,18 +126,23 @@ impl CRS {
       beta_vwy_k_mid,
     };
 
+    let alpha_v_t: G1Point = &t * alpha_v;
+    let alpha_y_t: G1Point = &t * alpha_y;
+
     let vk = VerificationKeys {
       one_g1,
       one_g2,
-      alpha_v,
+      alpha_v: alpha_v_pt,
       alpha_w,
-      alpha_y,
+      alpha_y: alpha_y_pt,
       gamma: gamma_pt,
       beta_gamma,
       t,
       vk_io,
       wk_io,
       yk_io,
+      alpha_v_t,
+      alpha_y_t,
     };
 
     CRS {

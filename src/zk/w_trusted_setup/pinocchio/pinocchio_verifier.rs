@@ -44,40 +44,41 @@ impl PinocchioVerifier {
     // }
 
     // KC of v, w and y
-    // {
-    //   let lhs = e(&p.alpha_v_mid_s, &vk.one_g2);
-    //   let rhs = e(&p.v_mid_s, &vk.alpha_v); 
-    //   if lhs != rhs { return false; }
-    // }
-    // {
-    //   let lhs = e(&p.alpha_w_mid_s, &vk.one_g2);
-    //   let rhs = e(&p.g1_w_mid_s, &vk.alpha_w); 
-    //   if lhs != rhs { return false; }
-    // }
-    // {
-    //   let lhs = e(&p.alpha_y_mid_s, &vk.one_g2);
-    //   let rhs = e(&p.y_mid_s, &vk.alpha_y); 
-    //   if lhs != rhs { return false; }
-    // }
+    {
+      let lhs = e(&p.alpha_v_mid_s, &vk.one_g2);
+      let rhs = e(&p.v_mid_s, &vk.alpha_v); 
+      if lhs != rhs { return false; }
+    }
+    {
+      let lhs = e(&p.alpha_w_mid_s, &vk.one_g2);
+      let rhs = e(&vk.alpha_w, &p.w_mid_s); 
+      if lhs != rhs { return false; }
+    }
+    {
+      let lhs = e(&p.alpha_y_mid_s, &vk.one_g2);
+      let rhs = e(&p.y_mid_s, &vk.alpha_y); 
+      if lhs != rhs { return false; }
+    }
+    true
 
     // QAP divisibility check
-    {
-      let mut v_s = p.v_mid_s.clone();
-      let mut w_s = p.w_mid_s.clone();
-      let mut y_s = p.y_mid_s.clone();
-
-      for i in 0..witness_io.size_in_usize() {
-        let w = &witness_io[&i];
-        v_s = v_s + &vk.vk_io[i] * w;
-        w_s = w_s + &vk.wk_io[i] * w;
-        y_s = y_s + &vk.yk_io[i] * w;
-      }
-
-      let lhs = e(&v_s, &w_s);
-      let rhs = e(&vk.t, &p.h_s) * e(&y_s, &vk.one_g2);
-
-      lhs == rhs
-    }
+    // {
+    //   let mut v_s = p.v_mid_s.clone();
+    //   let mut w_s = p.w_mid_s.clone();
+    //   let mut y_s = p.y_mid_s.clone();
+    // 
+    //   for i in 0..witness_io.size_in_usize() {
+    //     let w = &witness_io[&i];
+    //     v_s = v_s + &vk.vk_io[i] * w;
+    //     w_s = w_s + &vk.wk_io[i] * w;
+    //     y_s = y_s + &vk.yk_io[i] * w;
+    //   }
+    // 
+    //   let lhs = e(&v_s, &w_s);
+    //   let rhs = e(&vk.t, &p.h_s) * e(&y_s, &vk.one_g2);
+    // 
+    //   lhs == rhs
+    // }
   }
 }
 
