@@ -92,12 +92,14 @@ impl PinocchioProver {
     let witness_mid = &self.witness.mid();
 
     let ek = &crs.ek;
+    let delta_v = &self.f.rand_elem(true);
+    let delta_y = &self.f.rand_elem(true);
+    let t = &crs.vk.t;
 
-    let mut v_mid_s = G1Point::zero();
-    let mut g1_w_mid_s = G1Point::zero();
-    let mut g2_w_mid_s = G2Point::zero();
-    let mut y_mid_s = G1Point::zero();
-    let mut alpha_v_mid_s = G1Point::zero();
+    let mut v_mid_s = t * delta_v;  // randomize v
+    let mut w_mid_s = G2Point::zero();
+    let mut y_mid_s = t * delta_y;  // randomize y
+    let mut alpha_v_mid_s = t * delta_v; // G1Point::zero();
     let mut alpha_w_mid_s = G1Point::zero();
     let mut alpha_y_mid_s = G1Point::zero();
     let mut beta_vwy_mid_s = G1Point::zero();
@@ -106,8 +108,7 @@ impl PinocchioProver {
       let w = &witness_mid[&i];
 
       v_mid_s = &v_mid_s + &ek.vk_mid[i] * w;
-      g1_w_mid_s = &g1_w_mid_s + &ek.g1_wk_mid[i] * w;
-      g2_w_mid_s = &g2_w_mid_s + &ek.g2_wk_mid[i] * w;
+      w_mid_s = &w_mid_s + &ek.wk_mid[i] * w;
       y_mid_s = &y_mid_s + &ek.yk_mid[i] * w;
 
       alpha_v_mid_s = &alpha_v_mid_s + &ek.alpha_vk_mid[i] * w;
@@ -117,20 +118,27 @@ impl PinocchioProver {
       beta_vwy_mid_s = &beta_vwy_mid_s + &ek.beta_vwy_k_mid[i] * w; 
     }
 
-    let h_s = {
+    let adj_h_s = {
       let h = match self.p.divide_by(&self.t) {
         DivResult::Quotient(q) => q,
         _ => panic!("p should be divisible by t"),
       };
-      h.eval_with_g2_hidings(&ek.si)
+      let h_s = h.eval_with_g2_hidings(&ek.si);
+
+      let witness_io = &self.witness.io();
+      let mut w_s = w_mid_s.clone();
+
+      for i in 0..crs.vk.wk_io.len() {
+        w_s = &w_s + &crs.vk.wk_io[i] * &witness_io[&i];
+      }
+      h_s + w_s * delta_v + -(&crs.vk.one_g2 * delta_y)
     };
 
     PinocchioProof {
       v_mid_s,
-      g1_w_mid_s,
-      g2_w_mid_s,
+      w_mid_s,
       y_mid_s,
-      h_s,
+      h_s: adj_h_s,
       alpha_v_mid_s,
       alpha_w_mid_s,
       alpha_y_mid_s,

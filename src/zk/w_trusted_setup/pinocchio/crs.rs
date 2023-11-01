@@ -9,8 +9,7 @@ use crate::{
 
 pub struct EvaluationKeys {
   pub vk_mid: Vec<G1Point>,
-  pub g1_wk_mid: Vec<G1Point>,
-  pub g2_wk_mid: Vec<G2Point>,
+  pub wk_mid: Vec<G2Point>,
   pub yk_mid: Vec<G1Point>,
   pub alpha_vk_mid: Vec<G1Point>,
   pub alpha_wk_mid: Vec<G1Point>,
@@ -27,7 +26,7 @@ pub struct VerificationKeys {
   pub alpha_y: G2Point,
   pub gamma: G2Point,
   pub beta_gamma: G2Point,
-  pub yt: G1Point,
+  pub t: G1Point,
   pub vk_io: Vec<G1Point>,
   pub wk_io: Vec<G2Point>,
   pub yk_io: Vec<G1Point>,
@@ -79,8 +78,7 @@ impl CRS {
     // compute evaluation keys
     println!("----> Computing evaluation keys...");
     let vk_mid: Vec<G1Point> = mid.iter().map(|i| { g1_v * &p.vi[*i].eval_at(s) }).collect();
-    let g1_wk_mid: Vec<G1Point> = mid.iter().map(|i| { g1_w * &p.wi[*i].eval_at(s) }).collect();
-    let g2_wk_mid: Vec<G2Point> = mid.iter().map(|i| { g2_w * &p.wi[*i].eval_at(s) }).collect();
+    let wk_mid: Vec<G2Point> = mid.iter().map(|i| { g2_w * &p.wi[*i].eval_at(s) }).collect();
     let yk_mid: Vec<G1Point> = mid.iter().map(|i| { g_y * &p.yi[*i].eval_at(s) }).collect();
 
     let alpha_vk_mid: Vec<G1Point> = mid.iter().map(|i| { g1_v * alpha_v * &p.vi[*i].eval_at(s) }).collect();
@@ -88,7 +86,6 @@ impl CRS {
     let alpha_yk_mid: Vec<G1Point> = mid.iter().map(|i| { g_y * alpha_y * &p.yi[*i].eval_at(s) }).collect();
 
     let s_pows = &s.pow_seq(&p.max_degree);
-    //let g1_si: Vec<G1Point> = s_pows.iter().map(|pow| { g1 * pow }).collect();
     let si: Vec<G2Point> = s_pows.iter().map(|pow| { g2 * pow }).collect();
 
     let beta_vwy_k_mid: Vec<G1Point> = {
@@ -109,7 +106,7 @@ impl CRS {
     let gamma_pt = g2 * gamma;
     let beta_gamma = g2 * gamma * beta;
 
-    let yt = g_y * p.t.eval_at(s);
+    let t = g_y * p.t.eval_at(s);
 
     let vk_io: Vec<G1Point> = io.iter().map(|i| { g1_v * &p.vi[*i].eval_at(s) }).collect();
     let wk_io: Vec<G2Point> = io.iter().map(|i| { g2_w * &p.wi[*i].eval_at(s) }).collect();
@@ -117,8 +114,7 @@ impl CRS {
 
     let ek = EvaluationKeys {
       vk_mid,
-      g1_wk_mid,
-      g2_wk_mid,
+      wk_mid,
       yk_mid,
       alpha_vk_mid,
       alpha_wk_mid,
@@ -135,7 +131,7 @@ impl CRS {
       alpha_y,
       gamma: gamma_pt,
       beta_gamma,
-      yt,
+      t,
       vk_io,
       wk_io,
       yk_io,

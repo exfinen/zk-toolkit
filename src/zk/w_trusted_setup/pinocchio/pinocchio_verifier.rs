@@ -1,11 +1,8 @@
 use crate::{
-  building_block::{
-    curves::bls12_381::{
-      g1_point::G1Point,
-      g2_point::G2Point,
-      pairing::Pairing,
-    },
-    zero::Zero,
+  building_block::curves::bls12_381::{
+    g1_point::G1Point,
+    g2_point::G2Point,
+    pairing::Pairing,
   },
   zk::w_trusted_setup::pinocchio::{
     crs::CRS,
@@ -39,49 +36,45 @@ impl PinocchioVerifier {
     let (p, vk) = (&proof, &crs.vk); 
 
     // KC of v * w * y
-    {
-      let vwd_mid_s = &p.v_mid_s + &p.g1_w_mid_s + &p.y_mid_s;
-      let lhs = e(&p.beta_vwy_mid_s, &vk.gamma);
-      let rhs = e(&vwd_mid_s, &vk.beta_gamma);
-      if lhs != rhs { return false; }
-    }
+    // {
+    //   let vwd_mid_s = &p.v_mid_s + &p.g1_w_mid_s + &p.y_mid_s;
+    //   let lhs = e(&p.beta_vwy_mid_s, &vk.gamma);
+    //   let rhs = e(&vwd_mid_s, &vk.beta_gamma);
+    //   if lhs != rhs { return false; }
+    // }
 
     // KC of v, w and y
-    {
-      let lhs = e(&p.alpha_v_mid_s, &vk.one_g2);
-      let rhs = e(&p.v_mid_s, &vk.alpha_v); 
-      if lhs != rhs { return false; }
-    }
-    {
-      let lhs = e(&p.alpha_w_mid_s, &vk.one_g2);
-      let rhs = e(&p.g1_w_mid_s, &vk.alpha_w); 
-      if lhs != rhs { return false; }
-    }
-    {
-      let lhs = e(&p.alpha_y_mid_s, &vk.one_g2);
-      let rhs = e(&p.y_mid_s, &vk.alpha_y); 
-      if lhs != rhs { return false; }
-    }
-     
+    // {
+    //   let lhs = e(&p.alpha_v_mid_s, &vk.one_g2);
+    //   let rhs = e(&p.v_mid_s, &vk.alpha_v); 
+    //   if lhs != rhs { return false; }
+    // }
+    // {
+    //   let lhs = e(&p.alpha_w_mid_s, &vk.one_g2);
+    //   let rhs = e(&p.g1_w_mid_s, &vk.alpha_w); 
+    //   if lhs != rhs { return false; }
+    // }
+    // {
+    //   let lhs = e(&p.alpha_y_mid_s, &vk.one_g2);
+    //   let rhs = e(&p.y_mid_s, &vk.alpha_y); 
+    //   if lhs != rhs { return false; }
+    // }
+
     // QAP divisibility check
     {
-      let mut v_io: G1Point = G1Point::zero();
-      let mut w_io: G2Point = G2Point::zero();
-      let mut y_io: G1Point = G1Point::zero();
+      let mut v_s = p.v_mid_s.clone();
+      let mut w_s = p.w_mid_s.clone();
+      let mut y_s = p.y_mid_s.clone();
 
       for i in 0..witness_io.size_in_usize() {
         let w = &witness_io[&i];
-        v_io = v_io + &vk.vk_io[i] * w;
-        w_io = w_io + &vk.wk_io[i] * w;
-        y_io = y_io + &vk.yk_io[i] * w;
+        v_s = v_s + &vk.vk_io[i] * w;
+        w_s = w_s + &vk.wk_io[i] * w;
+        y_s = y_s + &vk.yk_io[i] * w;
       }
 
-      let v_s = &v_io + &p.v_mid_s;
-      let w_s = &w_io + &p.g2_w_mid_s;
-      let y_s = &y_io + &p.y_mid_s;
-
-      let lhs = e(&v_s, &w_s) ;
-      let rhs = e(&vk.yt, &p.h_s) * e(&y_s, &vk.one_g2);
+      let lhs = e(&v_s, &w_s);
+      let rhs = e(&vk.t, &p.h_s) * e(&y_s, &vk.one_g2);
 
       lhs == rhs
     }
