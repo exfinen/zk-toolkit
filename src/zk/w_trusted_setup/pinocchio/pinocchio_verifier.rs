@@ -39,9 +39,9 @@ impl PinocchioVerifier {
 
     // KC of v * w * y
     {
-      let vwy_mid_s = &p.v_mid_s + &p.g1_w_mid_s + &p.y_mid_s;  // has t*d_v + t*d_y
-      let lhs = e(&p.beta_vwy_mid_s, &vk.gamma);  // should have b*t*d_v + b*t*t_y
-      let rhs = e(&vwy_mid_s, &vk.beta_gamma);  // has b*g*t*d_v + b*g*t*d_y
+      let vwy_mid_s = &p.v_mid_s + &p.g1_w_mid_s + &p.y_mid_s;
+      let lhs = e(&p.beta_vwy_mid_s, &vk.gamma);
+      let rhs = e(&vwy_mid_s, &vk.beta_gamma);
       if lhs != rhs { return false; }
     }
 
