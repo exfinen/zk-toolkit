@@ -70,9 +70,9 @@ impl PinocchioVerifier {
 
       for i in 0..witness_io.size_in_usize() {
         let w = &witness_io[&i];
-        v_s = v_s + &vk.vk_io[i] * w;
-        w_s = w_s + &vk.wk_io[i] * w;
-        y_s = y_s + &vk.yk_io[i] * w;
+        v_s += &vk.vk_io[i] * w;
+        w_s += &vk.wk_io[i] * w;
+        y_s += &vk.yk_io[i] * w;
       }
 
       let lhs = e(&v_s, &w_s);

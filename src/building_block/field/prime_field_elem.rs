@@ -10,7 +10,19 @@ use num_traits::{Zero as NumTraitZero, One, ToPrimitive};
 use std::{
   cmp::{PartialOrd, Ord, Ordering},
   fmt,
-  ops::{Add, Sub, Mul, Div, Neg, Rem, BitAnd, ShrAssign, Deref},
+  ops::{
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Neg,
+    Rem,
+    BitAnd,
+    ShrAssign,
+    Deref,
+    AddAssign,
+    MulAssign,
+  },
   sync::Arc,
 };
 use bitvec::{
@@ -98,6 +110,12 @@ impl_add!(PrimeFieldElem, PrimeFieldElem);
 impl_add!(&dyn ToBigUint, PrimeFieldElem);
 impl_add!(BigUint, PrimeFieldElem);
 
+impl AddAssign<PrimeFieldElem> for PrimeFieldElem {
+  fn add_assign(&mut self, rhs: PrimeFieldElem) {
+    *self = &*self + &rhs
+  }
+}
+
 macro_rules! impl_sub {
   ($rhs: ty, $target: ty) => {
     impl<'a> Sub<$rhs> for $target {
@@ -139,6 +157,12 @@ impl_mul!(PrimeFieldElem, PrimeFieldElem);
 impl_mul!(&dyn ToBigUint, PrimeFieldElem);
 impl_mul!(BigUint, PrimeFieldElem);
 impl_mul!(&BigUint, PrimeFieldElem);
+
+impl MulAssign<PrimeFieldElem> for PrimeFieldElem {
+  fn mul_assign(&mut self, rhs: PrimeFieldElem) {
+    *self = &*self * &rhs;
+  }
+}
 
 macro_rules! impl_div {
   ($rhs: ty, $target: ty) => {

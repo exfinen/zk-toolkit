@@ -68,7 +68,7 @@ impl QAP {
 
         // (target_idx - i) to cancel out the corresponding
         // numerator_poly at x = target_idx
-        denominator = denominator * (f.elem(&target_x) - f.elem(&i));
+        denominator *= f.elem(&target_x) - f.elem(&i);
 
         i.inc();
       }
@@ -91,7 +91,7 @@ impl QAP {
     // aggregate polynomials for all target values
     let mut res = target_val_polys[0].clone();
     for x in &target_val_polys[1..] {
-      res = res + x;
+      res += x;
     }
     res
   }
@@ -103,9 +103,9 @@ impl QAP {
 
     for i in 0..witness.size_in_usize() {
       let wit = &witness[&i];
-      v = &v + &(&self.vi[i] * wit);
-      w = &w + &(&self.wi[i] * wit);
-      y = &y + &(&self.yi[i] * wit);
+      v += &self.vi[i] * wit;
+      w += &self.wi[i] * wit;
+      y += &self.yi[i] * wit;
     };
     
     (v * &w) - &y

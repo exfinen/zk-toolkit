@@ -21,6 +21,7 @@ use std::{
     Deref,
     Mul,
     Sub,
+    AddAssign, MulAssign,
   },
   convert::From,
 };
@@ -319,6 +320,18 @@ impl<'a> Add<&Polynomial> for &Polynomial {
   }
 }
 
+impl AddAssign<Polynomial> for Polynomial {
+  fn add_assign(&mut self, rhs: Polynomial) {
+    *self = &*self + &rhs;
+  }
+}
+
+impl AddAssign<&Polynomial> for Polynomial {
+  fn add_assign(&mut self, rhs: &Polynomial) {
+    *self = &*self + rhs;
+  }
+}
+
 macro_rules! impl_mul {
   ($rhs: ty, $target: ty) => {
     impl<'a> Mul<$rhs> for $target {
@@ -344,6 +357,18 @@ impl<'a> Mul<&PrimeFieldElem> for &Polynomial {
       coeffs: self.coeffs.iter().map(|coeff| coeff * rhs).collect(),
       _private: (),
     }
+  }
+}
+
+impl MulAssign<Polynomial> for Polynomial {
+  fn mul_assign(&mut self, rhs: Polynomial) {
+    *self = &*self * &rhs;
+  }
+}
+
+impl MulAssign<&Polynomial> for Polynomial {
+  fn mul_assign(&mut self, rhs: &Polynomial) {
+    *self = &*self * rhs;
   }
 }
 
