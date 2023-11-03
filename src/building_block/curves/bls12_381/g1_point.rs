@@ -22,7 +22,7 @@ use num_bigint::{
 use num_traits::Zero as NumTraitsZero;
 use std::{
   fmt,
-  ops::{Add, Mul, Neg},
+  ops::{Add, Mul, Neg, AddAssign},
   sync::Arc,
 };
 use once_cell::sync::Lazy;
@@ -153,6 +153,12 @@ impl<'a> Mul<&'a PrivateKey> for &G1Point {
 type AffinePoint = G1Point;
 impl_affine_add!(G1Point);
 impl_scalar_mul_point!(Fq1, G1Point);
+
+impl AddAssign<G1Point> for G1Point {
+  fn add_assign(&mut self, rhs: G1Point) {
+    *self = &*self + rhs
+  }
+}
 
 impl PartialEq for G1Point {
   fn eq(&self, other: &Self) -> bool {

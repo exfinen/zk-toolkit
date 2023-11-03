@@ -21,7 +21,7 @@ use num_bigint::{BigUint, RandBigInt};
 use num_traits::Zero as NumTraitsZero;
 use rand::SeedableRng;
 use std::{
-  ops::{Add, Mul, Neg},
+  ops::{Add, Mul, Neg, AddAssign},
   sync::Arc,
 };
 use once_cell::sync::Lazy;
@@ -138,6 +138,12 @@ impl<'a> Mul<&'a PrivateKey> for &G2Point {
 type AffinePoint = G2Point;
 impl_affine_add!(G2Point);
 impl_scalar_mul_point!(Fq1, G2Point);
+
+impl AddAssign<G2Point> for G2Point {
+  fn add_assign(&mut self, rhs: G2Point) {
+    *self = &*self + rhs
+  }
+}
 
 impl PartialEq for G2Point {
   fn eq(&self, other: &Self) -> bool {
