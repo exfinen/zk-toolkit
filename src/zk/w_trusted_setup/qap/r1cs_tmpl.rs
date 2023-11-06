@@ -139,7 +139,7 @@ impl R1CSTmpl {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::zk::w_trusted_setup::pinocchio::equation_parser::EquationParser;
+  use crate::zk::w_trusted_setup::qap::equation_parser::EquationParser;
 
   #[test]
   fn test_categorize_witness_terms() {

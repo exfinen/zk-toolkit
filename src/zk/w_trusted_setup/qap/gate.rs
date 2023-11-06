@@ -82,7 +82,7 @@ impl Gate {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::zk::w_trusted_setup::pinocchio::equation_parser::EquationParser;
+  use crate::zk::w_trusted_setup::qap::equation_parser::EquationParser;
 
   #[test]
   fn test_build_add() {

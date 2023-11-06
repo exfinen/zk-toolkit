@@ -127,7 +127,7 @@ impl R1CS {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::zk::w_trusted_setup::pinocchio::{
+  use crate::zk::w_trusted_setup::qap::{
     equation_parser::EquationParser,
     gate::Gate,
     r1cs_tmpl::R1CSTmpl,

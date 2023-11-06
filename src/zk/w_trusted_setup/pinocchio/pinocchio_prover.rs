@@ -184,7 +184,7 @@ mod tests {
     let eq = EquationParser::parse(f, expr).unwrap();
 
     let witness_map = {
-      use crate::zk::w_trusted_setup::pinocchio::term::Term::*;
+      use crate::zk::w_trusted_setup::qap::term::Term::*;
       HashMap::<Term, PrimeFieldElem>::from([
         (Term::One, f.elem(&1u8)),
         (Term::var("x"), f.elem(&3u8)),

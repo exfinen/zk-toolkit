@@ -222,7 +222,7 @@ mod tests {
   use super::*;
   use crate::{
     building_block::field::prime_field::PrimeField,
-    zk::w_trusted_setup::pinocchio::constraint::Constraint,
+    zk::w_trusted_setup::qap::constraint::Constraint,
   };
 
   #[test]
