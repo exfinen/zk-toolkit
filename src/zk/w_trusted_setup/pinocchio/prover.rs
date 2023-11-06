@@ -27,14 +27,14 @@ use crate::{
     },
     pinocchio::{
       crs::CRS,
-      pinocchio_proof::PinocchioProof,
+      proof::Proof,
       witness::Witness,
     },
   },
 };
 use std::collections::HashMap;
 
-pub struct PinocchioProver {
+pub struct Prover {
   pub f: PrimeField,
   pub max_degree: usize,
   pub num_constraints: usize,
@@ -46,7 +46,7 @@ pub struct PinocchioProver {
   pub yi: Vec<Polynomial>,
 }
 
-impl PinocchioProver {
+impl Prover {
   pub fn new(
     f: &PrimeField,
     expr: &str,
@@ -80,7 +80,7 @@ impl PinocchioProver {
     let witness = Witness::new(&r1cs.witness.clone(), &tmpl.mid_beg);
     let num_constraints = tmpl.constraints.len();
 
-    PinocchioProver {
+    Prover {
       f: f.clone(),
       max_degree,
       num_constraints,
@@ -93,7 +93,7 @@ impl PinocchioProver {
     }
   }
 
-  pub fn prove(&self, crs: &CRS) -> PinocchioProof {
+  pub fn prove(&self, crs: &CRS) -> Proof {
     println!("--> Generating proof...");
     let witness_mid = &self.witness.mid();
 
@@ -156,7 +156,7 @@ impl PinocchioProver {
       h_s + w_s * delta_v + -(&crs.vk.one_g2 * delta_y)
     };
 
-    PinocchioProof {
+    Proof {
       v_mid_s,
       g1_w_mid_s,
       g2_w_mid_s,
@@ -173,7 +173,7 @@ impl PinocchioProver {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::zk::w_trusted_setup::pinocchio::pinocchio_verifier::PinocchioVerifier;
+  use crate::zk::w_trusted_setup::pinocchio::verifier::Verifier;
 
   #[test]
   fn test_generate_proof_and_verify() {
@@ -195,8 +195,8 @@ mod tests {
         (Out, eq.rhs),
       ])
     };
-    let prover = &PinocchioProver::new(f, expr, &witness_map);
-    let verifier = &PinocchioVerifier::new();
+    let prover = &Prover::new(f, expr, &witness_map);
+    let verifier = &Verifier::new();
     let crs = CRS::new(f, prover);
 
     let proof = prover.prove(&crs);

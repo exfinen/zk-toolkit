@@ -4,7 +4,7 @@ use crate::{
     curves::bls12_381::g2_point::G2Point,
     field::prime_field::PrimeField,
   },
-  zk::w_trusted_setup::pinocchio::pinocchio_prover::PinocchioProver,
+  zk::w_trusted_setup::pinocchio::prover::Prover,
 };
 
 pub struct EvaluationKeys {
@@ -45,7 +45,7 @@ impl CRS {
   #[allow(non_snake_case)]
   pub fn new(
     f: &PrimeField,
-    p: &PinocchioProver,
+    p: &Prover,
   ) -> Self {
     println!("--> Building CRS...");
     let g1 = &G1Point::g();

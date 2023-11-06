@@ -11,26 +11,26 @@ use crate::{
   },
   zk::w_trusted_setup::pinocchio::{
     crs::CRS,
-    pinocchio_proof::PinocchioProof,
+    proof::Proof,
   },
 };
 
-pub struct PinocchioVerifier {
+pub struct Verifier {
   pairing: Pairing,
 }
 
-impl PinocchioVerifier {
+impl Verifier {
   pub fn new() -> Self {
     let pairing = Pairing::new();
 
-    PinocchioVerifier {
+    Verifier {
       pairing,
     }
   }
 
   pub fn verify(
     &self,
-    proof: &PinocchioProof,
+    proof: &Proof,
     crs: &CRS,
     witness_io: &SparseVec,
   ) -> bool {
