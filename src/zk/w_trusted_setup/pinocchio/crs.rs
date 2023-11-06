@@ -1,7 +1,9 @@
 use crate::{
   building_block::{
-    curves::bls12_381::g1_point::G1Point,
-    curves::bls12_381::g2_point::G2Point,
+    curves::bls12_381::{
+      g1_point::G1Point,
+      g2_point::G2Point,
+    },
     field::prime_field::PrimeField,
   },
   zk::w_trusted_setup::pinocchio::prover::Prover,
