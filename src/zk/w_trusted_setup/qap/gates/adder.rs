@@ -1,4 +1,4 @@
-use crate::zk::w_trusted_setup::pinocchio::gates::bool_circuit::{BoolCircuit, Processor};
+use crate::zk::w_trusted_setup::qap::gates::bool_circuit::{BoolCircuit, Processor};
 
 pub struct HalfAdder();
 

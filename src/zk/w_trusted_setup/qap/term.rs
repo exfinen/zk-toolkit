@@ -1,4 +1,4 @@
-use crate::zk::w_trusted_setup::pinocchio::config::SignalId;
+use crate::zk::w_trusted_setup::qap::config::SignalId;
 use crate::building_block::field::prime_field_elem::PrimeFieldElem;
 
 #[derive(Clone, Hash, PartialEq, Eq)]

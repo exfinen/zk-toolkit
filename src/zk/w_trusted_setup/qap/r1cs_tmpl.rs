@@ -1,15 +1,14 @@
 use crate::building_block::field::{
   prime_field::PrimeField,
   prime_field_elem::PrimeFieldElem,
+  sparse_vec::SparseVec,
 };
-use crate::zk::w_trusted_setup::pinocchio::{
+use crate::zk::w_trusted_setup::qap::{
   term::Term,
   gate::Gate,
   constraint::Constraint,
 };
 use std::collections::HashMap;
-
-use super::sparse_vec::SparseVec;
 
 pub struct R1CSTmpl {
   pub f: PrimeField,

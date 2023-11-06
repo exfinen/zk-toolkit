@@ -1,17 +1,17 @@
 use std::ops::Mul;
 
 use crate::building_block::{
-  field::prime_field::PrimeField,
+  field::{
+    prime_field::PrimeField,
+    polynomial::{
+      Polynomial,
+      DivResult,
+    },
+    sparse_vec::SparseVec,
+  },
   to_biguint::ToBigUint,
 };
-use crate::zk::w_trusted_setup::pinocchio::{
-  r1cs::R1CS,
-  polynomial::{
-    Polynomial,
-    DivResult,
-  },
-  sparse_vec::SparseVec,
-};
+use crate::zk::w_trusted_setup::qap::r1cs::R1CS;
 use num_traits::Zero;
 use num_bigint::BigUint;
 

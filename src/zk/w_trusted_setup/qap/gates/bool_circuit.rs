@@ -1,4 +1,4 @@
-use crate::zk::w_trusted_setup::pinocchio::gates::arith_circuit::ArithCircuit;
+use crate::zk::w_trusted_setup::qap::gates::arith_circuit::ArithCircuit;
 use crate::building_block::field::prime_field::PrimeField;
 
 #[derive(Debug, PartialEq, Clone)]

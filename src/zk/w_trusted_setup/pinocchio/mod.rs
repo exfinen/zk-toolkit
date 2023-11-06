@@ -1,17 +1,5 @@
-pub mod config;
-pub mod constraint;
 pub mod crs;
-pub mod equation_parser;
-pub mod gate;
-pub mod gates;
-pub mod polynomial;
 pub mod pinocchio_proof;
 pub mod pinocchio_prover;
 pub mod pinocchio_verifier;
-pub mod qap;
-pub mod r1cs;
-pub mod r1cs_tmpl;
-pub mod sparse_matrix;
-pub mod sparse_vec;
-pub mod term;
 pub mod witness;

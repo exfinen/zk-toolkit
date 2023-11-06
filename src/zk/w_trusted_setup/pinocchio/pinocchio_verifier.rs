@@ -1,15 +1,17 @@
 // Implementation of protocol 2 described on page 5 in https://eprint.iacr.org/2013/279.pdf
 
 use crate::{
-  building_block::curves::bls12_381::{
-    g1_point::G1Point,
-    g2_point::G2Point,
-    pairing::Pairing,
+  building_block::{
+    field::sparse_vec::SparseVec,
+    curves::bls12_381::{
+      g1_point::G1Point,
+      g2_point::G2Point,
+      pairing::Pairing,
+    },
   },
   zk::w_trusted_setup::pinocchio::{
     crs::CRS,
     pinocchio_proof::PinocchioProof,
-    sparse_vec::SparseVec,
   },
 };
 

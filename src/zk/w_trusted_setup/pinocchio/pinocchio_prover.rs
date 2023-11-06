@@ -7,25 +7,29 @@ use crate::{
       g2_point::G2Point,
     },
     field::{
+      polynomial::{
+        DivResult,
+        Polynomial,
+      },
       prime_field::PrimeField,
       prime_field_elem::PrimeFieldElem,
     },
     zero::Zero,
   },
-  zk::w_trusted_setup::pinocchio::{
-    crs::CRS,
-    equation_parser::EquationParser,
-    gate::Gate,
-    qap::QAP,
-    polynomial::{
-      DivResult,
-      Polynomial,
+  zk::w_trusted_setup::{
+    qap::{
+      equation_parser::EquationParser,
+      gate::Gate,
+      qap::QAP,
+      r1cs::R1CS,
+      r1cs_tmpl::R1CSTmpl,
+      term::Term,
     },
-    pinocchio_proof::PinocchioProof,
-    r1cs::R1CS,
-    r1cs_tmpl::R1CSTmpl,
-    term::Term,
-    witness::Witness,
+    pinocchio::{
+      crs::CRS,
+      pinocchio_proof::PinocchioProof,
+      witness::Witness,
+    },
   },
 };
 use std::collections::HashMap;

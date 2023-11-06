@@ -1,5 +1,5 @@
 use crate::building_block::field::prime_field::PrimeField;
-use crate::zk::w_trusted_setup::pinocchio::{
+use crate::zk::w_trusted_setup::qap::{
   term::Term,
   equation_parser::{Equation, MathExpr},
 };

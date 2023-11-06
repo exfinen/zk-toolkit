@@ -4,10 +4,12 @@ use crate::building_block::field::{
   prime_field::PrimeField,
   prime_field_elem::PrimeFieldElem,
 };
-use crate::building_block::to_biguint::ToBigUint;
-use crate::zk::w_trusted_setup::pinocchio::{
-  polynomial::Polynomial,
-  sparse_vec::SparseVec,
+use crate::building_block::{
+  field::{
+    polynomial::Polynomial,
+    sparse_vec::SparseVec,
+  },
+  to_biguint::ToBigUint,
 };
 use std::{
   collections::HashMap,

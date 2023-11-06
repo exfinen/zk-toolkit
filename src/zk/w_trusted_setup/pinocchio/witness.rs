@@ -1,6 +1,6 @@
-use crate::{
-  building_block::field::prime_field_elem::PrimeFieldElem,
-  zk::w_trusted_setup::pinocchio::sparse_vec::SparseVec,
+use crate::building_block::field::{
+  prime_field_elem::PrimeFieldElem,
+  sparse_vec::SparseVec,
 };
 
 pub struct Witness {

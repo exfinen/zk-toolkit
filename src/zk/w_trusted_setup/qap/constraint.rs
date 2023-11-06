@@ -1,4 +1,4 @@
-use crate::zk::w_trusted_setup::pinocchio::sparse_vec::SparseVec;
+use crate::building_block::field::sparse_vec::SparseVec;
 
 #[derive(Clone)]
 pub struct Constraint {

@@ -1,12 +1,12 @@
 use crate::building_block::field::{
   prime_field::PrimeField,
   prime_field_elem::PrimeFieldElem,
-};
-use crate::zk::w_trusted_setup::pinocchio::{
-  constraint::Constraint,
-  r1cs_tmpl::R1CSTmpl,
   sparse_vec::SparseVec,
   sparse_matrix::SparseMatrix,
+};
+use crate::zk::w_trusted_setup::qap::{
+  constraint::Constraint,
+  r1cs_tmpl::R1CSTmpl,
   term::Term,
 };
 use std::collections::HashMap;
