@@ -69,9 +69,9 @@ impl CRS {
           let mut i = $from.clone();
 
           while &i <= $to {
-            let ui = beta & prover.ui[i].eval_at(x);
-            let vi = alpha & prover.vi[i].eval_at(x);
-            let wi = beta & prover.wi[i].eval_at(x);
+            let ui = beta * &prover.ui[i].eval_at(x);
+            let vi = alpha * &prover.vi[i].eval_at(x);
+            let wi = &prover.wi[i].eval_at(x);
             let y = (ui + vi + wi) * $div_factor;
 
             ys.push(g * y);
