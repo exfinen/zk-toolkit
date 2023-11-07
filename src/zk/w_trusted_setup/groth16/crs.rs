@@ -3,6 +3,8 @@ use crate::{
     curves::bls12_381::{
       g1_point::G1Point,
       g2_point::G2Point,
+      fq12::Fq12,
+      pairing::Pairing,
     },
     field::prime_field::PrimeField,
   },
@@ -17,9 +19,9 @@ pub struct G1 {
   pub beta: G1Point,
   pub delta: G1Point,
   pub xi: Vec<G1Point>,  // x powers
-  pub uvw_stmt: Vec<G1Point>,  // beta*u(tau) + alpha*v(tau) + w(tau) / div (statement)
-  pub uvw_wit: Vec<G1Point>,   // beta*u(tau) + alpha*v(tau) + w(tau) / div (witness)
-  pub xi_t_by_delta: Vec<G1Point>,  // x powers * t(tau) / delta
+  pub uvw_stmt: Vec<G1Point>,  // beta*u(x) + alpha*v(x) + w(x) / div (statement)
+  pub uvw_wit: Vec<G1Point>,   // beta*u(x) + alpha*v(x) + w(x) / div (witness)
+  pub ht_by_delta: G1Point,  // h(x) * t(x) / delta
 }
 
 pub struct G2 {
@@ -29,11 +31,15 @@ pub struct G2 {
   pub xi: Vec<G2Point>,  // x powers
 }
 
+pub struct GT {
+  pub alpha_beta: Fq12,
+}
 
 #[allow(non_snake_case)]
 pub struct CRS {
   pub g1: G1,
   pub g2: G2,
+  pub gt: GT,
 }
 
 impl CRS {
@@ -43,6 +49,7 @@ impl CRS {
   pub fn new(
     f: &PrimeField,
     prover: &Prover,
+    pairing: &Pairing,
   ) -> Self {
     println!("--> Building sigma...");
     let g = &G1Point::g();
@@ -96,20 +103,12 @@ impl CRS {
 
     let xi_g1 = calc_n_pows!(G1Point, x);
       
-    let xi_t_by_delta = {
-      let t = QAP::build_t(f, &prover.n);  // n = # of constraints 
-      let t_x = &t.eval_at(x);
-      let generator = G1Point::g();
+    let ht_by_delta = {
+      let h = &prover.h.eval_at(x);
+      let t = &QAP::build_t(f, &prover.n).eval_at(x);
       let inv_delta = &delta.inv();
-      let mut ys: Vec<G1Point> = vec![];
-      let mut x_pow = f.elem(&1u8);
-
-      for _ in 0..prover.n-1 {
-        let y = &generator * (&x_pow * t_x * inv_delta);
-        ys.push(y);
-        x_pow = x_pow * x;
-      }
-      ys
+      let v = h * t * &delta.inv();
+      G1Point::g() * &v
     };
 
     let g1 = G1 {
@@ -119,7 +118,7 @@ impl CRS {
       xi: xi_g1,    
       uvw_stmt,
       uvw_wit,
-      xi_t_by_delta,
+      ht_by_delta,
     };
 
     let xi_g2 = calc_n_pows!(G2Point, x);
@@ -131,9 +130,14 @@ impl CRS {
       xi: xi_g2,
     };
 
+    let gt = GT {
+      alpha_beta: pairing.tate(&g1.alpha, &g2.beta),
+    };
+
     CRS {
       g1,
       g2,
+      gt,
     }
   }
 }

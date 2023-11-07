@@ -36,7 +36,7 @@ pub struct Prover {
   pub f: PrimeField,
   pub n: usize,  // # of constraints 
   pub l: usize,  // end index of statement variables
-  pub m: usize,  // # of statement/witness variables
+  pub m: usize,  // end index of statement + witness variables
   pub wires: Wires,
   pub h: Polynomial,
   pub t: Polynomial,
@@ -74,7 +74,7 @@ impl Prover {
       let wit_beg: usize = (&tmpl.mid_beg.e).try_into().unwrap();
       wit_beg - 1
     };
-    let m = tmpl.witness.len();
+    let m = tmpl.witness.len() - 1;
     let wires = Wires::new(f, &r1cs.witness.clone(), &l);
     let n = tmpl.constraints.len();
 
@@ -123,17 +123,17 @@ impl Prover {
 
     let C = {
       let mut sum = G1Point::zero();
-      let ht = &self.h.eval_with_g1_hidings(&crs.g1.xi_t_by_delta);
 
-      for i in self.l+1..=self.m {
+      let wit_beg = self.l + 1;
+      for i in wit_beg..=self.m {
         let ai = &self.wires[i];
-        sum += &crs.g1.uvw_wit[i - self.l+1] * ai;
+        sum += &crs.g1.uvw_wit[i - wit_beg] * ai;
       }
       sum 
-        + ht
-        + &A * s
-        + &B_g1 * r
-        + -(&crs.g1.delta * r * s)
+      + &crs.g1.ht_by_delta
+      + &A * s
+      + &B_g1 * r
+      + -(&crs.g1.delta * r * s)
     };
 
     Proof {
@@ -147,9 +147,12 @@ impl Prover {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::zk::w_trusted_setup::groth16::verifier::Verifier;
+  use crate::{
+    building_block::curves::bls12_381::pairing::Pairing,
+    zk::w_trusted_setup::groth16::verifier::Verifier,
+  };
 
-  //#[test]
+  #[test]
   fn test_generate_proof_and_verify() {
     let f = &G1Point::curve_group();
 
@@ -170,13 +173,16 @@ mod tests {
       ])
     };
     let prover = &Prover::new(f, expr, &witness_map);
-    let verifier = &Verifier::new();
-    let crs = CRS::new(f, prover);
+    let pairing = &Pairing::new();
+    let verifier = &Verifier::new(pairing);
+    let crs = CRS::new(f, prover, pairing);
 
     let proof = prover.prove(&crs);
+    let stmt_wires = &prover.wires.statement();
     let result = verifier.verify(
       &proof,
       &crs,
+      stmt_wires,
     );
 
     assert!(result);

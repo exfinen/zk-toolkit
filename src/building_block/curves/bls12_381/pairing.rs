@@ -11,6 +11,7 @@ use crate::building_block::{
 use num_bigint::BigUint;
 use num_traits::Zero as NumTraitsZero;
 
+#[derive(Clone)]
 pub struct Pairing {
   l_bits: Vec<bool>,
 }
