@@ -1,8 +1,4 @@
-use crate::building_block::field::{
-  prime_field::PrimeField,
-  prime_field_elem::PrimeFieldElem,
-  sparse_vec::SparseVec,
-};
+use crate::building_block::curves::mcl::mcl_fr::MclFr;
 use core::ops::Index;
 
 // wires:
@@ -10,16 +6,14 @@ use core::ops::Index;
 // +---------+  +--------+
 //  statement    witness
 pub struct Wires {
-  f: PrimeField,
   sv: SparseVec,
   witness_beg: usize,
 }
 
 impl Wires {
   // l is index of the last statement wire
-  pub fn new(f: &PrimeField, sv: &SparseVec, l: &usize) -> Self {
+  pub fn new(sv: &SparseVec, l: &usize) -> Self {
     Wires {
-      f: f.clone(),
       sv: sv.clone(),
       witness_beg: l + 1,
     }
@@ -39,7 +33,7 @@ impl Wires {
 }
 
 impl Index<usize> for Wires {
-  type Output = PrimeFieldElem;
+  type Output = MclFr;
 
   fn index(&self, index: usize) -> &Self::Output {
     &self.sv[&index]
@@ -49,12 +43,10 @@ impl Index<usize> for Wires {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::building_block::curves::bls12_381::g1_point::G1Point;
+  use crate::building_block::curves::mcl::mcl_g1::MclG1;
 
   #[test]
   fn test_wire_indices() {
-    let f = &G1Point::curve_group();
-
     // [1,3,35,9,27,8,35]
     let mut sv = SparseVec::new(f, &f.elem(&7u8));
     sv[&f.elem(&0u8)] = f.elem(&1u8);

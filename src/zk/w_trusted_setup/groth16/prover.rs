@@ -1,18 +1,9 @@
 use crate::{
-  building_block::{
-    curves::bls12_381::{
-      g1_point::G1Point,
-      g2_point::G2Point,
-    },
-    field::{
-      polynomial::{
-        Polynomial,
-        DivResult,
-      },
-      prime_field::PrimeField,
-      prime_field_elem::PrimeFieldElem,
-    },
-    zero::Zero,
+  building_block::curves::mcl::{
+    mcl_fr::MclFr,
+    mcl_g1::MclG1,
+    mcl_g2::MclG2,
+    pairing::Pairing,
   },
   zk::w_trusted_setup::{
     qap::{
@@ -33,7 +24,6 @@ use crate::{
 use std::collections::HashMap;
 
 pub struct Prover {
-  pub f: PrimeField,
   pub n: usize,  // # of constraints 
   pub l: usize,  // end index of statement variables
   pub m: usize,  // end index of statement + witness variables
@@ -47,9 +37,8 @@ pub struct Prover {
 
 impl Prover {
   pub fn new(
-    f: &PrimeField,
     expr: &str,
-    witness_map: &HashMap<Term, PrimeFieldElem>,
+    witness_map: &HashMap<Term, MclFr>,
   ) -> Self {
     let eq = EquationParser::parse(f, expr).unwrap();
 
@@ -75,11 +64,10 @@ impl Prover {
       wit_beg - 1
     };
     let m = tmpl.witness.len() - 1;
-    let wires = Wires::new(f, &r1cs.witness.clone(), &l);
+    let wires = Wires::new(&r1cs.witness.clone(), &l);
     let n = tmpl.constraints.len();
 
     Prover {
-      f: f.clone(),
       n,
       l,
       m,
@@ -95,15 +83,13 @@ impl Prover {
   #[allow(non_snake_case)]
   pub fn prove(&self, crs: &CRS) -> Proof {
     println!("--> Generating proof...");
-    let f = &self.f;
-
-    let r = &f.rand_elem(true);
-    let s = &f.rand_elem(true);
+    let r = &MclFr::rand(true);
+    let s = &MclFr::rand(true);
 
     let (A, B, B_g1) = {
-      let mut sum_term_A = G1Point::zero();
-      let mut sum_term_B = G2Point::zero();
-      let mut sum_term_B_g1 = G1Point::zero();
+      let mut sum_term_A = MclG1::zero();
+      let mut sum_term_B = MclG2::zero();
+      let mut sum_term_B_g1 = MclG1::zero();
 
       for i in 0..=self.m {
         let ai = &self.wires[i];
@@ -122,7 +108,7 @@ impl Prover {
     };
 
     let C = {
-      let mut sum = G1Point::zero();
+      let mut sum = MclG1::zero();
 
       let wit_beg = self.l + 1;
       for i in wit_beg..=self.m {
@@ -148,34 +134,32 @@ impl Prover {
 mod tests {
   use super::*;
   use crate::{
-    building_block::curves::bls12_381::pairing::Pairing,
+    building_block::curves::mcl::pairing::Pairing,
     zk::w_trusted_setup::groth16::verifier::Verifier,
   };
 
   #[test]
   fn test_generate_proof_and_verify() {
-    let f = &G1Point::curve_group();
-
     let expr = "(x * x * x) + x + 5 == 35";
     println!("Expr: {}\n", expr);
-    let eq = EquationParser::parse(f, expr).unwrap();
+    let eq = EquationParser::parse(expr).unwrap();
 
     let witness_map = {
       use crate::zk::w_trusted_setup::qap::term::Term::*;
-      HashMap::<Term, PrimeFieldElem>::from([
-        (Term::One, f.elem(&1u8)),
-        (Term::var("x"), f.elem(&3u8)),
-        (TmpVar(1), f.elem(&9u8)),
-        (TmpVar(2), f.elem(&27u8)),
-        (TmpVar(3), f.elem(&8u8)),
-        (TmpVar(4), f.elem(&35u8)),
+      HashMap::<Term, MclFr>::from([
+        (Term::One, MclFr::from(1)),
+        (Term::var("x"), MclFr::from(3)),
+        (TmpVar(1), MclFr::from(9)),
+        (TmpVar(2), MclFr::from(27)),
+        (TmpVar(3), MclFr::from(8)),
+        (TmpVar(4), MclFr::from(35)),
         (Out, eq.rhs),
       ])
     };
-    let prover = &Prover::new(f, expr, &witness_map);
-    let pairing = &Pairing::new();
+    let prover = &Prover::new(expr, &witness_map);
+    let pairing = &Pairing;
     let verifier = &Verifier::new(pairing);
-    let crs = CRS::new(f, prover, pairing);
+    let crs = CRS::new(prover, pairing);
 
     let proof = prover.prove(&crs);
     let stmt_wires = &prover.wires.statement();

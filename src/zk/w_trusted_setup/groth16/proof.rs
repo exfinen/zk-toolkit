@@ -1,12 +1,12 @@
-use crate::building_block::curves::bls12_381::{
-  g1_point::G1Point,
-  g2_point::G2Point,
+use crate::building_block::curves::mcl::{
+  mcl_g1::MclG1,
+  mcl_g2::MclG2,
 };
 
 #[allow(non_snake_case)]
 pub struct Proof {
-  pub A: G1Point,
-  pub B: G2Point,
-  pub C: G1Point,
+  pub A: MclG1,
+  pub B: MclG2,
+  pub C: MclG1,
 }
 

@@ -1,12 +1,10 @@
 use crate::{
-  building_block::{
-    curves::bls12_381::{
-      g1_point::G1Point,
-      g2_point::G2Point,
-      fq12::Fq12,
-      pairing::Pairing,
-    },
-    field::prime_field::PrimeField,
+  building_block::curves::mcl::{
+    mcl_fr::MclFr,
+    mcl_g1::MclG1,
+    mcl_g2::MclG2,
+    mcl_gt::MclGT,
+    pairing::Pairing,
   },
   zk::w_trusted_setup::{
     groth16::prover::Prover,
@@ -15,24 +13,24 @@ use crate::{
 };
 
 pub struct G1 {
-  pub alpha: G1Point,
-  pub beta: G1Point,
-  pub delta: G1Point,
-  pub xi: Vec<G1Point>,  // x powers
-  pub uvw_stmt: Vec<G1Point>,  // beta*u(x) + alpha*v(x) + w(x) / div (statement)
-  pub uvw_wit: Vec<G1Point>,   // beta*u(x) + alpha*v(x) + w(x) / div (witness)
-  pub ht_by_delta: G1Point,  // h(x) * t(x) / delta
+  pub alpha: MclG1,
+  pub beta: MclG1,
+  pub delta: MclG1,
+  pub xi: Vec<MclG1>,  // x powers
+  pub uvw_stmt: Vec<MclG1>,  // beta*u(x) + alpha*v(x) + w(x) / div (statement)
+  pub uvw_wit: Vec<MclG1>,   // beta*u(x) + alpha*v(x) + w(x) / div (witness)
+  pub ht_by_delta: MclG1,  // h(x) * t(x) / delta
 }
 
 pub struct G2 {
-  pub beta: G2Point,
-  pub gamma: G2Point,
-  pub delta: G2Point,
-  pub xi: Vec<G2Point>,  // x powers
+  pub beta: MclG2,
+  pub gamma: MclG2,
+  pub delta: MclG2,
+  pub xi: Vec<MclG2>,  // x powers
 }
 
 pub struct GT {
-  pub alpha_beta: Fq12,
+  pub alpha_beta: MclGT,
 }
 
 #[allow(non_snake_case)]
@@ -47,25 +45,24 @@ impl CRS {
   // +---------+  +--------+
   //  statement    witness
   pub fn new(
-    f: &PrimeField,
     prover: &Prover,
     pairing: &Pairing,
   ) -> Self {
     println!("--> Building sigma...");
-    let g = &G1Point::g();
-    let h = &G2Point::g();
+    let g = &MclG1::g();
+    let h = &MclG2::g();
 
     // sample random non-zero field element
-    let alpha = &f.rand_elem(true);
-    let beta = &f.rand_elem(true);
-    let gamma = &f.rand_elem(true);
-    let delta = &f.rand_elem(true);
-    let x = &f.rand_elem(true);
+    let alpha = &MclFr::rand(true);
+    let beta = &MclFr::rand(true);
+    let gamma = &MclFr::rand(true);
+    let delta = &MclFr::rand(true);
+    let x = &MclFr::rand(true);
 
     macro_rules! calc_uvw_div {
       ($from: expr, $to: expr, $div_factor: expr) => {
         {
-          let mut ys: Vec<G1Point> = vec![];
+          let mut ys: Vec<MclG1> = vec![];
           let mut i = $from.clone();
 
           while &i <= $to {
@@ -101,14 +98,13 @@ impl CRS {
       }
     }
 
-    let xi_g1 = calc_n_pows!(G1Point, x);
+    let xi_g1 = calc_n_pows!(MclG1, x);
       
     let ht_by_delta = {
       let h = &prover.h.eval_at(x);
       let t = &QAP::build_t(f, &prover.n).eval_at(x);
-      let inv_delta = &delta.inv();
       let v = h * t * &delta.inv();
-      G1Point::g() * &v
+      MclG1::g() * &v
     };
 
     let g1 = G1 {
@@ -121,7 +117,7 @@ impl CRS {
       ht_by_delta,
     };
 
-    let xi_g2 = calc_n_pows!(G2Point, x);
+    let xi_g2 = calc_n_pows!(MclG2, x);
 
     let g2 = G2 {
       beta: h * beta,
@@ -131,7 +127,7 @@ impl CRS {
     };
 
     let gt = GT {
-      alpha_beta: pairing.tate(&g1.alpha, &g2.beta),
+      alpha_beta: pairing.e(&g1.alpha, &g2.beta),
     };
 
     CRS {
