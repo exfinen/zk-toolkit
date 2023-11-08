@@ -1,12 +1,17 @@
 use mcl_rust::*;
+use std::sync::Once;
+
+static INIT: Once = Once::new();
 
 pub struct MclInitializer;
 
 impl MclInitializer {
   pub fn init() {
-    if !init(CurveType::BLS12_381) {
-      panic!("Failed to initialize mcl");
-    }
+    INIT.call_once(|| {
+      if !init(CurveType::BLS12_381) {
+        panic!("Failed to initialize mcl");
+      }
+    })
   }
 }
 

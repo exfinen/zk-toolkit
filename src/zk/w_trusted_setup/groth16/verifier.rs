@@ -2,8 +2,10 @@
 
 use crate::{
   building_block::curves::mcl::{
+    mcl_fr::MclFr,
     mcl_g1::MclG1,
     mcl_g2::MclG2,
+    mcl_sparse_vec::MclSparseVec,
     pairing::Pairing,
   },
   zk::w_trusted_setup::groth16::{
@@ -28,7 +30,7 @@ impl Verifier {
     &self,
     proof: &Proof,
     crs: &CRS,
-    stmt_wires: &SparseVec,
+    stmt_wires: &MclSparseVec,
   ) -> bool {
     let e = |a: &MclG1, b: &MclG2| self.pairing.e(a, b);
 
@@ -36,8 +38,8 @@ impl Verifier {
     let lhs = e(&proof.A, &proof.B);
 
     let mut sum_term = MclG1::zero();
-    for i in 0..stmt_wires.size_in_usize() {
-      let ai = &stmt_wires[&i];
+    for i in 0..stmt_wires.size.to_usize() {
+      let ai = &stmt_wires[&MclFr::from(i)];
       sum_term += &crs.g1.uvw_stmt[i] * ai;
     }
 

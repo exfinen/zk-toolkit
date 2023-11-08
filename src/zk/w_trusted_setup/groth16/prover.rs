@@ -3,9 +3,10 @@ use crate::{
     mcl_fr::MclFr,
     mcl_g1::MclG1,
     mcl_g2::MclG2,
-    pairing::Pairing,
-  },
-  zk::w_trusted_setup::{
+    polynomial::{
+      DivResult,
+      Polynomial,
+    },
     qap::{
       equation_parser::EquationParser,
       gate::Gate,
@@ -14,19 +15,20 @@ use crate::{
       r1cs_tmpl::R1CSTmpl,
       term::Term,
     },
-    groth16::{
-      crs::CRS,
-      proof::Proof,
-      wires::Wires,
-    },
+  },
+  zk::w_trusted_setup::groth16::{
+    crs::CRS,
+    proof::Proof,
+    wires::Wires,
   },
 };
+use num_traits::Zero;
 use std::collections::HashMap;
 
 pub struct Prover {
-  pub n: usize,  // # of constraints 
-  pub l: usize,  // end index of statement variables
-  pub m: usize,  // end index of statement + witness variables
+  pub n: MclFr,  // # of constraints 
+  pub l: MclFr,  // end index of statement variables
+  pub m: MclFr,  // end index of statement + witness variables
   pub wires: Wires,
   pub h: Polynomial,
   pub t: Polynomial,
@@ -40,17 +42,17 @@ impl Prover {
     expr: &str,
     witness_map: &HashMap<Term, MclFr>,
   ) -> Self {
-    let eq = EquationParser::parse(f, expr).unwrap();
+    let eq = EquationParser::parse(expr).unwrap();
 
-    let gates = &Gate::build(f, &eq);
-    let tmpl = &R1CSTmpl::new(f, gates);
+    let gates = &Gate::build(&eq);
+    let tmpl = &R1CSTmpl::new(gates);
 
-    let r1cs = R1CS::from_tmpl(f, tmpl, &witness_map).unwrap();
+    let r1cs = R1CS::from_tmpl(tmpl, &witness_map).unwrap();
     r1cs.validate().unwrap();
 
-    let qap = QAP::build(f, &r1cs);
+    let qap = QAP::build(&r1cs);
 
-    let t = QAP::build_t(f, &tmpl.constraints.len());
+    let t = QAP::build_t(&MclFr::from(tmpl.constraints.len()));
     let h = {
       let p = qap.build_p(&r1cs.witness);
       match p.divide_by(&t) {
@@ -59,13 +61,10 @@ impl Prover {
       }
     };
 
-    let l  = {
-      let wit_beg: usize = (&tmpl.mid_beg.e).try_into().unwrap();
-      wit_beg - 1
-    };
-    let m = tmpl.witness.len() - 1;
+    let l = &tmpl.mid_beg - MclFr::from(1);
+    let m = MclFr::from(tmpl.witness.len() - 1);
     let wires = Wires::new(&r1cs.witness.clone(), &l);
-    let n = tmpl.constraints.len();
+    let n = MclFr::from(tmpl.constraints.len());
 
     Prover {
       n,
@@ -91,7 +90,7 @@ impl Prover {
       let mut sum_term_B = MclG2::zero();
       let mut sum_term_B_g1 = MclG1::zero();
 
-      for i in 0..=self.m {
+      for i in 0..=self.m.to_usize() {
         let ai = &self.wires[i];
         let ui_prod = self.ui[i].eval_with_g1_hidings(&crs.g1.xi) * ai;
         let vi_prod = self.vi[i].eval_with_g2_hidings(&crs.g2.xi) * ai;
@@ -110,8 +109,8 @@ impl Prover {
     let C = {
       let mut sum = MclG1::zero();
 
-      let wit_beg = self.l + 1;
-      for i in wit_beg..=self.m {
+      let wit_beg = self.l.to_usize() + 1;
+      for i in wit_beg..=self.m.to_usize() {
         let ai = &self.wires[i];
         sum += &crs.g1.uvw_wit[i - wit_beg] * ai;
       }
@@ -145,7 +144,7 @@ mod tests {
     let eq = EquationParser::parse(expr).unwrap();
 
     let witness_map = {
-      use crate::zk::w_trusted_setup::qap::term::Term::*;
+      use crate::building_block::curves::mcl::qap::term::Term::*;
       HashMap::<Term, MclFr>::from([
         (Term::One, MclFr::from(1)),
         (Term::var("x"), MclFr::from(3)),

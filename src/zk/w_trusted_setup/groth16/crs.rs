@@ -5,11 +5,9 @@ use crate::{
     mcl_g2::MclG2,
     mcl_gt::MclGT,
     pairing::Pairing,
-  },
-  zk::w_trusted_setup::{
-    groth16::prover::Prover,
     qap::qap::QAP,
   },
+  zk::w_trusted_setup::groth16::prover::Prover,
 };
 
 pub struct G1 {
@@ -79,17 +77,17 @@ impl CRS {
       }
     }
 
-    let uvw_stmt = calc_uvw_div!(0, &prover.l, &gamma.inv());
-    let uvw_wit = calc_uvw_div!(&prover.l + 1, &prover.m, &delta.inv());
+    let uvw_stmt = calc_uvw_div!(0, &prover.l.to_usize(), &gamma.inv());
+    let uvw_wit = calc_uvw_div!(&prover.l.to_usize() + 1, &prover.m.to_usize(), &delta.inv());
 
     macro_rules! calc_n_pows {
       ($point_type: ty, $x: expr) => {
         {
           let generator = &<$point_type>::g();
           let mut ys: Vec<$point_type> = vec![];
-          let mut x_pow = f.elem(&1u8);
+          let mut x_pow = MclFr::from(1);
 
-          for _ in 0..prover.n {
+          for _ in 0..prover.n.to_usize(){
             ys.push(generator * &x_pow);
             x_pow = x_pow * x;
           }
@@ -102,7 +100,7 @@ impl CRS {
       
     let ht_by_delta = {
       let h = &prover.h.eval_at(x);
-      let t = &QAP::build_t(f, &prover.n).eval_at(x);
+      let t = &QAP::build_t(&prover.n).eval_at(x);
       let v = h * t * &delta.inv();
       MclG1::g() * &v
     };

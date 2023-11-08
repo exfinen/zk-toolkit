@@ -8,7 +8,7 @@ use std::{
 };
 use num_traits::Zero;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct MclFr {
   pub v: Fr,
 }
@@ -40,9 +40,13 @@ impl MclFr {
     MclFr::from(&v)
   }
 
-  pub fn inc(&self) -> Self {
+  pub fn inc(&mut self) {
     let v = &self.v + &Fr::from_int(1);
-    MclFr::from(&v)
+    self.v = v;
+  }
+
+  pub fn to_usize(&self) -> usize {
+    self.v.get_str(10).parse().unwrap()
   }
 }
 
@@ -77,16 +81,43 @@ impl From<&Fr> for MclFr {
   }
 }
 
-impl PartialOrd for MclFr {
-  fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+impl From<&str> for MclFr {
+  fn from(s: &str) -> Self {
+    let mut v = Fr::zero();
+    Fr::set_str(&mut v, s, 10);
+    MclFr { v }
+  }
+}
+
+impl From<bool> for MclFr {
+  fn from(b: bool) -> Self {
+    let v = {
+      if b {
+        Fr::from_int(1)
+      } else {
+        Fr::zero()
+      }
+    };
+    MclFr { v }
+  }
+}
+
+impl Ord for MclFr {
+  fn cmp(&self, other: &Self) -> Ordering {
     let r = &self.v.cmp(&other.v);
     if r.is_zero() {
-      Some(Ordering::Equal)
+      Ordering::Equal
     } else if r < &0 {
-      Some(Ordering::Less)
+      Ordering::Less
     } else {
-      Some(Ordering::Greater)
+      Ordering::Greater
     }
+  }
+}
+
+impl PartialOrd for MclFr {
+  fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+    Some(self.cmp(other))
   }
 }
 
@@ -99,16 +130,23 @@ impl PartialEq for MclFr {
 impl Hash for MclFr {
   fn hash<H: Hasher>(&self, state: &mut H) {
     let mut buf: Vec<u8> = vec![];
-    self.v.set_hash_of(&mut buf);
+    let mut v = Fr::zero();
+    v.set_hash_of(&mut buf);
     buf.hash(state);
   }
 }
 
 impl Eq for MclFr {}
 
+impl fmt::Debug for MclFr {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}", self.v.get_str(10))
+  }
+}
+
 impl fmt::Display for MclFr {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{}", self.v.get_str(16))
+    write!(f, "{}", self.v.get_str(10))
   }
 }
 

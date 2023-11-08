@@ -130,7 +130,7 @@ impl MclSparseVec {
 
     let mut i = from.clone();
     while &i < &to {
-      new_sv.set(&(i - from), &self[&i]);
+      new_sv.set(&(&i - from), &self[&i]);
       i.inc();    
     } 
     new_sv
@@ -237,16 +237,19 @@ impl Mul<&MclSparseVec> for &MclSparseVec {
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crate::building_block::curves::mcl::mcl_initializer::MclInitializer;
 
   #[test]
   #[should_panic]
   fn test_from_empty_list() {
+    MclInitializer::init();
     std::panic::set_hook(Box::new(|_| {}));  // suppress stack trace
     let _ = MclSparseVec::from(&vec![]);
   }
 
   #[test]
   fn test_slice() {
+    MclInitializer::init();
     let zero = &MclFr::zero();
     let one = &MclFr::from(1);
     let two = &MclFr::from(2);
@@ -267,6 +270,7 @@ mod tests {
 
   #[test]
   fn test_from_non_empty_list() {
+    MclInitializer::init();
     let zero = &MclFr::zero();
     let one = &MclFr::from(1);
     let two = &MclFr::from(2);
@@ -279,6 +283,7 @@ mod tests {
 
   #[test]
   fn test_from_non_empty_zero_only_list() {
+    MclInitializer::init();
     let zero = &MclFr::zero();
     let two = &MclFr::from(2);
     let elems = vec![zero.clone(), zero.clone()];
@@ -290,6 +295,7 @@ mod tests {
   #[test]
   #[should_panic]
   fn test_new_empty_vec() {
+    MclInitializer::init();
     std::panic::set_hook(Box::new(|_| {}));  // suppress stack trace
     MclSparseVec::new(&MclFr::zero());
   }
@@ -297,6 +303,7 @@ mod tests {
   #[test]
   #[should_panic]
   fn test_bad_set() {
+    MclInitializer::init();
     std::panic::set_hook(Box::new(|_| {}));  // suppress stack trace
 
     let mut vec = MclSparseVec::new(&MclFr::from(3));
@@ -307,6 +314,7 @@ mod tests {
 
   #[test]
   fn test_good_set() {
+    MclInitializer::init();
     let mut vec = MclSparseVec::new(&MclFr::from(3));
     assert_eq!(vec.elems.len(), 0);
 
@@ -328,6 +336,7 @@ mod tests {
 
   #[test]
   fn test_assign() {
+    MclInitializer::init();
     let mut vec = MclSparseVec::new(&MclFr::from(3));
     assert_eq!(vec.elems.len(), 0);
 
@@ -347,6 +356,7 @@ mod tests {
 
   #[test]
   fn test_good_get() {
+    MclInitializer::init();
     let zero = &MclFr::zero();
     let one = &MclFr::from(1);
     let two = &MclFr::from(2);
@@ -363,6 +373,7 @@ mod tests {
   #[test]
   #[should_panic]
   fn test_get_index_out_of_range() {
+    MclInitializer::init();
     std::panic::set_hook(Box::new(|_| {}));  // suppress stack trace
 
     let vec = MclSparseVec::new(&MclFr::from(1));
@@ -371,6 +382,7 @@ mod tests {
 
   #[test]
   fn test_get_index_without_value() {
+    MclInitializer::init();
     std::panic::set_hook(Box::new(|_| {}));  // suppress stack trace
 
     let zero = &MclFr::zero();
@@ -382,6 +394,7 @@ mod tests {
 
   #[test]
   fn test_indices() {
+    MclInitializer::init();
     let mut vec = MclSparseVec::new(&MclFr::from(3));
 
     vec.set(&MclFr::from(1), &MclFr::from(2));
@@ -396,6 +409,7 @@ mod tests {
 
   #[test]
   fn test_mutiply_no_matching_elems() {
+    MclInitializer::init();
     let mut vec_a = MclSparseVec::new(&MclFr::from(3));
     let mut vec_b = MclSparseVec::new(&MclFr::from(3));
 
@@ -409,6 +423,7 @@ mod tests {
 
   #[test]
   fn test_mutiply_elems_fully_matching_1_elem() {
+    MclInitializer::init();
     let mut vec_a = MclSparseVec::new(&MclFr::from(3));
     let mut vec_b = MclSparseVec::new(&MclFr::from(3));
 
@@ -423,6 +438,7 @@ mod tests {
 
   #[test]
   fn test_mutiply_elems_fully_matching_2_elems() {
+    MclInitializer::init();
     let mut vec_a = MclSparseVec::new(&MclFr::from(3));
     let mut vec_b = MclSparseVec::new(&MclFr::from(3));
 
@@ -440,6 +456,7 @@ mod tests {
 
   #[test]
   fn test_mutiply_elems_partially_matching() {
+    MclInitializer::init();
     let mut vec_a = MclSparseVec::new(&MclFr::from(3));
     let mut vec_b = MclSparseVec::new(&MclFr::from(3));
 
@@ -455,6 +472,7 @@ mod tests {
 
   #[test]
   fn test_sum() {
+    MclInitializer::init();
     let mut vec = MclSparseVec::new(&MclFr::from(3));
 
     vec.set(&MclFr::from(1), &MclFr::from(2));
@@ -466,6 +484,7 @@ mod tests {
 
   #[test]
   fn test_eq_different_sizes() {
+    MclInitializer::init();
     let vec_a = MclSparseVec::new(&MclFr::from(3));
     let vec_b = MclSparseVec::new(&MclFr::from(4));
     assert_ne!(vec_a, vec_b);
@@ -474,6 +493,7 @@ mod tests {
 
   #[test]
   fn test_eq_empty() {
+    MclInitializer::init();
     let vec_a = MclSparseVec::new(&MclFr::from(3));
     let vec_b = MclSparseVec::new(&MclFr::from(3));
     assert_eq!(vec_a, vec_b);
@@ -482,6 +502,7 @@ mod tests {
 
   #[test]
   fn test_eq_non_empty() {
+    MclInitializer::init();
     let mut vec_a = MclSparseVec::new(&MclFr::from(3));
     let mut vec_b = MclSparseVec::new(&MclFr::from(3));
 
@@ -493,6 +514,7 @@ mod tests {
 
   #[test]
   fn test_not_eq_non_empty() {
+    MclInitializer::init();
     let mut vec_a = MclSparseVec::new(&MclFr::from(3));
     let mut vec_b = MclSparseVec::new(&MclFr::from(3));
 
@@ -504,6 +526,7 @@ mod tests {
 
   #[test]
   fn test_iterator() {
+    MclInitializer::init();
     let mut sv = MclSparseVec::new(&MclFr::from(3));
     sv.set(&MclFr::from(0), &MclFr::from(1));
     sv.set(&MclFr::from(1), &MclFr::from(2));
@@ -518,6 +541,7 @@ mod tests {
 
   #[test]
   fn test_concat() {
+    MclInitializer::init();
     let mut sv1 = MclSparseVec::new(&MclFr::from(2));
     sv1.set(&MclFr::from(0), &MclFr::from(1));
     sv1.set(&MclFr::from(1), &MclFr::from(2));
