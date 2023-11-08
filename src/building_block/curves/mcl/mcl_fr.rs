@@ -277,4 +277,66 @@ mod tests {
     let n9 = &MclFr::from(9i32);
     assert_eq!(n9 + -n9, MclFr::zero());
   }
+
+  #[test]
+  fn test_ord() {
+    MclInitializer::init();
+
+    let n2 = &MclFr::from(2);
+    let n3 = &MclFr::from(3);
+
+    assert!((n2 == n2) == true);
+    assert!((n2 != n2) == false);
+    assert!((n2 < n2) == false);
+    assert!((n2 > n2) == false);
+    assert!((n2 >= n2) == true);
+    assert!((n2 <= n2) == true);
+
+    assert!((n2 == n3) == false);
+    assert!((n2 != n3) == true);
+    assert!((n2 < n3) == true);
+    assert!((n2 > n3) == false);
+    assert!((n2 >= n3) == false);
+    assert!((n2 <= n3) == true);
+  }
+
+  #[test]
+  fn test_hashing() {
+    MclInitializer::init();
+    use std::collections::HashMap;
+
+    let n2 = &MclFr::from(2);
+    let n3 = &MclFr::from(3);
+    let n4 = &MclFr::from(3);
+    
+    let m = HashMap::<String, MclFr>::from([
+      ("2".to_string(), n2.clone()),
+      ("3".to_string(), n3.clone()),
+      ("4".to_string(), n4.clone()),
+    ]);
+
+    assert_eq!(m.get("2").unwrap(), n2);
+    assert_eq!(m.get("3").unwrap(), n3);
+    assert_eq!(m.get("4").unwrap(), n4);
+  }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
