@@ -229,9 +229,9 @@ mod tests {
   fn test_add() {
     MclInitializer::init();
 
-    let n3 = MclFr::from(3i32);
-    let n9 = MclFr::from(9i32);
-    let exp = MclFr::from(12i32);
+    let n3 = MclFr::from(3);
+    let n9 = MclFr::from(9);
+    let exp = MclFr::from(12);
     let act = n3 + n9;
     assert_eq!(exp, act);
   }
@@ -240,9 +240,9 @@ mod tests {
   fn test_sub() {
     MclInitializer::init();
 
-    let n9 = MclFr::from(9i32);
-    let n3 = MclFr::from(3i32);
-    let exp = MclFr::from(6i32);
+    let n9 = MclFr::from(9);
+    let n3 = MclFr::from(3);
+    let exp = MclFr::from(6);
     let act = n9 - n3;
     assert_eq!(exp, act);
   }
@@ -251,9 +251,9 @@ mod tests {
   fn test_mul() {
     MclInitializer::init();
 
-    let n3 = MclFr::from(3i32);
-    let n9 = MclFr::from(9i32);
-    let exp = MclFr::from(27i32);
+    let n3 = MclFr::from(3);
+    let n9 = MclFr::from(9);
+    let exp = MclFr::from(27);
     let act = n3 * n9;
     assert_eq!(exp, act);
   }
@@ -263,19 +263,47 @@ mod tests {
   fn test_inv() {
     MclInitializer::init();
 
-    let n1 = MclFr::from(1i32);
-    let n9 = MclFr::from(9i32);
+    let n1 = MclFr::from(1);
+    let n9 = MclFr::from(9);
     let inv9 = n9.inv();
 
     assert_eq!(n9 * inv9, n1);
   }
 
   #[test]
+  fn test_sq() {
+    MclInitializer::init();
+
+    let n3 = MclFr::from(3);
+    let n9 = MclFr::from(9);
+
+    assert_eq!(n3.sq(), n9);
+  }
+
+  #[test]
   fn test_neg() {
     MclInitializer::init();
 
-    let n9 = &MclFr::from(9i32);
+    let n9 = &MclFr::from(9);
     assert_eq!(n9 + -n9, MclFr::zero());
+  }
+
+  #[test]
+  fn test_inc() {
+    MclInitializer::init();
+
+    let n1 = MclFr::from(1);
+    let n2 = MclFr::from(2);
+    let n3 = MclFr::from(3);
+
+    let mut n = MclFr::zero();
+    assert!(n.is_zero());
+    n.inc();
+    assert_eq!(n, n1);
+    n.inc();
+    assert_eq!(n, n2);
+    n.inc();
+    assert_eq!(n, n3);
   }
 
   #[test]
