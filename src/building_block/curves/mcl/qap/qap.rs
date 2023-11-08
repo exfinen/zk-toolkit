@@ -314,8 +314,10 @@ mod tests {
     let two = &MclFr::from(2);
     let neg_three = &-MclFr::from(3);
 
+    // (x-1)(x-2) = x^2 - 3x + 2
     let z = QAP::build_t(two);
 
+    // expect [2, -3, 1] 
     assert_eq!(z.len(), 3);
     assert_eq!(&z[0], two);
     assert_eq!(&z[1], neg_three);

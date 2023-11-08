@@ -133,12 +133,17 @@ impl Prover {
 mod tests {
   use super::*;
   use crate::{
-    building_block::curves::mcl::pairing::Pairing,
+    building_block::curves::mcl::{
+      pairing::Pairing,
+      mcl_initializer::MclInitializer,
+    },
     zk::w_trusted_setup::groth16::verifier::Verifier,
   };
 
   #[test]
   fn test_generate_proof_and_verify() {
+    MclInitializer::init();
+
     let expr = "(x * x * x) + x + 5 == 35";
     println!("Expr: {}\n", expr);
     let eq = EquationParser::parse(expr).unwrap();
