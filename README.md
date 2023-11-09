@@ -9,7 +9,7 @@ To implement cryptographic primitives in the simplest form without using any opt
   - An implementation fully based on zk-toolkit
   - An implementation utilizing BLS12-381 curve of external mcl library
 - Pinnochio zk-SNARK (protocol 2)
-- Common zk-SNARK compnents
+- Common zk-SNARK components
   - Equation parser
   - R1CS
   - QAP
