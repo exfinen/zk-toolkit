@@ -3,7 +3,7 @@ use crate::{
     curves::bls12_381::{
       g1_point::G1Point,
       g2_point::G2Point,
-      fq12::Fq12,
+      gt_point::GTPoint,
       pairing::Pairing,
     },
     field::prime_field::PrimeField,
@@ -32,7 +32,7 @@ pub struct G2 {
 }
 
 pub struct GT {
-  pub alpha_beta: Fq12,
+  pub alpha_beta: GTPoint,
 }
 
 #[allow(non_snake_case)]

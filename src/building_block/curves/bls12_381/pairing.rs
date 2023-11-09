@@ -2,6 +2,7 @@ use crate::building_block::{
   curves::bls12_381::{
     g1_point::G1Point,
     g2_point::G2Point,
+    gt_point::GTPoint,
     fq12::Fq12,
     params::Params as P,
     rational_function::RationalFunction,
@@ -71,17 +72,18 @@ impl Pairing {
     Pairing { l_bits }
   }
 
-  pub fn weil(&self, p1: &G1Point, p2: &G2Point) -> Fq12 {
+  pub fn weil(&self, p1: &G1Point, p2: &G2Point) -> GTPoint {
     println!("Started Weil pairing");
     println!("Running Miller loop G1-G2...");
 
     let num = self.calc_g1_g2(p1, p2);
     println!("Running Miller loop G2-G1...");
     let deno = self.calc_g2_g1(p2, p1);
-    num * deno.inv()
+    let e = num * deno.inv();
+    GTPoint::new(&e)
   }
 
-  pub fn tate(&self, p1: &G1Point, p2: &G2Point) -> Fq12 {
+  pub fn tate(&self, p1: &G1Point, p2: &G2Point) -> GTPoint {
     println!("Started Tate pairing");
     println!("Running Miller loop G1-G2...");
 
@@ -93,7 +95,8 @@ impl Pairing {
     let q_to_12 = P::base_prime_field().order_ref().pow(P::embedding_degree());
     let r = P::subgroup().order();
     let exp = (q_to_12 - one) / r;
-    intmed.pow(&exp)
+    let e = intmed.pow(&exp);
+    GTPoint::new(&e)
   }
 }
 
@@ -103,7 +106,7 @@ mod tests {
 
   fn test(
     pairing: &Pairing,
-    pair: &dyn Fn(&Pairing, &G1Point, &G2Point) -> Fq12,
+    pair: &dyn Fn(&Pairing, &G1Point, &G2Point) -> GTPoint,
     p1: &G1Point,
     p2: &G2Point,
   ) -> bool {
@@ -120,7 +123,7 @@ mod tests {
   }
 
   fn test_with_generators(
-    pair: &dyn Fn(&Pairing, &G1Point, &G2Point) -> Fq12,
+    pair: &dyn Fn(&Pairing, &G1Point, &G2Point) -> GTPoint,
   ) {
     let pairing = &Pairing::new();
     let p1 = G1Point::g();
@@ -130,7 +133,7 @@ mod tests {
   }
 
   fn test_with_random_points(
-    pair: &dyn Fn(&Pairing, &G1Point, &G2Point) -> Fq12,
+    pair: &dyn Fn(&Pairing, &G1Point, &G2Point) -> GTPoint,
   ) {
     let mut errors = 0;
     let num_tests = 1;
@@ -147,7 +150,8 @@ mod tests {
     assert!(errors == 0);
   }
 
-  fn test_plus_to_mul(pair: &dyn Fn(&Pairing, &G1Point, &G2Point) -> Fq12,
+  fn test_plus_to_mul(
+    pair: &dyn Fn(&Pairing, &G1Point, &G2Point) -> GTPoint,
   ) {
     let pairing = &Pairing::new();
     let one = &G2Point::g();
