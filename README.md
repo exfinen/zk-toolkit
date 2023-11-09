@@ -5,11 +5,14 @@ Cryptographic primitive library built from scratch
 To implement cryptographic primitives in the simplest form without using any optimization
 
 ## What's implemented so far
+- Groth16 zk-SNARK
+  - Proof generation and verification
 - Pinnochio zk-SNARK (protocol 2)
+  - Proof generation and verification
+- Common zk-SNARK compnents
   - Equation parser
   - R1CS
   - QAP
-  - Proof generation and verification
 - BLS12-381 
   - Extension fields
   - Miller's algorithm

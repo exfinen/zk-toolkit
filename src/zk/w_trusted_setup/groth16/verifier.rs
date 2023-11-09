@@ -46,8 +46,8 @@ impl Verifier {
 
     let rhs =
       &crs.gt.alpha_beta
-      + e(&sum_term, &crs.g2.gamma)
-      + e(&proof.C, &crs.g2.delta) 
+      * e(&sum_term, &crs.g2.gamma)
+      * e(&proof.C, &crs.g2.delta) 
       ;
 
     lhs == rhs

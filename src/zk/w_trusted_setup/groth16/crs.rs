@@ -106,7 +106,6 @@ impl CRS {
     let ht_by_delta = {
       let h = &prover.h.eval_at(x);
       let t = &QAP::build_t(f, &prover.n).eval_at(x);
-      let inv_delta = &delta.inv();
       let v = h * t * &delta.inv();
       G1Point::g() * &v
     };
