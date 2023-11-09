@@ -9,7 +9,7 @@ use crate::{
       prime_field_elem::PrimeFieldElem,
     },
   },
-  zk::w_trusted_setup::groth16::prover::Prover,
+  zk::w_trusted_setup::groth16::zktoolkit_based::prover::Prover,
 };
 
 pub struct G1 {

@@ -9,7 +9,7 @@ use crate::{
     field::prime_field::PrimeField,
   },
   zk::w_trusted_setup::{
-    groth16::prover::Prover,
+    groth16::zktoolkit_based::prover::Prover,
     qap::qap::QAP,
   },
 };

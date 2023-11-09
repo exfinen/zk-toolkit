@@ -1,5 +1,2 @@
-pub mod crs;
-pub mod proof;
-pub mod prover;
-pub mod verifier;
-pub mod wires;
+pub mod mcl_based;
+pub mod zktoolkit_based;

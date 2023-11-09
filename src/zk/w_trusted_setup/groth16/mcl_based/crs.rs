@@ -7,7 +7,7 @@ use crate::{
     pairing::Pairing,
     qap::qap::QAP,
   },
-  zk::w_trusted_setup::groth16_mcl::prover::Prover,
+  zk::w_trusted_setup::groth16::mcl_based::prover::Prover,
 };
 
 pub struct G1 {

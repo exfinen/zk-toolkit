@@ -1,20 +1,19 @@
 // Implementation of protocol 2 described on page 5 in https://eprint.iacr.org/2013/279.pdf
 
 use crate::{
-  building_block::{
-    curves::bls12_381::{
-      g1_point::G1Point,
-      g2_point::G2Point,
-      pairing::Pairing,
-    },
-    zero::Zero,
-    field::sparse_vec::SparseVec,
+  building_block::mcl::{
+    mcl_fr::MclFr,
+    mcl_g1::MclG1,
+    mcl_g2::MclG2,
+    mcl_sparse_vec::MclSparseVec,
+    pairing::Pairing,
   },
-  zk::w_trusted_setup::groth16::{
+  zk::w_trusted_setup::groth16::mcl_based::{
     crs::CRS,
     proof::Proof,
   },
 };
+use num_traits::Zero;
 
 pub struct Verifier {
   pairing: Pairing,
@@ -31,16 +30,16 @@ impl Verifier {
     &self,
     proof: &Proof,
     crs: &CRS,
-    stmt_wires: &SparseVec,
+    stmt_wires: &MclSparseVec,
   ) -> bool {
-    let e = |a: &G1Point, b: &G2Point| self.pairing.tate(a, b);
+    let e = |a: &MclG1, b: &MclG2| self.pairing.e(a, b);
 
     println!("--> Verifying Groth16 proof...");
     let lhs = e(&proof.A, &proof.B);
 
-    let mut sum_term = G1Point::zero();
-    for i in 0..stmt_wires.size_in_usize() {
-      let ai = &stmt_wires[&i];
+    let mut sum_term = MclG1::zero();
+    for i in 0..stmt_wires.size.to_usize() {
+      let ai = &stmt_wires[&MclFr::from(i)];
       sum_term += &crs.g1.uvw_stmt[i] * ai;
     }
 
