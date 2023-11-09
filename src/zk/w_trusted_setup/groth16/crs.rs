@@ -21,7 +21,7 @@ pub struct G1 {
   pub xi: Vec<G1Point>,  // x powers
   pub uvw_stmt: Vec<G1Point>,  // beta*u(x) + alpha*v(x) + w(x) / div (statement)
   pub uvw_wit: Vec<G1Point>,   // beta*u(x) + alpha*v(x) + w(x) / div (witness)
-  pub ht_by_delta: G1Point,  // h(x) * t(x) / delta
+  pub xt_by_delta: Vec<G1Point>,
 }
 
 pub struct G2 {
@@ -103,11 +103,16 @@ impl CRS {
 
     let xi_g1 = calc_n_pows!(G1Point, x);
       
-    let ht_by_delta = {
-      let h = &prover.h.eval_at(x);
+    let xt_by_delta = {
       let t = &QAP::build_t(f, &prover.n).eval_at(x);
-      let v = h * t * &delta.inv();
-      G1Point::g() * &v
+      let mut xs = vec![]; 
+
+      let mut x_pow = f.elem(&1u8);
+      for _ in 0..prover.n {
+        xs.push(g * (&x_pow * t * delta.inv()));
+        x_pow = &x_pow * x;
+      } 
+      xs
     };
 
     let g1 = G1 {
@@ -117,7 +122,7 @@ impl CRS {
       xi: xi_g1,    
       uvw_stmt,
       uvw_wit,
-      ht_by_delta,
+      xt_by_delta,
     };
 
     let xi_g2 = calc_n_pows!(G2Point, x);

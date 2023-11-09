@@ -17,7 +17,7 @@ pub struct G1 {
   pub xi: Vec<MclG1>,  // x powers
   pub uvw_stmt: Vec<MclG1>,  // beta*u(x) + alpha*v(x) + w(x) / div (statement)
   pub uvw_wit: Vec<MclG1>,   // beta*u(x) + alpha*v(x) + w(x) / div (witness)
-  pub ht_by_delta: MclG1,  // h(x) * t(x) / delta
+  pub xt_by_delta: Vec<MclG1>,
 }
 
 pub struct G2 {
@@ -98,11 +98,16 @@ impl CRS {
 
     let xi_g1 = calc_n_pows!(MclG1, x);
       
-    let ht_by_delta = {
-      let h = &prover.h.eval_at(x);
+    let xt_by_delta = {
       let t = &QAP::build_t(&prover.n).eval_at(x);
-      let v = h * t * &delta.inv();
-      MclG1::g() * &v
+      let mut xs = vec![]; 
+
+      let mut x_pow = MclFr::from(1);
+      for _ in 0..prover.n.to_usize() {
+        xs.push(g * (&x_pow * t * delta.inv()));
+        x_pow = &x_pow * x;
+      } 
+      xs
     };
 
     let g1 = G1 {
@@ -112,7 +117,7 @@ impl CRS {
       xi: xi_g1,    
       uvw_stmt,
       uvw_wit,
-      ht_by_delta,
+      xt_by_delta,
     };
 
     let xi_g2 = calc_n_pows!(MclG2, x);

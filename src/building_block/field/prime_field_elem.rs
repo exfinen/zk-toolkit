@@ -48,6 +48,9 @@ impl PrimeFieldElem {
     BigUint::zero() == self.e
   }
 
+  pub fn to_usize(&self) -> usize {
+    (&self.e).try_into().unwrap()
+  }
 }
 
 impl fmt::Debug for PrimeFieldElem {

@@ -114,8 +114,11 @@ impl Prover {
         let ai = &self.wires[i];
         sum += &crs.g1.uvw_wit[i - wit_beg] * ai;
       }
+
+      let ht_by_delta = self.h.eval_with_g1_hidings(&crs.g1.xt_by_delta);
+
       sum 
-      + &crs.g1.ht_by_delta
+      + &ht_by_delta
       + &A * s
       + &B_g1 * r
       + -(&crs.g1.delta * r * s)

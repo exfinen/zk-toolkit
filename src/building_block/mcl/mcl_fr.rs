@@ -3,7 +3,13 @@ use std::{
   cmp::Ordering,
   convert::From,
   fmt,
-  ops::{Add, Sub, Mul, Neg},
+  ops::{
+    Add,
+    Sub,
+    Mul,
+    Neg,
+    AddAssign,
+  },
   hash::{Hash, Hasher},
 };
 use num_traits::Zero;
@@ -183,6 +189,12 @@ impl_add!(MclFr, MclFr);
 impl_add!(&MclFr, MclFr);
 impl_add!(MclFr, &MclFr);
 impl_add!(&MclFr, &MclFr);
+
+impl AddAssign<MclFr> for MclFr {
+  fn add_assign(&mut self, rhs: MclFr) {
+    *self = &*self + rhs
+  }
+}
 
 macro_rules! impl_sub {
   ($rhs: ty, $target: ty) => {
