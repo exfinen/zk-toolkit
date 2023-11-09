@@ -6,9 +6,9 @@ To implement cryptographic primitives in the simplest form without using any opt
 
 ## What's implemented so far
 - Groth16 zk-SNARK
-  - Proof generation and verification
+  - An implementation fully based on zk-toolkit
+  - An implementation utilizing BLS12-381 curve of external mcl library
 - Pinnochio zk-SNARK (protocol 2)
-  - Proof generation and verification
 - Common zk-SNARK compnents
   - Equation parser
   - R1CS
@@ -36,4 +36,3 @@ To implement cryptographic primitives in the simplest form without using any opt
 ## What's NOT implemented so far
 - Arbitrary-precision unsigned integer
 - Random number generator
-
