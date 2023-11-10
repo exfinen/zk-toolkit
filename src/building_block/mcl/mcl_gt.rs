@@ -21,6 +21,10 @@ impl MclGT {
     GT::inv(&mut v, &self.v);
     MclGT::from(&v)
   }
+
+  pub fn g() -> Self {
+    MclGT::from(1)
+  }
 }
 
 impl From<i32> for MclGT {
