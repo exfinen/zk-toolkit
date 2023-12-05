@@ -11,10 +11,6 @@ impl GTPoint {
       e: e.clone(),
     }
   }
-
-  pub fn g() -> Self {
-    Fq12::from(1)
-  }
 }
 
 macro_rules! impl_mul {

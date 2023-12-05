@@ -67,7 +67,7 @@ impl CRS {
     let g1_v = &(g1 * r_v);
     let g1_w = &(g1 * r_w);
     let g2_w = &(g2 * r_w);
-    let g_y = &(g1 * r_y);
+    let g1_y = &(g1 * r_y);
 
     // build indices
     let (mid, io) = {
@@ -86,11 +86,11 @@ impl CRS {
     let vk_mid: Vec<G1Point> = mid.iter().map(|i| { g1_v * &p.vi[*i].eval_at(s) }).collect();
     let g1_wk_mid: Vec<G1Point> = mid.iter().map(|i| { g1_w * &p.wi[*i].eval_at(s) }).collect();
     let g2_wk_mid: Vec<G2Point> = mid.iter().map(|i| { g2_w * &p.wi[*i].eval_at(s) }).collect();
-    let yk_mid: Vec<G1Point> = mid.iter().map(|i| { g_y * &p.yi[*i].eval_at(s) }).collect();
+    let yk_mid: Vec<G1Point> = mid.iter().map(|i| { g1_y * &p.yi[*i].eval_at(s) }).collect();
 
     let alpha_vk_mid: Vec<G1Point> = mid.iter().map(|i| { g1_v * alpha_v * &p.vi[*i].eval_at(s) }).collect();
     let alpha_wk_mid: Vec<G1Point> = mid.iter().map(|i| { g1_w * alpha_w * &p.wi[*i].eval_at(s) }).collect();
-    let alpha_yk_mid: Vec<G1Point> = mid.iter().map(|i| { g_y * alpha_y * &p.yi[*i].eval_at(s) }).collect();
+    let alpha_yk_mid: Vec<G1Point> = mid.iter().map(|i| { g1_y * alpha_y * &p.yi[*i].eval_at(s) }).collect();
 
     let s_pows = &s.pow_seq(&p.max_degree);
     let si: Vec<G2Point> = s_pows.iter().map(|pow| { g2 * pow }).collect();
@@ -99,7 +99,7 @@ impl CRS {
       mid.iter().map(|i| {
         g1_v * beta * &p.vi[*i].eval_at(s)
         + g1_w * beta * &p.wi[*i].eval_at(s)
-        + g_y * beta * &p.yi[*i].eval_at(s)
+        + g1_y * beta * &p.yi[*i].eval_at(s)
       }).collect()
     };
 
@@ -113,11 +113,11 @@ impl CRS {
     let gamma_pt = g2 * gamma;
     let beta_gamma = g2 * gamma * beta;
 
-    let t = g_y * p.t.eval_at(s);
+    let t = g1_y * p.t.eval_at(s);
 
     let vk_io: Vec<G1Point> = io.iter().map(|i| { g1_v * &p.vi[*i].eval_at(s) }).collect();
     let wk_io: Vec<G2Point> = io.iter().map(|i| { g2_w * &p.wi[*i].eval_at(s) }).collect();
-    let yk_io: Vec<G1Point> = io.iter().map(|i| { g_y * &p.yi[*i].eval_at(s) }).collect();
+    let yk_io: Vec<G1Point> = io.iter().map(|i| { g1_y * &p.yi[*i].eval_at(s) }).collect();
 
     let ek = EvaluationKeys {
       vk_mid,
