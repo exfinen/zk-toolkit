@@ -111,7 +111,7 @@ impl Prover {
     // h(s) + d_v * w(s) - d_y.
     //
     // randomizing v(s) and y(s) in v(s) * w(s) - y(s), we get:
-    // (v(s) + d_v * t(s)) * w - (y(s) + d_y * t(s)) 
+    // (v(s) + d_v * t(s)) * w(s) - (y(s) + d_y * t(s)) 
     //
     // factoring out t(s), we get the adjusted h(s):
     // = v(s) * w(s)        + d_v * t(s) * w(s) - y(s) - d_y * t(s)
